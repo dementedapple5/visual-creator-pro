@@ -98,6 +98,7 @@ export type Database = {
       }
       thumbnails: {
         Row: {
+          aspect_ratio: string
           avatar_id: string | null
           background_type: string
           background_value: string | null
@@ -113,6 +114,7 @@ export type Database = {
           visual_style: string
         }
         Insert: {
+          aspect_ratio?: string
           avatar_id?: string | null
           background_type: string
           background_value?: string | null
@@ -128,6 +130,7 @@ export type Database = {
           visual_style: string
         }
         Update: {
+          aspect_ratio?: string
           avatar_id?: string | null
           background_type?: string
           background_value?: string | null

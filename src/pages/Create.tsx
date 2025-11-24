@@ -22,6 +22,7 @@ export interface CreateData {
   textStyle?: string;
   backgroundType?: string;
   backgroundValue?: string;
+  aspectRatio?: string;
 }
 
 const Create = () => {
@@ -73,7 +74,7 @@ const Create = () => {
       case 7:
         return <StepBackground data={data} updateData={updateData} onNext={nextStep} onPrev={prevStep} />;
       case 8:
-        return <StepGenerate data={data} onPrev={prevStep} />;
+        return <StepGenerate data={data} updateData={updateData} onPrev={prevStep} />;
       default:
         return null;
     }

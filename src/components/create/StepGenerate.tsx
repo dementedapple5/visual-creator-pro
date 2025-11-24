@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
 import { CreateData } from "@/pages/Create";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,22 +10,25 @@ import { toast } from "sonner";
 
 interface StepGenerateProps {
   data: CreateData;
+  updateData: (updates: Partial<CreateData>) => void;
   onPrev: () => void;
 }
 
-export const StepGenerate = ({ data, onPrev }: StepGenerateProps) => {
+export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) => {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [aspectRatio, setAspectRatio] = useState(data.aspectRatio || "16:9");
 
   const handleGenerate = async () => {
     try {
       setGenerating(true);
+      updateData({ aspectRatio });
 
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
         {
-          body: { thumbnailData: data },
+          body: { thumbnailData: { ...data, aspectRatio } },
         }
       );
 
@@ -61,6 +66,7 @@ export const StepGenerate = ({ data, onPrev }: StepGenerateProps) => {
         text_style: data.textStyle || "",
         background_type: data.backgroundType || "",
         background_value: data.backgroundValue,
+        aspect_ratio: aspectRatio,
         image_url: generatedImage,
       });
 
@@ -81,6 +87,25 @@ export const StepGenerate = ({ data, onPrev }: StepGenerateProps) => {
         <p className="text-muted-foreground">
           Review your selections and generate your thumbnail
         </p>
+      </div>
+
+      {/* Aspect Ratio Selection */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold">Select Aspect Ratio</Label>
+        <RadioGroup value={aspectRatio} onValueChange={setAspectRatio}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="16:9" id="youtube" />
+            <Label htmlFor="youtube" className="cursor-pointer">
+              YouTube (16:9) - Landscape
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="9:16" id="tiktok" />
+            <Label htmlFor="tiktok" className="cursor-pointer">
+              TikTok/Instagram (9:16) - Portrait
+            </Label>
+          </div>
+        </RadioGroup>
       </div>
 
       <div className="bg-card border border-border rounded-lg p-6 space-y-4">
