@@ -182,19 +182,50 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
       )}
 
       {activeTab === "color" && (
-        <div className="grid grid-cols-5 gap-4">
-          {COLORS.map((color) => (
-            <button
-              key={color}
-              onClick={() => handleColorSelect(color)}
-              className={`aspect-square rounded-lg border-2 transition-all hover:scale-110 ${
-                data.backgroundType === "color" && data.backgroundValue === color
-                  ? "border-primary ring-4 ring-primary/20"
-                  : "border-border"
-              }`}
-              style={{ backgroundColor: color }}
-            />
-          ))}
+        <div className="space-y-6">
+          {/* Color Picker */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">Custom Color</h3>
+            <div className="flex items-center gap-4">
+              <input
+                type="color"
+                value={data.backgroundType === "color" && data.backgroundValue?.startsWith("#") ? data.backgroundValue : "#FF6B6B"}
+                onChange={(e) => handleColorSelect(e.target.value)}
+                className="w-20 h-20 rounded-lg cursor-pointer border-2 border-border"
+              />
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  placeholder="#FF6B6B"
+                  value={data.backgroundType === "color" ? data.backgroundValue : ""}
+                  onChange={(e) => handleColorSelect(e.target.value)}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Click the color box or enter a hex color code
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Colors */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">Quick Colors</h3>
+            <div className="grid grid-cols-5 gap-4">
+              {COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => handleColorSelect(color)}
+                  className={`aspect-square rounded-lg border-2 transition-all hover:scale-110 ${
+                    data.backgroundType === "color" && data.backgroundValue === color
+                      ? "border-primary ring-4 ring-primary/20"
+                      : "border-border"
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
