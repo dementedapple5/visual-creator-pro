@@ -61,6 +61,10 @@ serve(async (req) => {
         prompt += `Background: ${thumbnailData.backgroundValue} setting. `;
       } else if (thumbnailData.backgroundType === "color") {
         prompt += `Background: solid ${thumbnailData.backgroundValue} color. `;
+      } else if (thumbnailData.backgroundType === "prompt") {
+        prompt += `Background: ${thumbnailData.backgroundValue}. `;
+      } else if (thumbnailData.backgroundType === "avatar-bg") {
+        prompt += `Keep the original background from the avatar image. `;
       }
     }
 
