@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import Avatars from "./pages/Avatars";
 import CreateNew from "./pages/CreateNew";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -38,6 +39,14 @@ const App = () => (
             element={
               <AppLayout>
                 <Profile />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/avatars"
+            element={
+              <AppLayout>
+                <Avatars />
               </AppLayout>
             }
           />

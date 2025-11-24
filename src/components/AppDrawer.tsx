@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const menuItems = [
-  { icon: User, label: "Profile", path: "/profile" },
   { icon: Home, label: "Dashboard", path: "/dashboard" },
-  { icon: Package, label: "Products", path: "/products" },
   { icon: Sparkles, label: "Create", path: "/create" },
+  { icon: Package, label: "Products", path: "/products" },
+  { icon: User, label: "Avatars", path: "/avatars" },
 ];
 
 export const AppDrawer = () => {
@@ -86,7 +86,18 @@ export const AppDrawer = () => {
             </div>
           </nav>
 
-          <div className="p-2 border-t border-border">
+          <div className="p-2 border-t border-border space-y-0.5">
+            <button
+              onClick={() => handleNavigation("/profile")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                location.pathname === "/profile"
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <User className="w-4 h-4" />
+              <span>Profile</span>
+            </button>
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
