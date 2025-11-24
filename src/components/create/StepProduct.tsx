@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CreateData } from "@/pages/Create";
+import { compressAndConvertToJpg, extractStoragePath } from "@/lib/imageUtils";
 
 interface StepProductProps {
   data: CreateData;
@@ -53,12 +54,15 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Compress and convert to JPG
+      const compressedBlob = await compressAndConvertToJpg(file);
+      const fileName = `${user.id}/${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("products")
-        .upload(fileName, file);
+        .upload(fileName, compressedBlob, {
+          contentType: "image/jpeg",
+        });
 
       if (uploadError) throw uploadError;
 
@@ -100,6 +104,43 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
   const handleSkip = () => {
     updateData({ productIds: [] });
     onNext();
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    try {
+      // Delete from database first
+      const { error: dbError } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", product.id);
+
+      if (dbError) throw dbError;
+
+      // Extract storage path and delete from storage
+      const storagePath = extractStoragePath(product.image_url, "products");
+      if (storagePath) {
+        const { error: storageError } = await supabase.storage
+          .from("products")
+          .remove([storagePath]);
+
+        if (storageError) {
+          console.error("Error deleting from storage:", storageError);
+        }
+      }
+
+      // Remove from selected products if it was selected
+      if (data.productIds?.includes(product.id)) {
+        updateData({ 
+          productIds: data.productIds.filter(id => id !== product.id) 
+        });
+      }
+
+      toast.success("Product deleted");
+      fetchProducts();
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error("Failed to delete product");
+    }
   };
 
   return (
@@ -144,25 +185,37 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
       ) : products.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {products.map((product) => (
-            <div
-              key={product.id}
-              onClick={() => handleSelect(product.id)}
-              className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all relative ${
-                data.productIds?.includes(product.id)
-                  ? "border-primary ring-4 ring-primary/20"
-                  : "border-border hover:border-primary"
-              }`}
-            >
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-              {data.productIds?.includes(product.id) && (
-                <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-                  {data.productIds.indexOf(product.id) + 1}
-                </div>
-              )}
+            <div key={product.id} className="relative group">
+              <div
+                onClick={() => handleSelect(product.id)}
+                className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                  data.productIds?.includes(product.id)
+                    ? "border-primary ring-4 ring-primary/20"
+                    : "border-border hover:border-primary"
+                }`}
+              >
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+                {data.productIds?.includes(product.id) && (
+                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                    {data.productIds.indexOf(product.id) + 1}
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteProduct(product);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
           ))}
         </div>

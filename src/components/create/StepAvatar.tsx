@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { CreateData } from "@/pages/Create";
 import { Video, Camera } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { compressAndConvertToJpg } from "@/lib/imageUtils";
 
 interface StepAvatarProps {
   data: CreateData;
@@ -94,16 +95,19 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
       const response = await fetch(frameUrl);
       const blob = await response.blob();
 
+      // Compress and convert to JPG
+      const compressedBlob = await compressAndConvertToJpg(blob);
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       // Upload to storage
-      const fileName = `avatar-${Date.now()}.png`;
+      const fileName = `avatar-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(`${user.id}/${fileName}`, blob, {
-          contentType: "image/png",
+        .upload(`${user.id}/${fileName}`, compressedBlob, {
+          contentType: "image/jpeg",
           upsert: false,
         });
 
