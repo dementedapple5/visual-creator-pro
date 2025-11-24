@@ -87,20 +87,32 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
   };
 
   const handleSelect = (id: string) => {
-    updateData({ productId: id });
+    const currentIds = data.productIds || [];
+    const isSelected = currentIds.includes(id);
+    
+    if (isSelected) {
+      updateData({ productIds: currentIds.filter(pid => pid !== id) });
+    } else {
+      updateData({ productIds: [...currentIds, id] });
+    }
   };
 
   const handleSkip = () => {
-    updateData({ productId: undefined });
+    updateData({ productIds: [] });
     onNext();
   };
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold mb-2">Add a Product</h2>
+        <h2 className="text-3xl font-bold mb-2">Add Products</h2>
         <p className="text-muted-foreground">
-          Feature a product in your thumbnail (optional)
+          Select one or more products to feature in your thumbnail (optional)
+          {data.productIds && data.productIds.length > 0 && (
+            <span className="ml-2 text-primary font-medium">
+              {data.productIds.length} selected
+            </span>
+          )}
         </p>
       </div>
 
@@ -135,8 +147,8 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
             <div
               key={product.id}
               onClick={() => handleSelect(product.id)}
-              className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-                data.productId === product.id
+              className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all relative ${
+                data.productIds?.includes(product.id)
                   ? "border-primary ring-4 ring-primary/20"
                   : "border-border hover:border-primary"
               }`}
@@ -146,6 +158,11 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
+              {data.productIds?.includes(product.id) && (
+                <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                  {data.productIds.indexOf(product.id) + 1}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -158,7 +175,7 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
         <Button variant="outline" onClick={handleSkip} className="flex-1">
           Skip
         </Button>
-        <Button onClick={onNext} disabled={!data.productId} className="flex-1">
+        <Button onClick={onNext} disabled={!data.productIds || data.productIds.length === 0} className="flex-1">
           Continue
         </Button>
       </div>

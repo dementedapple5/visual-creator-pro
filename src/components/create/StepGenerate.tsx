@@ -60,7 +60,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         title: data.title,
         subtitle: data.subtitle,
         avatar_id: data.avatarId,
-        product_id: data.productId,
+        product_id: data.productIds?.[0],
         expression: data.expression,
         visual_style: data.visualStyle || "",
         text_style: data.textStyle || "",
@@ -115,8 +115,8 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             <span className="ml-2">{data.avatarId ? "Selected" : "None"}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Product:</span>
-            <span className="ml-2">{data.productId ? "Selected" : "None"}</span>
+            <span className="text-muted-foreground">Products:</span>
+            <span className="ml-2">{data.productIds && data.productIds.length > 0 ? `${data.productIds.length} selected` : "None"}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Title:</span>

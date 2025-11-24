@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface ThumbnailData {
   avatarId?: string;
-  productId?: string;
+  productIds?: string[];
   title?: string;
   subtitle?: string;
   expression?: string;
@@ -127,21 +127,25 @@ serve(async (req) => {
       }
     }
 
-    // Add product image
-    if (thumbnailData.productId) {
-      const { data: product } = await supabase
+    // Add product images
+    if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
+      const { data: products } = await supabase
         .from("products")
         .select("image_url")
-        .eq("id", thumbnailData.productId)
-        .single();
+        .in("id", thumbnailData.productIds);
 
-      if (product?.image_url) {
-        const base64Image = await fetchImageAsBase64(product.image_url);
-        contentParts.push({
-          type: "image_url",
-          image_url: { url: base64Image }
-        });
-        prompt += `Include the product from the provided image. `;
+      if (products && products.length > 0) {
+        for (const product of products) {
+          if (product.image_url) {
+            const base64Image = await fetchImageAsBase64(product.image_url);
+            contentParts.push({
+              type: "image_url",
+              image_url: { url: base64Image }
+            });
+          }
+        }
+        const count = products.length;
+        prompt += `Include ${count} product${count > 1 ? 's' : ''} from the provided image${count > 1 ? 's' : ''} prominently in the composition. `;
       }
     }
 

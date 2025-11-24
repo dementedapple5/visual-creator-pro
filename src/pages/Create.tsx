@@ -14,7 +14,7 @@ import { StepGenerate } from "@/components/create/StepGenerate";
 
 export interface CreateData {
   avatarId?: string;
-  productId?: string;
+  productIds?: string[];
   title?: string;
   subtitle?: string;
   expression?: string;
