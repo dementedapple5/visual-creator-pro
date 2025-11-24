@@ -253,7 +253,7 @@ const CreateNew = () => {
       toast.success("Thumbnail generated successfully!");
     } catch (error) {
       console.error("Error generating thumbnail:", error);
-      toast.error("Failed to generate thumbnail");
+      toast.error("Failed to generate thumbnail. Please try again.");
     } finally {
       setGenerating(false);
     }
