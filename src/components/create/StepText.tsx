@@ -56,7 +56,7 @@ export const StepText = ({ data, updateData, onNext, onPrev }: StepTextProps) =>
       </div>
 
       {(data.title || data.subtitle) && (
-        <div className="space-y-6 p-6 bg-card border border-border rounded-lg">
+        <div className="space-y-6 p-6 bg-card border border-border rounded-lg animate-fade-in">
           <h3 className="text-lg font-semibold">Text Customization</h3>
           
           <div>

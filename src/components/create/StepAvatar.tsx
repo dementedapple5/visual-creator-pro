@@ -204,7 +204,7 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
         </div>
 
         {videoUrl && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fade-in">
             <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
               <video
                 ref={videoRef}
@@ -244,7 +244,7 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
             </div>
 
             {capturedFrame && (
-              <div className="border-2 border-primary rounded-lg overflow-hidden max-w-xs">
+              <div className="border-2 border-primary rounded-lg overflow-hidden max-w-xs animate-fade-in">
                 <img
                   src={capturedFrame}
                   alt="Captured frame"
@@ -300,7 +300,7 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
       </div>
 
       {data.avatarId && (
-        <div className="space-y-6 p-6 bg-card border border-border rounded-lg">
+        <div className="space-y-6 p-6 bg-card border border-border rounded-lg animate-fade-in">
           <h3 className="text-lg font-semibold">Avatar Customization</h3>
           
           <div>
