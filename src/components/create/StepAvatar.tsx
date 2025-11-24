@@ -6,6 +6,8 @@ import { CreateData } from "@/pages/Create";
 import { Video, Camera } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { compressAndConvertToJpg } from "@/lib/imageUtils";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface StepAvatarProps {
   data: CreateData;
@@ -55,7 +57,11 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
   };
 
   const handleSkip = () => {
-    updateData({ avatarId: undefined });
+    updateData({ 
+      avatarId: undefined,
+      avatarPosition: undefined,
+      avatarImportance: undefined
+    });
     onNext();
   };
 
@@ -292,6 +298,53 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
           </div>
         )}
       </div>
+
+      {data.avatarId && (
+        <div className="space-y-6 p-6 bg-card border border-border rounded-lg">
+          <h3 className="text-lg font-semibold">Avatar Customization</h3>
+          
+          <div>
+            <Label htmlFor="avatar-position">Position</Label>
+            <Select 
+              value={data.avatarPosition || "center"} 
+              onValueChange={(value) => updateData({ avatarPosition: value })}
+            >
+              <SelectTrigger id="avatar-position">
+                <SelectValue placeholder="Select position" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top-left">Top Left</SelectItem>
+                <SelectItem value="top-center">Top Center</SelectItem>
+                <SelectItem value="top-right">Top Right</SelectItem>
+                <SelectItem value="center-left">Center Left</SelectItem>
+                <SelectItem value="center">Center</SelectItem>
+                <SelectItem value="center-right">Center Right</SelectItem>
+                <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                <SelectItem value="bottom-right">Bottom Right</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="avatar-importance">
+              Importance Level: {data.avatarImportance || 3}
+            </Label>
+            <Slider
+              id="avatar-importance"
+              min={1}
+              max={5}
+              step={1}
+              value={[data.avatarImportance || 3]}
+              onValueChange={([value]) => updateData({ avatarImportance: value })}
+              className="mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Higher importance = more space in the thumbnail
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-4 pt-8">
         <Button variant="outline" onClick={handleSkip} className="flex-1">

@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreateData } from "@/pages/Create";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 interface StepTextProps {
   data: CreateData;
@@ -12,7 +14,12 @@ interface StepTextProps {
 
 export const StepText = ({ data, updateData, onNext, onPrev }: StepTextProps) => {
   const handleSkip = () => {
-    updateData({ title: undefined, subtitle: undefined });
+    updateData({ 
+      title: undefined, 
+      subtitle: undefined,
+      textPosition: undefined,
+      textImportance: undefined
+    });
     onNext();
   };
 
@@ -47,6 +54,53 @@ export const StepText = ({ data, updateData, onNext, onPrev }: StepTextProps) =>
           />
         </div>
       </div>
+
+      {(data.title || data.subtitle) && (
+        <div className="space-y-6 p-6 bg-card border border-border rounded-lg">
+          <h3 className="text-lg font-semibold">Text Customization</h3>
+          
+          <div>
+            <Label htmlFor="text-position">Position</Label>
+            <Select 
+              value={data.textPosition || "center"} 
+              onValueChange={(value) => updateData({ textPosition: value })}
+            >
+              <SelectTrigger id="text-position">
+                <SelectValue placeholder="Select position" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top-left">Top Left</SelectItem>
+                <SelectItem value="top-center">Top Center</SelectItem>
+                <SelectItem value="top-right">Top Right</SelectItem>
+                <SelectItem value="center-left">Center Left</SelectItem>
+                <SelectItem value="center">Center</SelectItem>
+                <SelectItem value="center-right">Center Right</SelectItem>
+                <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                <SelectItem value="bottom-right">Bottom Right</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="text-importance">
+              Importance Level: {data.textImportance || 3}
+            </Label>
+            <Slider
+              id="text-importance"
+              min={1}
+              max={5}
+              step={1}
+              value={[data.textImportance || 3]}
+              onValueChange={([value]) => updateData({ textImportance: value })}
+              className="mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Higher importance = more space in the thumbnail
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-4 pt-8">
         <Button variant="outline" onClick={onPrev}>

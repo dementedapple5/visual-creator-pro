@@ -15,9 +15,15 @@ import { StepGenerate } from "@/components/create/StepGenerate";
 export interface CreateData {
   avatarId?: string;
   capturedFrameUrl?: string;
+  avatarPosition?: string;
+  avatarImportance?: number;
   productIds?: string[];
+  productPosition?: string;
+  productImportance?: number;
   title?: string;
   subtitle?: string;
+  textPosition?: string;
+  textImportance?: number;
   expression?: string;
   visualStyle?: string;
   textStyle?: string;
