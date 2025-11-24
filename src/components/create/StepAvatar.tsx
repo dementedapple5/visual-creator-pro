@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CreateData } from "@/pages/Create";
+import { Video, Camera } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 
 interface StepAvatarProps {
   data: CreateData;
@@ -18,6 +20,13 @@ interface Avatar {
 export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [loading, setLoading] = useState(true);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string>("");
+  const [capturedFrame, setCapturedFrame] = useState<string>("");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAvatars();
@@ -49,55 +58,198 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
     onNext();
   };
 
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("video/")) {
+        toast.error("Please upload a video file");
+        return;
+      }
+      setVideoFile(file);
+      const url = URL.createObjectURL(file);
+      setVideoUrl(url);
+      setCapturedFrame("");
+      updateData({ avatarId: undefined });
+    }
+  };
+
+  const handleCaptureFrame = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const frameUrl = canvas.toDataURL("image/png");
+    setCapturedFrame(frameUrl);
+    updateData({ avatarId: "video-frame" });
+    toast.success("Frame captured successfully!");
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = (value[0] / 100) * videoRef.current.duration;
+    }
+  };
+
+  const togglePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (videoUrl) {
+        URL.revokeObjectURL(videoUrl);
+      }
+    };
+  }, [videoUrl]);
+
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold mb-2">Select Your Avatar</h2>
         <p className="text-muted-foreground">
-          Choose an avatar to feature in your thumbnail (optional)
+          Choose an avatar or extract a frame from a video (optional)
         </p>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
-          ))}
-        </div>
-      ) : avatars.length === 0 ? (
-        <div className="text-center py-12 border border-border rounded-lg">
-          <p className="text-muted-foreground mb-4">No avatars uploaded yet</p>
-          <Button variant="outline" onClick={() => window.location.href = "/profile"}>
-            Upload Avatars
+      {/* Video Upload Section */}
+      <div className="border border-border rounded-lg p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Video className="w-5 h-5" />
+            Extract Frame from Video
+          </h3>
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            size="sm"
+          >
+            Upload Video
           </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleVideoUpload}
+            className="hidden"
+          />
         </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {avatars.map((avatar) => (
-            <div
-              key={avatar.id}
-              onClick={() => handleSelect(avatar.id)}
-              className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-                data.avatarId === avatar.id
-                  ? "border-primary ring-4 ring-primary/20"
-                  : "border-border hover:border-primary"
-              }`}
-            >
-              <img
-                src={avatar.image_url}
-                alt="Avatar"
-                className="w-full h-full object-cover"
+
+        {videoUrl && (
+          <div className="space-y-4">
+            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                className="w-full h-full object-contain"
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={togglePlayPause}
+                  className="flex-1"
+                >
+                  {isPlaying ? "Pause" : "Play"}
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleCaptureFrame}
+                  className="flex-1"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Capture Frame
+                </Button>
+              </div>
+              <Slider
+                min={0}
+                max={100}
+                step={0.1}
+                onValueChange={handleSeek}
+                className="w-full"
               />
             </div>
-          ))}
-        </div>
-      )}
+
+            {capturedFrame && (
+              <div className="border-2 border-primary rounded-lg overflow-hidden">
+                <img
+                  src={capturedFrame}
+                  alt="Captured frame"
+                  className="w-full h-auto"
+                />
+                <div className="bg-primary/10 px-4 py-2 text-center text-sm font-medium">
+                  Frame captured - This will be used as your avatar
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Existing Avatars Section */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Or Choose from Your Avatars</h3>
+
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
+            ))}
+          </div>
+        ) : avatars.length === 0 ? (
+          <div className="text-center py-8 border border-border rounded-lg">
+            <p className="text-muted-foreground text-sm">No avatars uploaded yet</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {avatars.map((avatar) => (
+              <div
+                key={avatar.id}
+                onClick={() => {
+                  handleSelect(avatar.id);
+                  setCapturedFrame("");
+                }}
+                className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                  data.avatarId === avatar.id && !capturedFrame
+                    ? "border-primary ring-4 ring-primary/20"
+                    : "border-border hover:border-primary"
+                }`}
+              >
+                <img
+                  src={avatar.image_url}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-4 pt-8">
         <Button variant="outline" onClick={handleSkip} className="flex-1">
           Skip
         </Button>
-        <Button onClick={onNext} disabled={!data.avatarId} className="flex-1">
+        <Button onClick={onNext} disabled={!data.avatarId && !capturedFrame} className="flex-1">
           Continue
         </Button>
       </div>
