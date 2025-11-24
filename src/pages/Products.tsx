@@ -160,26 +160,16 @@ const Products = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <h1 className="text-2xl font-bold">Products</h1>
-            </div>
-            <Button onClick={() => setShowDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
-          </div>
+    <div className="min-h-screen">
+      <main className="container mx-auto px-6 py-12 pl-20">
+        <div className="mb-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Products</h1>
+          <Button onClick={() => setShowDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Product
+          </Button>
         </div>
-      </header>
 
-      <main className="container mx-auto px-6 py-12">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (

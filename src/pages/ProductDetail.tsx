@@ -159,25 +159,18 @@ const ProductDetail = () => {
   if (!product) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate("/products")}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </div>
-            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Product
-            </Button>
-          </div>
+    <div className="min-h-screen">
+      <main className="container mx-auto px-6 py-12 pl-20 max-w-6xl space-y-8">
+        <div className="flex justify-between items-center">
+          <Button variant="ghost" onClick={() => navigate("/products")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Products
+          </Button>
+          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Product
+          </Button>
         </div>
-      </header>
-
-      <main className="container mx-auto px-6 py-12 max-w-6xl space-y-8">
         {/* Product Details */}
         <div className="space-y-4">
           <div>

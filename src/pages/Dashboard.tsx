@@ -52,32 +52,9 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="border-b backdrop-blur-lg bg-glass-bg/80 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">ThumbnailCraft</h1>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => navigate("/products")} className="rounded-full backdrop-blur-sm hover:scale-105 transition-transform">
-                <Package className="w-4 h-4 mr-2" />
-                Products
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/profile")} className="rounded-full backdrop-blur-sm hover:scale-105 transition-transform">
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </Button>
-              <Button variant="outline" onClick={handleSignOut} className="rounded-full backdrop-blur-sm hover:scale-105 transition-transform">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen">
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-12 animate-fade-in">
+      <main className="container mx-auto px-6 py-12 pl-20 animate-fade-in">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold mb-2">Your Thumbnails</h2>
