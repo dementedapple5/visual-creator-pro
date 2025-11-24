@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Upload } from "lucide-react";
 import { CreateData } from "@/pages/Create";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,14 +24,63 @@ const PRESET_BACKGROUNDS = [
   { id: "abstract", label: "Abstract" },
 ];
 
-const COLORS = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", 
-  "#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B739", "#52B788"
-];
+// Helper functions for color conversion
+const hslToHex = (h: number, s: number, l: number): string => {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+};
+
+const hexToHsl = (hex: string): { h: number; s: number; l: number } => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return { h: 0, s: 100, l: 50 };
+  
+  let r = parseInt(result[1], 16) / 255;
+  let g = parseInt(result[2], 16) / 255;
+  let b = parseInt(result[3], 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+};
 
 export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgroundProps) => {
   const [activeTab, setActiveTab] = useState<"preset" | "color" | "custom">("preset");
   const [uploading, setUploading] = useState(false);
+  
+  // Initialize HSL from existing color or default
+  const initialHsl = data.backgroundType === "color" && data.backgroundValue 
+    ? hexToHsl(data.backgroundValue) 
+    : { h: 313, s: 93, l: 51 };
+  
+  const [hue, setHue] = useState(initialHsl.h);
+  const [saturation, setSaturation] = useState(initialHsl.s);
+  const [lightness, setLightness] = useState(initialHsl.l);
+
+  const handleHslChange = (h: number, s: number, l: number) => {
+    setHue(h);
+    setSaturation(s);
+    setLightness(l);
+    const hexColor = hslToHex(h, s, l);
+    updateData({ backgroundType: "color", backgroundValue: hexColor });
+  };
 
   const handlePresetSelect = (preset: string) => {
     updateData({ backgroundType: "preset", backgroundValue: preset });
@@ -44,6 +95,10 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
   };
 
   const handleColorSelect = (color: string) => {
+    const hsl = hexToHsl(color);
+    setHue(hsl.h);
+    setSaturation(hsl.s);
+    setLightness(hsl.l);
     updateData({ backgroundType: "color", backgroundValue: color });
   };
 
@@ -183,47 +238,86 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
 
       {activeTab === "color" && (
         <div className="space-y-6">
-          {/* Color Picker */}
-          <div>
-            <h3 className="text-sm font-medium mb-3">Custom Color</h3>
-            <div className="flex items-center gap-4">
-              <input
-                type="color"
-                value={data.backgroundType === "color" && data.backgroundValue?.startsWith("#") ? data.backgroundValue : "#FF6B6B"}
-                onChange={(e) => handleColorSelect(e.target.value)}
-                className="w-20 h-20 rounded-lg cursor-pointer border-2 border-border"
-              />
-              <div className="flex-1">
-                <Input
-                  type="text"
-                  placeholder="#FF6B6B"
-                  value={data.backgroundType === "color" ? data.backgroundValue : ""}
-                  onChange={(e) => handleColorSelect(e.target.value)}
-                  className="font-mono"
+          <div className="flex gap-6">
+            {/* Color Preview */}
+            <div 
+              className="w-32 h-32 rounded-lg border-2 border-border flex-shrink-0"
+              style={{ backgroundColor: hslToHex(hue, saturation, lightness) }}
+            />
+            
+            {/* HSL Sliders */}
+            <div className="flex-1 space-y-6">
+              {/* Hue Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Hue</Label>
+                  <span className="text-sm font-mono">{hue}</span>
+                </div>
+                <Slider
+                  value={[hue]}
+                  onValueChange={([v]) => handleHslChange(v, saturation, lightness)}
+                  min={0}
+                  max={360}
+                  step={1}
+                  className="[&>span]:bg-gradient-to-r [&>span]:from-red-500 [&>span]:via-yellow-500 [&>span]:via-green-500 [&>span]:via-cyan-500 [&>span]:via-blue-500 [&>span]:via-purple-500 [&>span]:to-red-500"
                 />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Click the color box or enter a hex color code
-                </p>
+              </div>
+
+              {/* Saturation Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Saturation</Label>
+                  <span className="text-sm font-mono">{saturation}%</span>
+                </div>
+                <Slider
+                  value={[saturation]}
+                  onValueChange={([v]) => handleHslChange(hue, v, lightness)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  style={{
+                    background: `linear-gradient(to right, hsl(${hue}, 0%, ${lightness}%), hsl(${hue}, 100%, ${lightness}%))`
+                  }}
+                />
+              </div>
+
+              {/* Lightness Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Lightness</Label>
+                  <span className="text-sm font-mono">{lightness}%</span>
+                </div>
+                <Slider
+                  value={[lightness]}
+                  onValueChange={([v]) => handleHslChange(hue, saturation, v)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  style={{
+                    background: `linear-gradient(to right, hsl(${hue}, ${saturation}%, 0%), hsl(${hue}, ${saturation}%, 50%), hsl(${hue}, ${saturation}%, 100%))`
+                  }}
+                />
               </div>
             </div>
           </div>
 
-          {/* Quick Colors */}
-          <div>
-            <h3 className="text-sm font-medium mb-3">Quick Colors</h3>
-            <div className="grid grid-cols-5 gap-4">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => handleColorSelect(color)}
-                  className={`aspect-square rounded-lg border-2 transition-all hover:scale-110 ${
-                    data.backgroundType === "color" && data.backgroundValue === color
-                      ? "border-primary ring-4 ring-primary/20"
-                      : "border-border"
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
+          {/* Color Values Display */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">HEX</Label>
+              <Input
+                value={hslToHex(hue, saturation, lightness)}
+                onChange={(e) => handleColorSelect(e.target.value)}
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">HSLA</Label>
+              <Input
+                value={`hsla(${hue} ${saturation}% ${lightness}% / 1)`}
+                readOnly
+                className="font-mono"
+              />
             </div>
           </div>
         </div>
