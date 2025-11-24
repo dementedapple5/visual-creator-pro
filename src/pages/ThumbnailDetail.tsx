@@ -33,10 +33,24 @@ interface Thumbnail {
   created_at: string;
 }
 
+interface Avatar {
+  id: string;
+  image_url: string;
+}
+
+interface Product {
+  id: string;
+  title: string;
+  brand: string;
+  images: { image_url: string }[];
+}
+
 const ThumbnailDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [thumbnail, setThumbnail] = useState<Thumbnail | null>(null);
+  const [avatar, setAvatar] = useState<Avatar | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [iterating, setIterating] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -64,6 +78,37 @@ const ThumbnailDetail = () => {
 
       if (error) throw error;
       setThumbnail(data);
+
+      // Fetch avatar if exists
+      if (data.avatar_id) {
+        const { data: avatarData, error: avatarError } = await supabase
+          .from("avatars")
+          .select("id, image_url")
+          .eq("id", data.avatar_id)
+          .single();
+
+        if (!avatarError && avatarData) {
+          setAvatar(avatarData);
+        }
+      }
+
+      // Fetch product if exists
+      if (data.product_id) {
+        const { data: productData, error: productError } = await supabase
+          .from("products")
+          .select(`
+            id,
+            title,
+            brand,
+            images:product_images(image_url)
+          `)
+          .eq("id", data.product_id)
+          .single();
+
+        if (!productError && productData) {
+          setProduct(productData as Product);
+        }
+      }
     } catch (error) {
       console.error("Error fetching thumbnail:", error);
       toast.error("Failed to load thumbnail");
@@ -261,7 +306,7 @@ const ThumbnailDetail = () => {
               </Button>
             </div>
 
-            <div className="rounded-lg border border-border bg-card p-6 space-y-2">
+            <div className="rounded-lg border border-border bg-card p-6 space-y-4">
               <h3 className="font-semibold">Current Settings</h3>
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p><span className="font-medium">Visual Style:</span> {thumbnail.visual_style}</p>
@@ -271,6 +316,47 @@ const ThumbnailDetail = () => {
                   <p><span className="font-medium">Expression:</span> {thumbnail.expression}</p>
                 )}
               </div>
+
+              {/* Avatar Section */}
+              {avatar && (
+                <div className="pt-4 border-t border-border">
+                  <h4 className="font-medium mb-2">Avatar Used</h4>
+                  <div className="w-24 h-24 rounded-lg overflow-hidden border border-border">
+                    <img
+                      src={avatar.image_url}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Product Section */}
+              {product && (
+                <div className="pt-4 border-t border-border">
+                  <h4 className="font-medium mb-2">Product Used</h4>
+                  <button
+                    onClick={() => navigate(`/products/${product.id}`)}
+                    className="w-full text-left rounded-lg border border-border p-3 hover:bg-accent transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      {product.images?.[0] && (
+                        <div className="w-16 h-16 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                          <img
+                            src={product.images[0].image_url}
+                            alt={product.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{product.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{product.brand}</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
