@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,17 @@ import { Loader2 } from "lucide-react";
 import { CreateData } from "@/pages/Create";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface Avatar {
+  id: string;
+  image_url: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  image_url: string;
+}
 
 interface StepGenerateProps {
   data: CreateData;
@@ -19,6 +30,43 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState(data.aspectRatio || "16:9");
+  const [avatarData, setAvatarData] = useState<Avatar | null>(null);
+  const [productData, setProductData] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch avatar if selected
+        if (data.avatarId && data.avatarId !== "video-frame") {
+          const { data: avatar, error } = await supabase
+            .from("avatars")
+            .select("*")
+            .eq("id", data.avatarId)
+            .single();
+          
+          if (!error && avatar) {
+            setAvatarData(avatar);
+          }
+        }
+
+        // Fetch products if selected
+        if (data.productIds && data.productIds.length > 0) {
+          const { data: products, error } = await supabase
+            .from("products")
+            .select("*")
+            .in("id", data.productIds);
+          
+          if (!error && products) {
+            setProductData(products);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, [data.avatarId, data.productIds]);
 
   const handleGenerate = async () => {
     try {
@@ -108,35 +156,80 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         </RadioGroup>
       </div>
 
-      <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Avatar:</span>
-            <span className="ml-2">{data.avatarId ? "Selected" : "None"}</span>
+      <div className="bg-card border border-border rounded-lg p-6 space-y-6">
+        {/* Images Section */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Avatar Preview */}
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-muted-foreground">Avatar:</span>
+            {avatarData ? (
+              <div className="aspect-square rounded-lg overflow-hidden border border-border">
+                <img
+                  src={avatarData.image_url}
+                  alt="Selected avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : data.avatarId === "video-frame" ? (
+              <div className="aspect-square rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                <span className="text-sm text-muted-foreground">Video frame</span>
+              </div>
+            ) : (
+              <div className="aspect-square rounded-lg overflow-hidden border border-dashed border-border bg-muted flex items-center justify-center">
+                <span className="text-sm text-muted-foreground">No avatar</span>
+              </div>
+            )}
           </div>
-          <div>
-            <span className="text-muted-foreground">Products:</span>
-            <span className="ml-2">{data.productIds && data.productIds.length > 0 ? `${data.productIds.length} selected` : "None"}</span>
+
+          {/* Products Preview */}
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              Products: {productData.length > 0 ? `${productData.length} selected` : "None"}
+            </span>
+            {productData.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {productData.map((product) => (
+                  <div
+                    key={product.id}
+                    className="aspect-square rounded-lg overflow-hidden border border-border"
+                  >
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="aspect-square rounded-lg overflow-hidden border border-dashed border-border bg-muted flex items-center justify-center">
+                <span className="text-sm text-muted-foreground">No products</span>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Text Details */}
+        <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-border">
           <div>
             <span className="text-muted-foreground">Title:</span>
-            <span className="ml-2">{data.title || "None"}</span>
+            <span className="ml-2 font-medium">{data.title || "None"}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Expression:</span>
-            <span className="ml-2">{data.expression || "Default"}</span>
+            <span className="ml-2 font-medium">{data.expression || "Default"}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Visual Style:</span>
-            <span className="ml-2">{data.visualStyle || "Default"}</span>
+            <span className="ml-2 font-medium">{data.visualStyle || "Default"}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Text Style:</span>
-            <span className="ml-2">{data.textStyle || "Default"}</span>
+            <span className="ml-2 font-medium">{data.textStyle || "Default"}</span>
           </div>
-          <div>
+          <div className="col-span-2">
             <span className="text-muted-foreground">Background:</span>
-            <span className="ml-2">{data.backgroundValue || "None"}</span>
+            <span className="ml-2 font-medium">{data.backgroundValue || "None"}</span>
           </div>
         </div>
       </div>
