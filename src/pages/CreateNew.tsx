@@ -52,6 +52,7 @@ const VISUAL_STYLES = [
   "Professional & Clean",
   "Cinematic",
   "3D Rendered",
+  "Custom",
 ];
 
 const TEXT_STYLES = [
@@ -61,6 +62,7 @@ const TEXT_STYLES = [
   "Handwritten",
   "Futuristic",
   "Classic Serif",
+  "Custom",
 ];
 
 const EXPRESSIONS = [
@@ -70,6 +72,7 @@ const EXPRESSIONS = [
   { id: "serious", label: "Serious" },
   { id: "confident", label: "Confident" },
   { id: "thinking", label: "Thinking" },
+  { id: "custom", label: "Custom" },
 ];
 
 const CreateNew = () => {
@@ -89,6 +92,7 @@ const CreateNew = () => {
   const [selectedAvatar, setSelectedAvatar] = useState<string>("");
   const [avatarPosition, setAvatarPosition] = useState<string>("center");
   const [expression, setExpression] = useState<string>("happy");
+  const [customExpression, setCustomExpression] = useState<string>("");
   
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productPosition, setProductPosition] = useState<string>("center-right");
@@ -97,8 +101,10 @@ const CreateNew = () => {
   const [subtitle, setSubtitle] = useState<string>("");
   const [textPosition, setTextPosition] = useState<string>("top-center");
   const [textStyle, setTextStyle] = useState<string>("Bold & Large");
+  const [customTextStyle, setCustomTextStyle] = useState<string>("");
   
   const [visualStyle, setVisualStyle] = useState<string>("Modern & Minimalist");
+  const [customVisualStyle, setCustomVisualStyle] = useState<string>("");
   const [backgroundType, setBackgroundType] = useState<string>("gradient");
   const [backgroundValue, setBackgroundValue] = useState<string>("#FF6B9D,#C239B3");
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>("");
@@ -212,14 +218,14 @@ const CreateNew = () => {
             thumbnailData: {
               avatarId: selectedAvatar || undefined,
               avatarPosition,
-              expression: selectedAvatar ? expression : undefined,
+              expression: selectedAvatar ? (expression === "custom" ? customExpression : expression) : undefined,
               productIds: selectedProducts.length > 0 ? selectedProducts : undefined,
               productPosition,
               title: title || undefined,
               subtitle: subtitle || undefined,
               textPosition,
-              textStyle,
-              visualStyle,
+              textStyle: textStyle === "Custom" ? customTextStyle : textStyle,
+              visualStyle: visualStyle === "Custom" ? customVisualStyle : visualStyle,
               backgroundType,
               backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
               aspectRatio,
@@ -297,14 +303,14 @@ const CreateNew = () => {
             thumbnailData: {
               avatarId: selectedAvatar || undefined,
               avatarPosition,
-              expression: selectedAvatar ? expression : undefined,
+              expression: selectedAvatar ? (expression === "custom" ? customExpression : expression) : undefined,
               productIds: selectedProducts.length > 0 ? selectedProducts : undefined,
               productPosition,
               title: title || undefined,
               subtitle: subtitle || undefined,
               textPosition,
-              textStyle,
-              visualStyle,
+              textStyle: textStyle === "Custom" ? customTextStyle : textStyle,
+              visualStyle: visualStyle === "Custom" ? customVisualStyle : visualStyle,
               backgroundType,
               backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
               aspectRatio,
@@ -518,6 +524,17 @@ const CreateNew = () => {
                         </Select>
                       </div>
 
+                      {expression === "custom" && (
+                        <div className="space-y-2">
+                          <Label>Custom Expression</Label>
+                          <Input
+                            placeholder="e.g., thoughtful, energetic, mysterious..."
+                            value={customExpression}
+                            onChange={(e) => setCustomExpression(e.target.value)}
+                          />
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <Label>Position</Label>
                         <Select value={avatarPosition} onValueChange={setAvatarPosition}>
@@ -657,6 +674,17 @@ const CreateNew = () => {
                 </Select>
               </div>
 
+              {textStyle === "Custom" && (
+                <div className="space-y-2">
+                  <Label>Custom Text Style</Label>
+                  <Input
+                    placeholder="e.g., graffiti style, neon glow, 3D effect..."
+                    value={customTextStyle}
+                    onChange={(e) => setCustomTextStyle(e.target.value)}
+                  />
+                </div>
+              )}
+
               {(title || subtitle) && (
                 <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
                   <div className="space-y-2">
@@ -702,6 +730,17 @@ const CreateNew = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {visualStyle === "Custom" && (
+                <div className="space-y-2">
+                  <Label>Custom Visual Style</Label>
+                  <Input
+                    placeholder="e.g., cyberpunk aesthetic, watercolor painting, retro 80s..."
+                    value={customVisualStyle}
+                    onChange={(e) => setCustomVisualStyle(e.target.value)}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Background</Label>
