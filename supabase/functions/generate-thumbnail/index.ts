@@ -10,14 +10,11 @@ const corsHeaders = {
 interface ThumbnailData {
   avatarId?: string;
   avatarPosition?: string;
-  avatarImportance?: number;
   productIds?: string[];
   productPosition?: string;
-  productImportance?: number;
   title?: string;
   subtitle?: string;
   textPosition?: string;
-  textImportance?: number;
   expression?: string;
   visualStyle?: string;
   textStyle?: string;
@@ -98,18 +95,6 @@ serve(async (req) => {
       if (thumbnailData.textPosition) {
         prompt += `Position the text at ${thumbnailData.textPosition.replace('-', ' ')}. `;
       }
-
-      // Add text importance
-      if (thumbnailData.textImportance) {
-        const sizeDescriptions: Record<number, string> = {
-          1: "very small and subtle",
-          2: "small",
-          3: "medium",
-          4: "large and prominent",
-          5: "very large and dominant"
-        };
-        prompt += `Make the text ${sizeDescriptions[thumbnailData.textImportance] || 'medium'} size. `;
-      }
     }
 
     // Expression for avatar
@@ -117,38 +102,14 @@ serve(async (req) => {
       prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
     }
 
-    // Avatar positioning and importance
-    if (thumbnailData.avatarId) {
-      if (thumbnailData.avatarPosition) {
-        prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
-      }
-      if (thumbnailData.avatarImportance) {
-        const sizeDescriptions: Record<number, string> = {
-          1: "very small",
-          2: "small",
-          3: "medium",
-          4: "large",
-          5: "very large and focal"
-        };
-        prompt += `Make the avatar ${sizeDescriptions[thumbnailData.avatarImportance] || 'medium'} in the composition. `;
-      }
+    // Avatar positioning
+    if (thumbnailData.avatarId && thumbnailData.avatarPosition) {
+      prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
     }
 
-    // Product positioning and importance
-    if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
-      if (thumbnailData.productPosition) {
-        prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
-      }
-      if (thumbnailData.productImportance) {
-        const sizeDescriptions: Record<number, string> = {
-          1: "very small",
-          2: "small",
-          3: "medium",
-          4: "large and prominent",
-          5: "very large and featured"
-        };
-        prompt += `Make the product(s) ${sizeDescriptions[thumbnailData.productImportance] || 'medium'} in size. `;
-      }
+    // Product positioning
+    if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
+      prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
     }
 
     // Iteration prompt for refinement

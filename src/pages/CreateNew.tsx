@@ -67,6 +67,7 @@ const EXPRESSIONS = [
 const CreateNew = () => {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
+  const [generatedThumbnails, setGeneratedThumbnails] = useState<string[]>([]);
   
   // Data states
   const [avatars, setAvatars] = useState<Avatar[]>([]);
@@ -75,17 +76,14 @@ const CreateNew = () => {
   // Form states
   const [selectedAvatar, setSelectedAvatar] = useState<string>("");
   const [avatarPosition, setAvatarPosition] = useState<string>("center");
-  const [avatarImportance, setAvatarImportance] = useState<number>(3);
   const [expression, setExpression] = useState<string>("happy");
   
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productPosition, setProductPosition] = useState<string>("center-right");
-  const [productImportance, setProductImportance] = useState<number>(3);
   
   const [title, setTitle] = useState<string>("");
   const [subtitle, setSubtitle] = useState<string>("");
   const [textPosition, setTextPosition] = useState<string>("top-center");
-  const [textImportance, setTextImportance] = useState<number>(3);
   const [textStyle, setTextStyle] = useState<string>("Bold & Large");
   
   const [visualStyle, setVisualStyle] = useState<string>("Modern & Minimalist");
@@ -202,15 +200,12 @@ const CreateNew = () => {
             thumbnailData: {
               avatarId: selectedAvatar || undefined,
               avatarPosition,
-              avatarImportance,
               expression: selectedAvatar ? expression : undefined,
               productIds: selectedProducts.length > 0 ? selectedProducts : undefined,
               productPosition,
-              productImportance,
               title: title || undefined,
               subtitle: subtitle || undefined,
               textPosition,
-              textImportance,
               textStyle,
               visualStyle,
               backgroundType,
@@ -233,15 +228,15 @@ const CreateNew = () => {
           image_url: imageUrl,
           avatar_id: selectedAvatar || null,
           avatar_position: avatarPosition,
-          avatar_importance: avatarImportance,
+          avatar_importance: null,
           expression: selectedAvatar ? expression : null,
           product_id: selectedProducts[0] || null,
           product_position: productPosition,
-          product_importance: productImportance,
+          product_importance: null,
           title: title || null,
           subtitle: subtitle || null,
           text_position: textPosition,
-          text_importance: textImportance,
+          text_importance: null,
           text_style: textStyle,
           visual_style: visualStyle,
           background_type: backgroundType,
@@ -253,8 +248,9 @@ const CreateNew = () => {
 
       if (insertError) throw insertError;
 
+      // Add to gallery instead of navigating
+      setGeneratedThumbnails(prev => [imageUrl, ...prev]);
       toast.success("Thumbnail generated successfully!");
-      navigate(`/thumbnail/${thumbnail.id}`);
     } catch (error) {
       console.error("Error generating thumbnail:", error);
       toast.error("Failed to generate thumbnail");
@@ -266,15 +262,45 @@ const CreateNew = () => {
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* Main Canvas Area */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-4xl aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden">
-          <div className="text-center">
-            <Sparkles className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Preview will appear here
-            </p>
-          </div>
+      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
+        <div className={`w-full max-w-4xl aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden ${generating ? 'animate-pulse' : ''}`}>
+          {generatedThumbnails.length > 0 && !generating ? (
+            <img 
+              src={generatedThumbnails[0]} 
+              alt="Latest generated thumbnail" 
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <div className="text-center">
+              <Sparkles className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {generating ? "Generating thumbnail..." : "Preview will appear here"}
+              </p>
+            </div>
+          )}
         </div>
+        
+        {/* Gallery View */}
+        {generatedThumbnails.length > 0 && (
+          <div className="w-full max-w-4xl">
+            <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Generated Thumbnails</h3>
+            <div className="grid grid-cols-4 gap-4">
+              {generatedThumbnails.map((url, index) => (
+                <div
+                  key={index}
+                  className="aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-all cursor-pointer"
+                  onClick={() => window.open(url, '_blank')}
+                >
+                  <img 
+                    src={url} 
+                    alt={`Generated thumbnail ${index + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Sidebar with Controls */}
@@ -351,17 +377,6 @@ const CreateNew = () => {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label>Importance: {avatarImportance}</Label>
-                        <Slider
-                          value={[avatarImportance]}
-                          onValueChange={([value]) => setAvatarImportance(value)}
-                          min={1}
-                          max={5}
-                          step={1}
-                        />
-                      </div>
                     </div>
                   )}
                 </>
@@ -431,17 +446,6 @@ const CreateNew = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Importance: {productImportance}</Label>
-                        <Slider
-                          value={[productImportance]}
-                          onValueChange={([value]) => setProductImportance(value)}
-                          min={1}
-                          max={5}
-                          step={1}
-                        />
                       </div>
                     </div>
                   )}
@@ -513,17 +517,6 @@ const CreateNew = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Importance: {textImportance}</Label>
-                    <Slider
-                      value={[textImportance]}
-                      onValueChange={([value]) => setTextImportance(value)}
-                      min={1}
-                      max={5}
-                      step={1}
-                    />
                   </div>
                 </div>
               )}
@@ -713,7 +706,8 @@ const CreateNew = () => {
             <Button
               onClick={handleGenerate}
               disabled={generating}
-              className="w-full bg-gradient-primary hover:shadow-glow"
+              variant="default"
+              className="w-full"
               size="lg"
             >
               {generating ? (
