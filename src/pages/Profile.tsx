@@ -11,36 +11,39 @@ import { Check } from "lucide-react";
 const subscriptionPlans = [
   {
     name: "Starter",
-    price: "$9.99",
-    priceId: "price_starter",
+    price: "$17.99",
+    priceId: "price_1SX0vtISMAOMUNUM7hJ7Mk45",
+    productId: "prod_TTytxm2oUYxzXe",
     features: [
-      "50 thumbnails per month",
-      "Basic AI generation",
-      "HD quality exports",
+      "50 HD thumbnails/month",
+      "Up to 2K resolution",
+      "AI-powered generation",
       "Email support"
     ]
   },
   {
     name: "Pro",
-    price: "$19.99",
-    priceId: "price_pro",
+    price: "$42.99",
+    priceId: "price_1SX0w8ISMAOMUNUM8zz7KCfk",
+    productId: "prod_TTytaKmSmKge2x",
     popular: true,
     features: [
-      "200 thumbnails per month",
-      "Advanced AI generation",
-      "4K quality exports",
+      "150 HD thumbnails/month",
+      "25 4K thumbnails/month",
+      "Priority AI generation",
       "Priority support",
-      "Custom templates"
+      "Advanced customization"
     ]
   },
   {
     name: "Enterprise",
-    price: "$49.99",
-    priceId: "price_enterprise",
+    price: "$99.99",
+    priceId: "price_1SX0wNISMAOMUNUMTz5N3THc",
+    productId: "prod_TTyuNeWPfbeOFz",
     features: [
-      "Unlimited thumbnails",
+      "300 HD thumbnails/month",
+      "100 4K thumbnails/month",
       "Premium AI generation",
-      "8K quality exports",
       "24/7 dedicated support",
       "Custom branding",
       "API access"
@@ -56,9 +59,16 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [subscription, setSubscription] = useState<{
+    subscribed: boolean;
+    product_id: string | null;
+    subscription_end: string | null;
+  }>({ subscribed: false, product_id: null, subscription_end: null });
+  const [checkingSubscription, setCheckingSubscription] = useState(false);
 
   useEffect(() => {
     checkUser();
+    checkSubscription();
   }, []);
 
   const checkUser = async () => {
@@ -71,7 +81,6 @@ const Profile = () => {
     setUser(session.user);
     setEmail(session.user.email || "");
     
-    // Fetch profile data
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
@@ -80,6 +89,23 @@ const Profile = () => {
     
     if (profile) {
       setName(profile.email || "");
+    }
+  };
+
+  const checkSubscription = async () => {
+    try {
+      setCheckingSubscription(true);
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      
+      if (error) throw error;
+      
+      if (data) {
+        setSubscription(data);
+      }
+    } catch (error: any) {
+      console.error("Error checking subscription:", error);
+    } finally {
+      setCheckingSubscription(false);
     }
   };
 
@@ -112,9 +138,42 @@ const Profile = () => {
     }
   };
 
-  const handleSubscribe = (priceId: string) => {
-    toast.info("Subscription feature coming soon!");
-    // TODO: Integrate with Stripe
+  const handleSubscribe = async (priceId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { priceId },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+        toast.success("Opening checkout...");
+        setTimeout(() => checkSubscription(), 3000);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to start checkout");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to open customer portal");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -176,55 +235,94 @@ const Profile = () => {
 
           {/* Subscription Plans */}
           <div>
-            <h2 className="text-2xl font-semibold mb-2">Subscription Plans</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Choose the plan that fits your needs
-            </p>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">Subscription Plans</h2>
+                <p className="text-sm text-muted-foreground">
+                  Choose the plan that fits your needs
+                </p>
+              </div>
+              {subscription.subscribed && (
+                <Button onClick={handleManageSubscription} disabled={loading} variant="outline" size="sm">
+                  Manage Subscription
+                </Button>
+              )}
+            </div>
+
+            {subscription.subscribed && (
+              <Card className="mb-6 bg-primary/5 border-primary">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">Active Subscription</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Current plan: {subscriptionPlans.find(p => p.productId === subscription.product_id)?.name || "Active"}
+                  </p>
+                  {subscription.subscription_end && (
+                    <p className="text-sm text-muted-foreground">
+                      Renews on: {new Date(subscription.subscription_end).toLocaleDateString()}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid md:grid-cols-3 gap-4">
-              {subscriptionPlans.map((plan) => (
-                <Card
-                  key={plan.priceId}
-                  className={`bg-card border-border relative ${
-                    plan.popular ? "ring-2 ring-primary" : ""
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="text-lg">{plan.name}</CardTitle>
-                    <CardDescription>
-                      <span className="text-3xl font-bold text-foreground">
-                        {plan.price}
-                      </span>
-                      <span className="text-muted-foreground">/month</span>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ul className="space-y-2">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                          <span className="text-muted-foreground">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      onClick={() => handleSubscribe(plan.priceId)}
-                      className="w-full"
-                      variant={plan.popular ? "default" : "outline"}
-                      size="sm"
-                    >
-                      Subscribe
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {subscriptionPlans.map((plan) => {
+                const isCurrentPlan = subscription.subscribed && subscription.product_id === plan.productId;
+                return (
+                  <Card
+                    key={plan.priceId}
+                    className={`bg-card border-border relative ${
+                      plan.popular ? "ring-2 ring-primary" : ""
+                    } ${isCurrentPlan ? "ring-2 ring-green-500" : ""}`}
+                  >
+                    {plan.popular && !isCurrentPlan && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
+                          Most Popular
+                        </span>
+                      </div>
+                    )}
+                    {isCurrentPlan && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full">
+                          Your Plan
+                        </span>
+                      </div>
+                    )}
+                    <CardHeader>
+                      <CardTitle className="text-lg">{plan.name}</CardTitle>
+                      <CardDescription>
+                        <span className="text-3xl font-bold text-foreground">
+                          {plan.price}
+                        </span>
+                        <span className="text-muted-foreground">/month</span>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <ul className="space-y-2">
+                        {plan.features.map((feature, index) => (
+                          <li key={index} className="flex items-start gap-2 text-sm">
+                            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                            <span className="text-muted-foreground">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        onClick={() => handleSubscribe(plan.priceId)}
+                        className="w-full"
+                        variant={plan.popular ? "default" : "outline"}
+                        size="sm"
+                        disabled={loading || isCurrentPlan}
+                      >
+                        {isCurrentPlan ? "Current Plan" : "Subscribe"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </div>
