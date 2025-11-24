@@ -13,10 +13,16 @@ interface Avatar {
   image_url: string;
 }
 
+interface ProductImage {
+  id: string;
+  image_url: string;
+}
+
 interface Product {
   id: string;
-  name: string;
-  image_url: string;
+  title: string;
+  brand: string;
+  images: ProductImage[];
 }
 
 interface StepGenerateProps {
@@ -53,7 +59,10 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         if (data.productIds && data.productIds.length > 0) {
           const { data: products, error } = await supabase
             .from("products")
-            .select("*")
+            .select(`
+              *,
+              images:product_images(id, image_url)
+            `)
             .in("id", data.productIds);
           
           if (!error && products) {
@@ -185,15 +194,15 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             {productData.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {productData.map((product) => (
-                  <div
-                    key={product.id}
-                    className="aspect-square rounded-lg overflow-hidden border border-border"
-                  >
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
+                  <div key={product.id} className="space-y-1">
+                    <div className="aspect-square rounded-lg overflow-hidden border border-border">
+                      <img
+                        src={product.images[0]?.image_url || "/placeholder.svg"}
+                        alt={product.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <p className="text-xs font-medium truncate">{product.title}</p>
                   </div>
                 ))}
               </div>
