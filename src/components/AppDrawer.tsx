@@ -8,7 +8,8 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState, useEffect } from "react";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -21,6 +22,46 @@ export const AppDrawer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [profile, setProfile] = useState<{ username: string | null; email: string | null } | null>(null);
+  const [generationsCount, setGenerationsCount] = useState(0);
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Fetch profile
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("username, email")
+      .eq("id", user.id)
+      .single();
+
+    if (profileData) {
+      setProfile(profileData);
+    }
+
+    // Count thumbnails generated
+    const { count } = await supabase
+      .from("thumbnails")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    setGenerationsCount(count || 0);
+  };
+
+  const getInitials = () => {
+    if (profile?.username) {
+      return profile.username.substring(0, 2).toUpperCase();
+    }
+    if (profile?.email) {
+      return profile.email.substring(0, 2).toUpperCase();
+    }
+    return "U";
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -59,8 +100,24 @@ export const AppDrawer = () => {
       </DrawerTrigger>
       <DrawerContent className="h-full w-60 bg-card border-border">
         <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border space-y-4">
             <h2 className="text-sm font-semibold tracking-wide">VIZION</h2>
+            
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                  {getInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {profile?.username || profile?.email || "User"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {generationsCount} generations
+                </p>
+              </div>
+            </div>
           </div>
 
           <nav className="flex-1 p-2">

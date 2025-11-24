@@ -55,10 +55,11 @@ const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [updatingUsername, setUpdatingUsername] = useState(false);
   const [subscription, setSubscription] = useState<{
     subscribed: boolean;
     product_id: string | null;
@@ -88,7 +89,30 @@ const Profile = () => {
       .single();
     
     if (profile) {
-      setName(profile.email || "");
+      setUsername(profile.username || "");
+    }
+  };
+
+  const handleUpdateUsername = async () => {
+    if (!username.trim()) {
+      toast.error("Username cannot be empty");
+      return;
+    }
+
+    try {
+      setUpdatingUsername(true);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ username: username.trim() })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      toast.success("Username updated successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update username");
+    } finally {
+      setUpdatingUsername(false);
     }
   };
 
@@ -190,6 +214,23 @@ const Profile = () => {
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input value={email} disabled className="bg-secondary" />
+              </div>
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={username} 
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your username"
+                  />
+                  <Button
+                    onClick={handleUpdateUsername}
+                    disabled={updatingUsername}
+                    size="sm"
+                  >
+                    Update
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>User ID</Label>
