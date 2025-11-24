@@ -36,20 +36,35 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { thumbnailData } = await req.json() as { thumbnailData: ThumbnailData };
+    const { thumbnailData, remixImageUrl, remixPrompt } = await req.json() as { 
+      thumbnailData: ThumbnailData; 
+      remixImageUrl?: string;
+      remixPrompt?: string;
+    };
 
     console.log("Thumbnail data received:", thumbnailData);
+    console.log("Remix mode:", !!remixImageUrl);
 
     // Build the prompt
     const platformType = thumbnailData.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
     const aspectRatio = thumbnailData.aspectRatio || "16:9";
     const imageSize = "2K"; // High quality 2K resolution
-    let prompt = `Generate a high-impact ${platformType} thumbnail with ${aspectRatio} aspect ratio. 
+    
+    let prompt = "";
+    
+    // Check if this is a remix request
+    if (remixImageUrl && remixPrompt) {
+      prompt = `You are remixing an existing thumbnail. Apply the following changes to the image: ${remixPrompt}
+
+CRITICAL: Maintain the overall composition and style of the original thumbnail while applying the requested changes.`;
+    } else {
+      prompt = `Generate a high-impact ${platformType} thumbnail with ${aspectRatio} aspect ratio. 
 
 CRITICAL INSTRUCTIONS:
 - PRESERVE the exact appearance, face, outfit, and styling of any people shown in the provided images
 - Do NOT modify facial features, clothing, or accessories of the people
 - Keep them looking EXACTLY as they appear in the source images`;
+    }
 
     // Visual style
     if (thumbnailData.visualStyle) {
@@ -137,8 +152,19 @@ CRITICAL INSTRUCTIONS:
       return base64;
     };
 
-    // Add avatar image
-    if (thumbnailData.avatarId) {
+    // If this is a remix, add the source image first
+    if (remixImageUrl) {
+      const base64Image = await fetchImageAsBase64(remixImageUrl);
+      messageContent.push({
+        type: "image_url",
+        image_url: {
+          url: `data:image/jpeg;base64,${base64Image}`
+        }
+      });
+    }
+
+    // Add avatar image (skip in remix mode)
+    if (!remixImageUrl && thumbnailData.avatarId) {
       const { data: avatar } = await supabase
         .from("avatars")
         .select("image_url")
@@ -156,8 +182,8 @@ CRITICAL INSTRUCTIONS:
       }
     }
 
-    // Add product images
-    if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
+    // Add product images (skip in remix mode)
+    if (!remixImageUrl && thumbnailData.productIds && thumbnailData.productIds.length > 0) {
       const { data: productImages } = await supabase
         .from("product_images")
         .select("image_url")
@@ -178,8 +204,8 @@ CRITICAL INSTRUCTIONS:
       }
     }
 
-    // Add custom background
-    if (thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
+    // Add custom background (skip in remix mode)
+    if (!remixImageUrl && thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
       const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
       messageContent.push({
         type: "image_url",
