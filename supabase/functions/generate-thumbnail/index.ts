@@ -75,16 +75,16 @@ serve(async (req) => {
     // Text styling
     if (thumbnailData.title) {
       const textStyles: Record<string, string> = {
-        bold: "large, bold, and impactful",
-        modern: "modern, clean, and sleek",
-        playful: "playful, fun, and colorful",
-        professional: "professional and clean",
-        neon: "with neon glow effects",
-        "3d": "with 3D dimensional effects",
+        "Bold & Large": "large, bold, and impactful",
+        "Elegant Script": "elegant script style",
+        "Modern Sans": "modern, clean sans-serif",
+        "Handwritten": "handwritten style",
+        "Futuristic": "futuristic style with modern effects",
+        "Classic Serif": "classic serif typography"
       };
-      const textStyle = thumbnailData.textStyle
+      const textStyle = thumbnailData.textStyle && textStyles[thumbnailData.textStyle]
         ? textStyles[thumbnailData.textStyle]
-        : "bold";
+        : "bold and large";
       prompt += `Include the text "${thumbnailData.title}" in ${textStyle} typography. `;
       
       if (thumbnailData.subtitle) {
@@ -185,53 +185,104 @@ serve(async (req) => {
     console.log("Generated prompt:", prompt);
     console.log("Number of content parts:", contentParts.length);
 
-    // Call Lovable AI with Gemini 3 Pro Image
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [
-            {
-              role: "user",
-              content: contentParts,
-            },
-          ],
-          config: {
-            responseModalities: ['TEXT', 'IMAGE'],
-            imageConfig: {
-              aspectRatio: aspectRatio,
-              imageSize: imageSize,
-            },
-          },
-        }),
-      }
-    );
+    // Retry logic for AI Gateway calls
+    const maxRetries = 3;
+    const baseDelay = 2000; // 2 seconds
+    let lastError: Error | null = null;
+    let response: Response | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        console.log(`Attempt ${attempt + 1} of ${maxRetries} to call AI Gateway`);
+        
+        // Call Lovable AI with Gemini 3 Pro Image
+        response = await fetch(
+          "https://ai.gateway.lovable.dev/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-pro-image-preview",
+              messages: [
+                {
+                  role: "user",
+                  content: contentParts,
+                },
+              ],
+              config: {
+                responseModalities: ['TEXT', 'IMAGE'],
+                imageConfig: {
+                  aspectRatio: aspectRatio,
+                  imageSize: imageSize,
+                },
+              },
+            }),
+          }
         );
+
+        if (response.ok) {
+          console.log("AI Gateway call successful");
+          break; // Success, exit retry loop
+        }
+
+        const errorText = await response.text();
+        console.error(`AI Gateway error on attempt ${attempt + 1}:`, response.status, errorText);
+        
+        // Handle specific error codes
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "Payment required. Please add credits to your workspace." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // For 503 and 500 errors, retry with exponential backoff
+        if (response.status === 503 || response.status === 500) {
+          if (attempt < maxRetries - 1) {
+            const delay = baseDelay * Math.pow(2, attempt);
+            console.log(`Retrying after ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        }
+        
+        lastError = new Error(`AI Gateway error: ${response.status} ${errorText}`);
+        
+      } catch (error) {
+        console.error(`Network error on attempt ${attempt + 1}:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        // Retry on network errors
+        if (attempt < maxRetries - 1) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          console.log(`Retrying after network error in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
       }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`AI Gateway error: ${response.status} ${errorText}`);
+    }
+
+    // If all retries failed
+    if (!response || !response.ok) {
+      const errorMessage = lastError?.message || "Failed to generate thumbnail after multiple attempts";
+      console.error("All retry attempts failed:", errorMessage);
+      return new Response(
+        JSON.stringify({ 
+          error: "The AI service is temporarily unavailable. Please try again in a few moments.",
+          details: errorMessage
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
