@@ -170,14 +170,6 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
                   className="w-full h-full object-cover"
                 />
               </div>
-            ) : data.avatarId === "video-frame" && data.capturedFrameUrl ? (
-              <div className="aspect-square rounded-lg overflow-hidden border border-border">
-                <img
-                  src={data.capturedFrameUrl}
-                  alt="Captured video frame"
-                  className="w-full h-full object-cover"
-                />
-              </div>
             ) : (
               <div className="aspect-square rounded-lg overflow-hidden border border-dashed border-border bg-muted flex items-center justify-center">
                 <span className="text-sm text-muted-foreground">No avatar</span>

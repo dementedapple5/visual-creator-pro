@@ -73,7 +73,7 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
     }
   };
 
-  const handleCaptureFrame = () => {
+  const handleCaptureFrame = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
@@ -88,8 +88,52 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
 
     const frameUrl = canvas.toDataURL("image/png");
     setCapturedFrame(frameUrl);
-    updateData({ avatarId: "video-frame", capturedFrameUrl: frameUrl });
-    toast.success("Frame captured successfully!");
+
+    try {
+      // Convert dataURL to blob
+      const response = await fetch(frameUrl);
+      const blob = await response.blob();
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Upload to storage
+      const fileName = `avatar-${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(`${user.id}/${fileName}`, blob, {
+          contentType: "image/png",
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(`${user.id}/${fileName}`);
+
+      // Save to database
+      const { data: avatarData, error: dbError } = await supabase
+        .from("avatars")
+        .insert({
+          user_id: user.id,
+          image_url: publicUrl,
+        })
+        .select()
+        .single();
+
+      if (dbError) throw dbError;
+
+      // Update state and data with new avatar
+      updateData({ avatarId: avatarData.id });
+      await fetchAvatars(); // Refresh avatar list
+      toast.success("Frame saved as avatar!");
+    } catch (error) {
+      console.error("Error saving frame:", error);
+      toast.error("Failed to save frame as avatar");
+    }
   };
 
   const handleSeek = (value: number[]) => {
@@ -197,7 +241,7 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
                   className="w-full h-auto max-h-48 object-cover"
                 />
                 <div className="bg-primary/10 px-4 py-2 text-center text-sm font-medium">
-                  Frame captured
+                  Frame saved as avatar
                 </div>
               </div>
             )}
@@ -249,7 +293,7 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
         <Button variant="outline" onClick={handleSkip} className="flex-1">
           Skip
         </Button>
-        <Button onClick={onNext} disabled={!data.avatarId && !capturedFrame} className="flex-1">
+        <Button onClick={onNext} disabled={!data.avatarId} className="flex-1">
           Continue
         </Button>
       </div>
