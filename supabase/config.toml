@@ -1,0 +1,4 @@
+project_id = "hidoeplluprjaghxjgfd"
+
+[functions.generate-thumbnail]
+verify_jwt = true
