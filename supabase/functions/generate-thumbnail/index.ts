@@ -45,8 +45,9 @@ serve(async (req) => {
 
     // Build the prompt
     const platformType = thumbnailData.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
-    const resolution = thumbnailData.aspectRatio === "9:16" ? "1080x1920" : "2560x1440";
-    let prompt = `Generate a high-impact ${platformType} thumbnail in ${resolution} resolution. `;
+    const aspectRatio = thumbnailData.aspectRatio || "16:9";
+    const imageSize = "2K"; // High quality 2K resolution
+    let prompt = `Generate a high-impact ${platformType} thumbnail. `;
 
     // Visual style
     if (thumbnailData.visualStyle) {
@@ -240,7 +241,13 @@ serve(async (req) => {
               content: contentParts,
             },
           ],
-          modalities: ["image", "text"],
+          config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+            imageConfig: {
+              aspectRatio: aspectRatio,
+              imageSize: imageSize,
+            },
+          },
         }),
       }
     );
