@@ -264,7 +264,7 @@ const CreateNew = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="h-screen flex bg-background overflow-hidden">
       {/* Main Canvas Area */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-4xl aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden">
@@ -278,7 +278,7 @@ const CreateNew = () => {
       </div>
 
       {/* Right Sidebar with Controls */}
-      <div className="w-96 border-l border-border bg-card overflow-y-auto">
+      <ScrollArea className="w-96 border-l border-border bg-card">
         <div className="p-4 space-y-4">
           <div>
             <h2 className="text-2xl font-bold mb-2">Create Thumbnail</h2>
@@ -319,7 +319,7 @@ const CreateNew = () => {
                   </div>
 
                   {selectedAvatar && (
-                    <>
+                    <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
                       <div className="space-y-2">
                         <Label>Expression</Label>
                         <Select value={expression} onValueChange={setExpression}>
@@ -362,7 +362,7 @@ const CreateNew = () => {
                           step={1}
                         />
                       </div>
-                    </>
+                    </div>
                   )}
                 </>
               ) : (
@@ -416,7 +416,7 @@ const CreateNew = () => {
                   </div>
 
                   {selectedProducts.length > 0 && (
-                    <>
+                    <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
                       <div className="space-y-2">
                         <Label>Position</Label>
                         <Select value={productPosition} onValueChange={setProductPosition}>
@@ -443,7 +443,7 @@ const CreateNew = () => {
                           step={1}
                         />
                       </div>
-                    </>
+                    </div>
                   )}
                 </>
               ) : (
@@ -498,7 +498,7 @@ const CreateNew = () => {
               </div>
 
               {(title || subtitle) && (
-                <>
+                <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
                   <div className="space-y-2">
                     <Label>Position</Label>
                     <Select value={textPosition} onValueChange={setTextPosition}>
@@ -525,7 +525,7 @@ const CreateNew = () => {
                       step={1}
                     />
                   </div>
-                </>
+                </div>
               )}
             </div>
 
@@ -729,7 +729,7 @@ const CreateNew = () => {
               )}
             </Button>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };
