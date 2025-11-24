@@ -9,9 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Download } from "lucide-react";
 import { toast } from "sonner";
 import { compressAndConvertToJpg } from "@/lib/imageUtils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Avatar {
   id: string;
@@ -68,6 +76,10 @@ const CreateNew = () => {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
   const [generatedThumbnails, setGeneratedThumbnails] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [remixPrompt, setRemixPrompt] = useState("");
+  const [remixing, setRemixing] = useState(false);
+  const [remixDialogOpen, setRemixDialogOpen] = useState(false);
   
   // Data states
   const [avatars, setAvatars] = useState<Avatar[]>([]);
@@ -250,6 +262,7 @@ const CreateNew = () => {
 
       // Add to gallery instead of navigating
       setGeneratedThumbnails(prev => [imageUrl, ...prev]);
+      setSelectedImage(imageUrl); // Set as selected when generated
       toast.success("Thumbnail generated successfully!");
     } catch (error) {
       console.error("Error generating thumbnail:", error);
@@ -259,15 +272,102 @@ const CreateNew = () => {
     }
   };
 
+  const handleDownload = () => {
+    if (!selectedImage) return;
+
+    const link = document.createElement("a");
+    link.href = selectedImage;
+    link.download = `thumbnail-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Thumbnail downloaded!");
+  };
+
+  const handleRemix = async () => {
+    if (!selectedImage) return;
+
+    try {
+      setRemixing(true);
+
+      const { data: functionData, error: functionError } = await supabase.functions.invoke(
+        "generate-thumbnail",
+        {
+          body: { 
+            thumbnailData: {
+              avatarId: selectedAvatar || undefined,
+              avatarPosition,
+              expression: selectedAvatar ? expression : undefined,
+              productIds: selectedProducts.length > 0 ? selectedProducts : undefined,
+              productPosition,
+              title: title || undefined,
+              subtitle: subtitle || undefined,
+              textPosition,
+              textStyle,
+              visualStyle,
+              backgroundType,
+              backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
+              aspectRatio,
+            },
+            remixImageUrl: selectedImage,
+            remixPrompt: remixPrompt
+          },
+        }
+      );
+
+      if (functionError) throw functionError;
+
+      const imageUrl = functionData.imageUrl;
+
+      // Save to database
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("thumbnails")
+          .insert({
+            user_id: user.id,
+            image_url: imageUrl,
+            avatar_id: selectedAvatar || null,
+            avatar_position: avatarPosition,
+            avatar_importance: null,
+            expression: selectedAvatar ? expression : null,
+            product_id: selectedProducts[0] || null,
+            product_position: productPosition,
+            product_importance: null,
+            title: title || null,
+            subtitle: subtitle || null,
+            text_position: textPosition,
+            text_importance: null,
+            text_style: textStyle,
+            visual_style: visualStyle,
+            background_type: backgroundType,
+            background_value: backgroundValue,
+            aspect_ratio: aspectRatio,
+          });
+      }
+
+      setGeneratedThumbnails(prev => [imageUrl, ...prev]);
+      setSelectedImage(imageUrl);
+      setRemixDialogOpen(false);
+      setRemixPrompt("");
+      toast.success("Remix generated successfully!");
+    } catch (error: any) {
+      console.error("Error remixing thumbnail:", error);
+      toast.error(error.message || "Failed to remix thumbnail");
+    } finally {
+      setRemixing(false);
+    }
+  };
+
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {/* Main Canvas Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
         <div className={`w-full max-w-4xl aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden ${generating ? 'animate-pulse' : ''}`}>
-          {generatedThumbnails.length > 0 && !generating ? (
+          {(selectedImage || generatedThumbnails.length > 0) && !generating ? (
             <img 
-              src={generatedThumbnails[0]} 
-              alt="Latest generated thumbnail" 
+              src={selectedImage || generatedThumbnails[0]} 
+              alt="Selected thumbnail" 
               className="w-full h-full object-contain"
             />
           ) : (
@@ -280,23 +380,79 @@ const CreateNew = () => {
           )}
         </div>
         
+        {/* Action Buttons */}
+        {(selectedImage || generatedThumbnails.length > 0) && !generating && (
+          <div className="w-full max-w-4xl flex gap-2">
+            <Button onClick={handleDownload} variant="outline" className="flex-1">
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </Button>
+            
+            <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex-1">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Remix
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Remix Thumbnail</DialogTitle>
+                  <DialogDescription>
+                    Add custom instructions to create a variation of this thumbnail
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <Textarea
+                    placeholder="E.g., Make the background more vibrant, change text color to blue, add motion blur effect..."
+                    value={remixPrompt}
+                    onChange={(e) => setRemixPrompt(e.target.value)}
+                    rows={4}
+                  />
+                  <Button 
+                    onClick={handleRemix} 
+                    disabled={remixing || !remixPrompt.trim()}
+                    className="w-full"
+                  >
+                    {remixing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating Remix...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate Remix
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
+        
         {/* Gallery View */}
         {generatedThumbnails.length > 0 && (
           <div className="w-full max-w-4xl">
             <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Generated Thumbnails</h3>
             <div className="grid grid-cols-4 gap-4">
               {generatedThumbnails.map((url, index) => (
-                <div
+                <button
                   key={index}
-                  className="aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-all cursor-pointer"
-                  onClick={() => window.open(url, '_blank')}
+                  className={`aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                    selectedImage === url || (!selectedImage && index === 0)
+                      ? "border-primary ring-2 ring-primary/20" 
+                      : "border-border hover:border-primary/50"
+                  }`}
+                  onClick={() => setSelectedImage(url)}
                 >
                   <img 
                     src={url} 
                     alt={`Generated thumbnail ${index + 1}`} 
                     className="w-full h-full object-cover"
                   />
-                </div>
+                </button>
               ))}
             </div>
           </div>
