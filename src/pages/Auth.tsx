@@ -26,13 +26,13 @@ const Auth = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center px-4 animate-fade-in">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Welcome to ThumbnailCraft</h1>
+        <div className="text-center animate-slide-up">
+          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Welcome to ThumbnailCraft</h1>
           <p className="text-muted-foreground mt-2">Sign in or create an account to get started</p>
         </div>
-        <div className="bg-card p-8 rounded-lg shadow-lg">
+        <div className="backdrop-blur-lg bg-card/50 border-glass-border p-8 rounded-2xl shadow-glow animate-scale-in">
           <SupabaseAuth
             supabaseClient={supabase}
             appearance={{
