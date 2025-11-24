@@ -36,7 +36,7 @@ serve(async (req) => {
     console.log("Thumbnail data received:", thumbnailData);
 
     // Build the prompt
-    let prompt = `Generate a high-impact thumbnail in 2K resolution. `;
+    let prompt = `Generate a high-impact YouTube thumbnail in 2K resolution (2560x1440). `;
 
     // Visual style
     if (thumbnailData.visualStyle) {
@@ -54,7 +54,7 @@ serve(async (req) => {
     // Background
     if (thumbnailData.backgroundType && thumbnailData.backgroundValue) {
       if (thumbnailData.backgroundType === "preset") {
-        prompt += `Background: ${thumbnailData.backgroundValue}. `;
+        prompt += `Background: ${thumbnailData.backgroundValue} setting. `;
       } else if (thumbnailData.backgroundType === "color") {
         prompt += `Background: solid ${thumbnailData.backgroundValue} color. `;
       }
@@ -85,9 +85,20 @@ serve(async (req) => {
       prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
     }
 
-    // Collect images (avatar and product)
-    const images: string[] = [];
+    // Build content array with text and images
+    const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+      { type: "text", text: prompt }
+    ];
 
+    // Helper function to fetch and convert image to base64
+    const fetchImageAsBase64 = async (url: string): Promise<string> => {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      return `data:image/jpeg;base64,${base64}`;
+    };
+
+    // Add avatar image
     if (thumbnailData.avatarId) {
       const { data: avatar } = await supabase
         .from("avatars")
@@ -96,15 +107,16 @@ serve(async (req) => {
         .single();
 
       if (avatar?.image_url) {
-        // Fetch and convert to base64
-        const imageResponse = await fetch(avatar.image_url);
-        const imageBuffer = await imageResponse.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-        images.push(base64);
+        const base64Image = await fetchImageAsBase64(avatar.image_url);
+        contentParts.push({
+          type: "image_url",
+          image_url: { url: base64Image }
+        });
         prompt += `Include the person from the provided image. `;
       }
     }
 
+    // Add product image
     if (thumbnailData.productId) {
       const { data: product } = await supabase
         .from("products")
@@ -113,39 +125,27 @@ serve(async (req) => {
         .single();
 
       if (product?.image_url) {
-        const imageResponse = await fetch(product.image_url);
-        const imageBuffer = await imageResponse.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-        images.push(base64);
+        const base64Image = await fetchImageAsBase64(product.image_url);
+        contentParts.push({
+          type: "image_url",
+          image_url: { url: base64Image }
+        });
         prompt += `Include the product from the provided image. `;
       }
     }
 
-    // Custom background
+    // Add custom background
     if (thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
-      const imageResponse = await fetch(thumbnailData.backgroundValue);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-      images.push(base64);
+      const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
+      contentParts.push({
+        type: "image_url",
+        image_url: { url: base64Image }
+      });
       prompt += `Use the provided image as the background. `;
     }
 
     console.log("Generated prompt:", prompt);
-    console.log("Number of images:", images.length);
-
-    // Build the content array
-    const contentParts: any[] = [{ type: "text", text: prompt }];
-
-    // Add images
-    for (const base64Image of images) {
-      contentParts.push({
-        type: "inline_data",
-        inline_data: {
-          mime_type: "image/jpeg",
-          data: base64Image,
-        },
-      });
-    }
+    console.log("Number of content parts:", contentParts.length);
 
     // Call Lovable AI with Gemini 3 Pro Image
     const response = await fetch(
@@ -164,7 +164,7 @@ serve(async (req) => {
               content: contentParts,
             },
           ],
-          modalities: ["image"],
+          modalities: ["image", "text"],
         }),
       }
     );
@@ -172,6 +172,21 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI Gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Payment required. Please add credits to your workspace." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       throw new Error(`AI Gateway error: ${response.status} ${errorText}`);
     }
 
@@ -182,24 +197,34 @@ serve(async (req) => {
     const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!imageData) {
-      console.error("No image in response:", JSON.stringify(data));
+      console.error("No image in response. Response structure:", JSON.stringify(data, null, 2));
       throw new Error("No image returned from AI");
     }
 
-    // Upload to storage
-    const { data: { user } } = await supabase.auth.getUser(
-      req.headers.get("Authorization")?.replace("Bearer ", "") || ""
+    console.log("Image data received, preparing to upload to storage");
+
+    // Get authenticated user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
     );
 
-    if (!user) {
+    if (userError || !user) {
+      console.error("User auth error:", userError);
       throw new Error("User not authenticated");
     }
 
     const fileName = `${user.id}/${Date.now()}.png`;
 
-    // Convert base64 to blob
-    const base64Data = imageData.split(",")[1];
+    // Convert base64 to binary
+    const base64Data = imageData.includes(",") ? imageData.split(",")[1] : imageData;
     const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+    console.log("Uploading image to storage, size:", binaryData.length);
 
     const { error: uploadError } = await supabase.storage
       .from("thumbnails")
@@ -216,7 +241,7 @@ serve(async (req) => {
       .from("thumbnails")
       .getPublicUrl(fileName);
 
-    console.log("Image uploaded successfully");
+    console.log("Image uploaded successfully:", publicUrl);
 
     return new Response(
       JSON.stringify({ imageUrl: publicUrl }),
@@ -227,7 +252,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in generate-thumbnail function:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.stack : undefined
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
