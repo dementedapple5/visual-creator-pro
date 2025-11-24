@@ -190,14 +190,14 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
             </div>
 
             {capturedFrame && (
-              <div className="border-2 border-primary rounded-lg overflow-hidden">
+              <div className="border-2 border-primary rounded-lg overflow-hidden max-w-xs">
                 <img
                   src={capturedFrame}
                   alt="Captured frame"
-                  className="w-full h-auto"
+                  className="w-full h-auto max-h-48 object-cover"
                 />
                 <div className="bg-primary/10 px-4 py-2 text-center text-sm font-medium">
-                  Frame captured - This will be used as your avatar
+                  Frame captured
                 </div>
               </div>
             )}
