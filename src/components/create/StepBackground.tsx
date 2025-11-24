@@ -35,6 +35,14 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
     updateData({ backgroundType: "preset", backgroundValue: preset });
   };
 
+  const handleCustomPrompt = (prompt: string) => {
+    updateData({ backgroundType: "prompt", backgroundValue: prompt });
+  };
+
+  const handleUseAvatarBackground = () => {
+    updateData({ backgroundType: "avatar-bg", backgroundValue: "Use avatar's background" });
+  };
+
   const handleColorSelect = (color: string) => {
     updateData({ backgroundType: "color", backgroundValue: color });
   };
@@ -116,20 +124,60 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
       </div>
 
       {activeTab === "preset" && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {PRESET_BACKGROUNDS.map((bg) => (
-            <button
-              key={bg.id}
-              onClick={() => handlePresetSelect(bg.id)}
-              className={`p-8 rounded-lg border-2 transition-all hover:border-primary ${
-                data.backgroundType === "preset" && data.backgroundValue === bg.id
-                  ? "border-primary bg-primary/5"
-                  : "border-border"
-              }`}
-            >
-              <div className="font-medium">{bg.label}</div>
-            </button>
-          ))}
+        <div className="space-y-6">
+          {/* Use Avatar Background Option */}
+          {data.avatarId && (
+            <div>
+              <h3 className="text-sm font-medium mb-3">Avatar Background</h3>
+              <button
+                onClick={handleUseAvatarBackground}
+                className={`w-full p-4 rounded-lg border-2 transition-all hover:border-primary text-left ${
+                  data.backgroundType === "avatar-bg"
+                    ? "border-primary bg-primary/5"
+                    : "border-border"
+                }`}
+              >
+                <div className="font-medium">Use Avatar's Background</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Keep the original background from your avatar image
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* Custom Prompt */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">Custom Background Prompt</h3>
+            <Input
+              placeholder="Describe your custom background..."
+              value={data.backgroundType === "prompt" ? data.backgroundValue : ""}
+              onChange={(e) => handleCustomPrompt(e.target.value)}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Example: "Futuristic neon city at night" or "Tropical paradise with palm trees"
+            </p>
+          </div>
+
+          {/* Preset Backgrounds */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">Preset Backgrounds</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {PRESET_BACKGROUNDS.map((bg) => (
+                <button
+                  key={bg.id}
+                  onClick={() => handlePresetSelect(bg.id)}
+                  className={`p-8 rounded-lg border-2 transition-all hover:border-primary ${
+                    data.backgroundType === "preset" && data.backgroundValue === bg.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border"
+                  }`}
+                >
+                  <div className="font-medium">{bg.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
