@@ -264,34 +264,30 @@ const CreateNew = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-background">
       {/* Main Canvas Area */}
-      <div className="flex-1 p-8 flex items-center justify-center">
-        <div className="w-full max-w-4xl aspect-video rounded-2xl border-2 border-dashed border-border bg-muted/20 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-4xl aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden">
           <div className="text-center">
-            <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground animate-float" />
-            <p className="text-lg text-muted-foreground">
+            <Sparkles className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
               Preview will appear here
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Configure your thumbnail using the sidebar
             </p>
           </div>
         </div>
       </div>
 
       {/* Right Sidebar with Controls */}
-      <div className="w-96 border-l bg-card">
-        <ScrollArea className="h-screen">
-          <div className="p-6 space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Create Thumbnail</h2>
-              <p className="text-sm text-muted-foreground">
-                Configure all settings to generate your thumbnail
-              </p>
-            </div>
+      <div className="w-96 border-l border-border bg-card overflow-y-auto">
+        <div className="p-4 space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Create Thumbnail</h2>
+            <p className="text-sm text-muted-foreground">
+              Configure all settings to generate your thumbnail
+            </p>
+          </div>
 
-            <Separator />
+          <Separator />
 
             {/* Avatar Section */}
             <div className="space-y-4">
@@ -732,8 +728,7 @@ const CreateNew = () => {
                 </>
               )}
             </Button>
-          </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

@@ -39,11 +39,11 @@ export const AppDrawer = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="fixed top-4 left-4 z-50 bg-card/80 backdrop-blur-sm hover:bg-card"
+          className="fixed top-4 left-4 z-50 bg-secondary hover:bg-accent"
         >
           <svg
-            width="24"
-            height="24"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -57,42 +57,42 @@ export const AppDrawer = () => {
           </svg>
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-full w-64 rounded-r-2xl border-r">
-        <div className="flex flex-col h-full p-6">
-          <div className="mb-8">
-            <h2 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              ThumbnailCraft
-            </h2>
+      <DrawerContent className="h-full w-60 bg-card border-border">
+        <div className="flex flex-col h-full">
+          <div className="p-4 border-b border-border">
+            <h2 className="text-sm font-semibold tracking-wide">MIDJOURNEY</h2>
           </div>
 
-          <nav className="flex-1 space-y-2">
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              );
-            })}
+          <nav className="flex-1 p-2">
+            <div className="space-y-0.5">
+              {menuItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      isActive
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </nav>
 
-          <div className="border-t pt-4">
+          <div className="p-2 border-t border-border">
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-destructive/10 text-destructive transition-all"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Logout</span>
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
             </button>
           </div>
         </div>
