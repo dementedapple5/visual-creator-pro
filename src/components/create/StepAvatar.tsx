@@ -88,7 +88,7 @@ export const StepAvatar = ({ data, updateData, onNext }: StepAvatarProps) => {
 
     const frameUrl = canvas.toDataURL("image/png");
     setCapturedFrame(frameUrl);
-    updateData({ avatarId: "video-frame" });
+    updateData({ avatarId: "video-frame", capturedFrameUrl: frameUrl });
     toast.success("Frame captured successfully!");
   };
 
