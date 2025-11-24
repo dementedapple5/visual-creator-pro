@@ -60,7 +60,7 @@ export const AppDrawer = () => {
       <DrawerContent className="h-full w-60 bg-card border-border">
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-border">
-            <h2 className="text-sm font-semibold tracking-wide">MIDJOURNEY</h2>
+            <h2 className="text-sm font-semibold tracking-wide">VIZION</h2>
           </div>
 
           <nav className="flex-1 p-2">
