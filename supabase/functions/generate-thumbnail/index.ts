@@ -94,7 +94,9 @@ serve(async (req) => {
     const fetchImageAsBase64 = async (url: string): Promise<string> => {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const arr = new Uint8Array(arrayBuffer);
+      // Use reduce to avoid stack overflow with large images
+      const base64 = btoa(arr.reduce((data, byte) => data + String.fromCharCode(byte), ''));
       return `data:image/jpeg;base64,${base64}`;
     };
 
