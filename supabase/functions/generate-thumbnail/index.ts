@@ -72,8 +72,8 @@ CRITICAL INSTRUCTIONS:
         prompt += `\n\nBackground: solid ${thumbnailData.backgroundValue} color. `;
       } else if (thumbnailData.backgroundType === "prompt" || thumbnailData.backgroundType === "custom-prompt") {
         prompt += `\n\nBackground: ${thumbnailData.backgroundValue}. `;
-      } else if (thumbnailData.backgroundType === "avatar-bg") {
-        prompt += `\n\nIMPORTANT: Keep and preserve the EXACT original background from the avatar image. Do not change or modify the background in any way. `;
+      } else if (thumbnailData.backgroundType === "avatar" || thumbnailData.backgroundType === "avatar-bg") {
+        prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
       }
     }
 
