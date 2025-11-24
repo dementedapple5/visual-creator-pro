@@ -29,7 +29,7 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center px-4 animate-fade-in">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center animate-slide-up">
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Welcome to ThumbnailCraft</h1>
+          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Welcome to Vizion</h1>
           <p className="text-muted-foreground mt-2">Sign in or create an account to get started</p>
         </div>
         <div className="backdrop-blur-lg bg-card/50 border-glass-border p-8 rounded-2xl shadow-glow animate-scale-in">
