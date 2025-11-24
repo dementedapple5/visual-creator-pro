@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, User, Image as ImageIcon } from "lucide-react";
+import { Plus, LogOut, User, Image as ImageIcon, Package } from "lucide-react";
 import { toast } from "sonner";
 
 interface Thumbnail {
@@ -59,6 +59,10 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">ThumbnailCraft</h1>
             <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => navigate("/products")} className="rounded-full backdrop-blur-sm hover:scale-105 transition-transform">
+                <Package className="w-4 h-4 mr-2" />
+                Products
+              </Button>
               <Button variant="outline" onClick={() => navigate("/profile")} className="rounded-full backdrop-blur-sm hover:scale-105 transition-transform">
                 <User className="w-4 h-4 mr-2" />
                 Profile

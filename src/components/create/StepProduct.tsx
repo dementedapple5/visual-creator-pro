@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Upload, Trash2 } from "lucide-react";
+import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { CreateData } from "@/pages/Create";
-import { compressAndConvertToJpg, extractStoragePath } from "@/lib/imageUtils";
 
 interface StepProductProps {
   data: CreateData;
@@ -15,14 +15,15 @@ interface StepProductProps {
 
 interface Product {
   id: string;
-  name: string;
-  image_url: string;
+  title: string;
+  brand: string;
+  images: { id: string; image_url: string }[];
 }
 
 export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductProps) => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -32,7 +33,10 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
     try {
       const { data: productData, error } = await supabase
         .from("products")
-        .select("*")
+        .select(`
+          *,
+          images:product_images(id, image_url)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -45,49 +49,8 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
     }
   };
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
-
-      // Compress and convert to JPG
-      const compressedBlob = await compressAndConvertToJpg(file);
-      const fileName = `${user.id}/${Date.now()}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("products")
-        .upload(fileName, compressedBlob, {
-          contentType: "image/jpeg",
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("products")
-        .getPublicUrl(fileName);
-
-      const { error: dbError } = await supabase
-        .from("products")
-        .insert({ 
-          user_id: user.id, 
-          name: file.name,
-          image_url: publicUrl 
-        });
-
-      if (dbError) throw dbError;
-
-      toast.success("Product uploaded");
-      fetchProducts();
-    } catch (error) {
-      console.error("Error uploading product:", error);
-      toast.error("Failed to upload product");
-    } finally {
-      setUploading(false);
-    }
+  const handleUpload = () => {
+    navigate("/products?action=create");
   };
 
   const handleSelect = (id: string) => {
@@ -106,42 +69,6 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
     onNext();
   };
 
-  const handleDeleteProduct = async (product: Product) => {
-    try {
-      // Delete from database first
-      const { error: dbError } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", product.id);
-
-      if (dbError) throw dbError;
-
-      // Extract storage path and delete from storage
-      const storagePath = extractStoragePath(product.image_url, "products");
-      if (storagePath) {
-        const { error: storageError } = await supabase.storage
-          .from("products")
-          .remove([storagePath]);
-
-        if (storageError) {
-          console.error("Error deleting from storage:", storageError);
-        }
-      }
-
-      // Remove from selected products if it was selected
-      if (data.productIds?.includes(product.id)) {
-        updateData({ 
-          productIds: data.productIds.filter(id => id !== product.id) 
-        });
-      }
-
-      toast.success("Product deleted");
-      fetchProducts();
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      toast.error("Failed to delete product");
-    }
-  };
 
   return (
     <div className="space-y-8">
@@ -158,22 +85,16 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
       </div>
 
       <div className="mb-6">
-        <label htmlFor="product-upload">
-          <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors">
-            <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Click to upload product image
-            </p>
-          </div>
-          <input
-            id="product-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleUpload}
-            disabled={uploading}
-            className="hidden"
-          />
-        </label>
+        <div 
+          onClick={handleUpload}
+          className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+        >
+          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-sm font-medium mb-1">Add New Product</p>
+          <p className="text-xs text-muted-foreground">
+            Go to Products page to create a product with title, brand and images
+          </p>
+        </div>
       </div>
 
       {loading ? (
@@ -188,34 +109,32 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
             <div key={product.id} className="relative group">
               <div
                 onClick={() => handleSelect(product.id)}
-                className={`aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                className={`rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
                   data.productIds?.includes(product.id)
                     ? "border-primary ring-4 ring-primary/20"
                     : "border-border hover:border-primary"
                 }`}
               >
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+                <div className="aspect-square">
+                  <img
+                    src={product.images[0]?.image_url || "/placeholder.svg"}
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-3 bg-card">
+                  <p className="font-medium text-sm truncate">{product.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{product.brand}</p>
+                  {product.images.length > 1 && (
+                    <p className="text-xs text-primary mt-1">+{product.images.length - 1} more</p>
+                  )}
+                </div>
                 {data.productIds?.includes(product.id) && (
-                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-lg">
                     {data.productIds.indexOf(product.id) + 1}
                   </div>
                 )}
               </div>
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteProduct(product);
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
             </div>
           ))}
         </div>
