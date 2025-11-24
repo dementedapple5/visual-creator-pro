@@ -122,9 +122,9 @@ CRITICAL INSTRUCTIONS:
       prompt += `\n\nADDITIONAL CHANGES REQUESTED:\n${thumbnailData.iterationPrompt}\n`;
     }
 
-    // Build content array with text and images
-    const contentParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
-      { text: prompt }
+    // Build content array with text and images for messages format
+    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+      { type: "text", text: prompt }
     ];
 
     // Helper function to fetch and convert image to base64 (without data URI prefix)
@@ -147,10 +147,10 @@ CRITICAL INSTRUCTIONS:
 
       if (avatar?.image_url) {
         const base64Image = await fetchImageAsBase64(avatar.image_url);
-        contentParts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: base64Image
+        messageContent.push({
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${base64Image}`
           }
         });
       }
@@ -167,10 +167,10 @@ CRITICAL INSTRUCTIONS:
         for (const product of products) {
           if (product.image_url) {
             const base64Image = await fetchImageAsBase64(product.image_url);
-            contentParts.push({
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: base64Image
+            messageContent.push({
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
               }
             });
           }
@@ -181,16 +181,16 @@ CRITICAL INSTRUCTIONS:
     // Add custom background
     if (thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
       const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
-      contentParts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image
+      messageContent.push({
+        type: "image_url",
+        image_url: {
+          url: `data:image/jpeg;base64,${base64Image}`
         }
       });
     }
 
     console.log("Generated prompt:", prompt);
-    console.log("Number of content parts:", contentParts.length);
+    console.log("Number of message content parts:", messageContent.length);
 
     // Retry logic for AI Gateway calls
     const maxRetries = 3;
@@ -213,13 +213,16 @@ CRITICAL INSTRUCTIONS:
             },
             body: JSON.stringify({
               model: "google/gemini-3-pro-image-preview",
-              contents: contentParts,
-              config: {
-                responseModalities: ['TEXT', 'IMAGE'],
-                imageConfig: {
-                  aspectRatio: aspectRatio,
-                  imageSize: imageSize,
-                },
+              messages: [
+                {
+                  role: "user",
+                  content: messageContent
+                }
+              ],
+              modalities: ["image", "text"],
+              imageConfig: {
+                aspectRatio: aspectRatio,
+                imageSize: imageSize,
               },
             }),
           }
