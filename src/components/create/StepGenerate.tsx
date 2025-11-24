@@ -3,10 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download, Sparkles } from "lucide-react";
 import { CreateData } from "@/pages/Create";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Avatar {
   id: string;
@@ -34,10 +43,14 @@ interface StepGenerateProps {
 export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) => {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState(data.aspectRatio || "16:9");
   const [avatarData, setAvatarData] = useState<Avatar | null>(null);
   const [productData, setProductData] = useState<Product[]>([]);
+  const [remixPrompt, setRemixPrompt] = useState("");
+  const [remixing, setRemixing] = useState(false);
+  const [remixDialogOpen, setRemixDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,7 +108,8 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         throw new Error("No image URL returned");
       }
 
-      setGeneratedImage(functionData.imageUrl);
+      setGeneratedImages((prev) => [...prev, functionData.imageUrl]);
+      setSelectedImage(functionData.imageUrl);
       toast.success("Thumbnail generated successfully!");
     } catch (error: any) {
       console.error("Error generating thumbnail:", error);
@@ -105,8 +119,56 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
     }
   };
 
+  const handleRemix = async () => {
+    if (!selectedImage) return;
+
+    try {
+      setRemixing(true);
+
+      const { data: functionData, error: functionError } = await supabase.functions.invoke(
+        "generate-thumbnail",
+        {
+          body: { 
+            thumbnailData: { ...data, aspectRatio },
+            remixImageUrl: selectedImage,
+            remixPrompt: remixPrompt
+          },
+        }
+      );
+
+      if (functionError) throw functionError;
+
+      if (!functionData?.imageUrl) {
+        throw new Error("No image URL returned");
+      }
+
+      setGeneratedImages((prev) => [...prev, functionData.imageUrl]);
+      setSelectedImage(functionData.imageUrl);
+      setRemixDialogOpen(false);
+      setRemixPrompt("");
+      toast.success("Remix generated successfully!");
+    } catch (error: any) {
+      console.error("Error remixing thumbnail:", error);
+      toast.error(error.message || "Failed to remix thumbnail");
+    } finally {
+      setRemixing(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!selectedImage) return;
+
+    const link = document.createElement("a");
+    link.href = selectedImage;
+    link.download = `thumbnail-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Thumbnail downloaded!");
+  };
+
   const handleSave = async () => {
-    if (!generatedImage) return;
+    if (!selectedImage) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -130,7 +192,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         background_type: data.backgroundType || "",
         background_value: data.backgroundValue,
         aspect_ratio: aspectRatio,
-        image_url: generatedImage,
+        image_url: selectedImage,
       });
 
       if (error) throw error;
@@ -245,21 +307,103 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         </div>
       </div>
 
-      {generatedImage && (
-        <div className="aspect-video rounded-lg overflow-hidden border border-border">
-          <img
-            src={generatedImage}
-            alt="Generated thumbnail"
-            className="w-full h-full object-cover"
-          />
+      {/* Large Preview Section */}
+      {selectedImage && (
+        <div className="space-y-4">
+          <Label className="text-lg font-semibold">Preview</Label>
+          <div className="relative group">
+            <div className={`${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16] max-w-md mx-auto"} rounded-lg overflow-hidden border border-border`}>
+              <img
+                src={selectedImage}
+                alt="Selected thumbnail"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex gap-2 mt-4">
+              <Button onClick={handleDownload} variant="outline" className="flex-1">
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
+              
+              <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex-1">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Remix
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Remix Thumbnail</DialogTitle>
+                    <DialogDescription>
+                      Add custom instructions to create a variation of this thumbnail
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <Textarea
+                      placeholder="E.g., Make the background more vibrant, change text color to blue, add motion blur effect..."
+                      value={remixPrompt}
+                      onChange={(e) => setRemixPrompt(e.target.value)}
+                      rows={4}
+                    />
+                    <Button 
+                      onClick={handleRemix} 
+                      disabled={remixing || !remixPrompt.trim()}
+                      className="w-full"
+                    >
+                      {remixing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating Remix...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate Remix
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generated Thumbnails List */}
+      {generatedImages.length > 0 && (
+        <div className="space-y-4">
+          <Label className="text-lg font-semibold">Generated Thumbnails</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {generatedImages.map((imageUrl, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedImage(imageUrl)}
+                className={`${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]"} rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                  selectedImage === imageUrl 
+                    ? "border-primary ring-2 ring-primary/20" 
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <img
+                  src={imageUrl}
+                  alt={`Thumbnail ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       <div className="flex gap-4">
-        <Button variant="outline" onClick={onPrev} disabled={generating}>
+        <Button variant="outline" onClick={onPrev} disabled={generating || remixing}>
           Back
         </Button>
-        {!generatedImage ? (
+        {generatedImages.length === 0 ? (
           <Button onClick={handleGenerate} disabled={generating} className="flex-1">
             {generating ? (
               <>
@@ -272,10 +416,17 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
           </Button>
         ) : (
           <>
-            <Button variant="outline" onClick={handleGenerate} className="flex-1">
-              Regenerate
+            <Button variant="outline" onClick={handleGenerate} disabled={generating || remixing} className="flex-1">
+              {generating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Another"
+              )}
             </Button>
-            <Button onClick={handleSave} className="flex-1">
+            <Button onClick={handleSave} disabled={!selectedImage || generating || remixing} className="flex-1">
               Save & Finish
             </Button>
           </>
