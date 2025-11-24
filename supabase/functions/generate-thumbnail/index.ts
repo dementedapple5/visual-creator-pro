@@ -44,7 +44,12 @@ serve(async (req) => {
     const platformType = thumbnailData.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
     const aspectRatio = thumbnailData.aspectRatio || "16:9";
     const imageSize = "2K"; // High quality 2K resolution
-    let prompt = `Generate a high-impact ${platformType} thumbnail. `;
+    let prompt = `Generate a high-impact ${platformType} thumbnail with ${aspectRatio} aspect ratio. 
+
+CRITICAL INSTRUCTIONS:
+- PRESERVE the exact appearance, face, outfit, and styling of any people shown in the provided images
+- Do NOT modify facial features, clothing, or accessories of the people
+- Keep them looking EXACTLY as they appear in the source images`;
 
     // Visual style
     if (thumbnailData.visualStyle) {
@@ -62,13 +67,13 @@ serve(async (req) => {
     // Background
     if (thumbnailData.backgroundType && thumbnailData.backgroundValue) {
       if (thumbnailData.backgroundType === "preset") {
-        prompt += `Background: ${thumbnailData.backgroundValue} setting. `;
+        prompt += `\n\nBackground: ${thumbnailData.backgroundValue} setting. `;
       } else if (thumbnailData.backgroundType === "color") {
-        prompt += `Background: solid ${thumbnailData.backgroundValue} color. `;
+        prompt += `\n\nBackground: solid ${thumbnailData.backgroundValue} color. `;
       } else if (thumbnailData.backgroundType === "prompt" || thumbnailData.backgroundType === "custom-prompt") {
-        prompt += `Background: ${thumbnailData.backgroundValue}. `;
+        prompt += `\n\nBackground: ${thumbnailData.backgroundValue}. `;
       } else if (thumbnailData.backgroundType === "avatar-bg") {
-        prompt += `Keep the original background from the avatar image. `;
+        prompt += `\n\nIMPORTANT: Keep and preserve the EXACT original background from the avatar image. Do not change or modify the background in any way. `;
       }
     }
 
@@ -118,18 +123,18 @@ serve(async (req) => {
     }
 
     // Build content array with text and images
-    const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
-      { type: "text", text: prompt }
+    const contentParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+      { text: prompt }
     ];
 
-    // Helper function to fetch and convert image to base64
+    // Helper function to fetch and convert image to base64 (without data URI prefix)
     const fetchImageAsBase64 = async (url: string): Promise<string> => {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
       const arr = new Uint8Array(arrayBuffer);
       // Use reduce to avoid stack overflow with large images
       const base64 = btoa(arr.reduce((data, byte) => data + String.fromCharCode(byte), ''));
-      return `data:image/jpeg;base64,${base64}`;
+      return base64;
     };
 
     // Add avatar image
@@ -143,10 +148,11 @@ serve(async (req) => {
       if (avatar?.image_url) {
         const base64Image = await fetchImageAsBase64(avatar.image_url);
         contentParts.push({
-          type: "image_url",
-          image_url: { url: base64Image }
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: base64Image
+          }
         });
-        prompt += `Include the person from the provided image. `;
       }
     }
 
@@ -162,13 +168,13 @@ serve(async (req) => {
           if (product.image_url) {
             const base64Image = await fetchImageAsBase64(product.image_url);
             contentParts.push({
-              type: "image_url",
-              image_url: { url: base64Image }
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: base64Image
+              }
             });
           }
         }
-        const count = products.length;
-        prompt += `Include ${count} product${count > 1 ? 's' : ''} from the provided image${count > 1 ? 's' : ''} prominently in the composition. `;
       }
     }
 
@@ -176,10 +182,11 @@ serve(async (req) => {
     if (thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
       const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
       contentParts.push({
-        type: "image_url",
-        image_url: { url: base64Image }
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Image
+        }
       });
-      prompt += `Use the provided image as the background. `;
     }
 
     console.log("Generated prompt:", prompt);
@@ -206,12 +213,7 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               model: "google/gemini-3-pro-image-preview",
-              messages: [
-                {
-                  role: "user",
-                  content: contentParts,
-                },
-              ],
+              contents: contentParts,
               config: {
                 responseModalities: ['TEXT', 'IMAGE'],
                 imageConfig: {
@@ -288,8 +290,18 @@ serve(async (req) => {
     const data = await response.json();
     console.log("AI response received");
 
-    // Extract the base64 image from the response
-    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Extract the base64 image from the response (Gemini format)
+    let imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    // Also check alternative response format
+    if (!imageData && data.candidates?.[0]?.content?.parts) {
+      for (const part of data.candidates[0].content.parts) {
+        if (part.inlineData?.data) {
+          imageData = `data:image/png;base64,${part.inlineData.data}`;
+          break;
+        }
+      }
+    }
 
     if (!imageData) {
       console.error("No image in response. Response structure:", JSON.stringify(data, null, 2));
