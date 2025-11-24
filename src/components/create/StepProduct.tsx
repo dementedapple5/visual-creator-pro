@@ -84,7 +84,7 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
         <p className="text-muted-foreground">
           Select one or more products to feature in your thumbnail (optional)
           {data.productIds && data.productIds.length > 0 && (
-            <span className="ml-2 text-primary font-medium">
+            <span className="ml-2 text-primary font-medium animate-fade-in">
               {data.productIds.length} selected
             </span>
           )}
@@ -148,7 +148,7 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
       )}
 
       {data.productIds && data.productIds.length > 0 && (
-        <div className="space-y-6 p-6 bg-card border border-border rounded-lg">
+        <div className="space-y-6 p-6 bg-card border border-border rounded-lg animate-fade-in">
           <h3 className="text-lg font-semibold">Product Customization</h3>
           
           <div>

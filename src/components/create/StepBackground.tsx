@@ -178,10 +178,10 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
       </div>
 
       {activeTab === "preset" && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
           {/* Use Avatar Background Option */}
           {data.avatarId && (
-            <div>
+            <div className="animate-fade-in">
               <h3 className="text-sm font-medium mb-3">Avatar Background</h3>
               <button
                 onClick={handleUseAvatarBackground}
@@ -236,7 +236,7 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
       )}
 
       {activeTab === "color" && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
           <div className="flex gap-6">
             {/* Color Preview */}
             <div 
@@ -364,7 +364,7 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
       )}
 
       {activeTab === "custom" && (
-        <div>
+        <div className="animate-fade-in">
           <label htmlFor="bg-upload">
             <div className="border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer hover:border-primary transition-colors">
               <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
