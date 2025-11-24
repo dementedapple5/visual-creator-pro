@@ -91,13 +91,29 @@ const CreateNew = () => {
   const [visualStyle, setVisualStyle] = useState<string>("Modern & Minimalist");
   const [backgroundType, setBackgroundType] = useState<string>("gradient");
   const [backgroundValue, setBackgroundValue] = useState<string>("#FF6B9D,#C239B3");
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>("");
+  const [customBackgroundPrompt, setCustomBackgroundPrompt] = useState<string>("");
   const [aspectRatio, setAspectRatio] = useState<string>("16:9");
+  
+  // Color states for gradient/solid pickers
+  const [gradientColor1, setGradientColor1] = useState<string>("#FF6B9D");
+  const [gradientColor2, setGradientColor2] = useState<string>("#C239B3");
+  const [solidColor, setSolidColor] = useState<string>("#FF6B9D");
 
   useEffect(() => {
     checkUser();
     fetchAvatars();
     fetchProducts();
   }, []);
+
+  // Update backgroundValue when colors change
+  useEffect(() => {
+    if (backgroundType === "gradient") {
+      setBackgroundValue(`${gradientColor1},${gradientColor2}`);
+    } else if (backgroundType === "solid") {
+      setBackgroundValue(solidColor);
+    }
+  }, [backgroundType, gradientColor1, gradientColor2, solidColor]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -117,6 +133,38 @@ const CreateNew = () => {
       setAvatars(data || []);
     } catch (error) {
       console.error("Error fetching avatars:", error);
+    }
+  };
+
+  const handleBackgroundImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const compressedBlob = await compressAndConvertToJpg(file);
+      const fileName = `${user.id}/backgrounds/${Date.now()}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("thumbnails")
+        .upload(fileName, compressedBlob, {
+          contentType: "image/jpeg",
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("thumbnails")
+        .getPublicUrl(fileName);
+
+      setBackgroundImageUrl(publicUrl);
+      setBackgroundValue(publicUrl);
+      toast.success("Background image uploaded");
+    } catch (error) {
+      console.error("Error uploading background:", error);
+      toast.error("Failed to upload background image");
     }
   };
 
@@ -165,7 +213,7 @@ const CreateNew = () => {
             textStyle,
             visualStyle,
             backgroundType,
-            backgroundValue,
+            backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
             aspectRatio,
           },
         }
@@ -435,24 +483,24 @@ const CreateNew = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label>Text Style</Label>
+                <Select value={textStyle} onValueChange={setTextStyle}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEXT_STYLES.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {style}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {(title || subtitle) && (
                 <>
-                  <div className="space-y-2">
-                    <Label>Text Style</Label>
-                    <Select value={textStyle} onValueChange={setTextStyle}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TEXT_STYLES.map((style) => (
-                          <SelectItem key={style} value={style}>
-                            {style}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <div className="space-y-2">
                     <Label>Position</Label>
                     <Select value={textPosition} onValueChange={setTextPosition}>
@@ -517,10 +565,133 @@ const CreateNew = () => {
                   <SelectContent>
                     <SelectItem value="gradient">Gradient</SelectItem>
                     <SelectItem value="solid">Solid Color</SelectItem>
-                    <SelectItem value="pattern">Pattern</SelectItem>
+                    <SelectItem value="image">Upload Image</SelectItem>
+                    <SelectItem value="avatar">From Avatar</SelectItem>
+                    <SelectItem value="custom-prompt">Custom Prompt</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Gradient Color Pickers */}
+              {backgroundType === "gradient" && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Color 1</Label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={gradientColor1}
+                        onChange={(e) => setGradientColor1(e.target.value)}
+                        className="w-12 h-10 rounded border border-border cursor-pointer"
+                      />
+                      <Input
+                        value={gradientColor1}
+                        onChange={(e) => setGradientColor1(e.target.value)}
+                        placeholder="#FF6B9D"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Color 2</Label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={gradientColor2}
+                        onChange={(e) => setGradientColor2(e.target.value)}
+                        className="w-12 h-10 rounded border border-border cursor-pointer"
+                      />
+                      <Input
+                        value={gradientColor2}
+                        onChange={(e) => setGradientColor2(e.target.value)}
+                        placeholder="#C239B3"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Solid Color Picker */}
+              {backgroundType === "solid" && (
+                <div className="space-y-2">
+                  <Label>Color</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={solidColor}
+                      onChange={(e) => setSolidColor(e.target.value)}
+                      className="w-12 h-10 rounded border border-border cursor-pointer"
+                    />
+                    <Input
+                      value={solidColor}
+                      onChange={(e) => setSolidColor(e.target.value)}
+                      placeholder="#FF6B9D"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Image */}
+              {backgroundType === "image" && (
+                <div className="space-y-2">
+                  <Label>Upload Background Image</Label>
+                  <label htmlFor="bg-upload" className="block">
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
+                      {backgroundImageUrl ? (
+                        <div className="space-y-2">
+                          <img
+                            src={backgroundImageUrl}
+                            alt="Background preview"
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <p className="text-sm text-muted-foreground">Click to change</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Click to upload</p>
+                          <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      id="bg-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBackgroundImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* Avatar Background */}
+              {backgroundType === "avatar" && selectedAvatar && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Background will be generated from the selected avatar
+                  </p>
+                </div>
+              )}
+
+              {backgroundType === "avatar" && !selectedAvatar && (
+                <div className="p-3 bg-destructive/10 rounded-lg">
+                  <p className="text-sm text-destructive">
+                    Please select an avatar first to use this option
+                  </p>
+                </div>
+              )}
+
+              {/* Custom Prompt */}
+              {backgroundType === "custom-prompt" && (
+                <div className="space-y-2">
+                  <Label>Background Description</Label>
+                  <Textarea
+                    placeholder="Describe the background you want... (e.g., 'Futuristic city skyline at sunset')"
+                    value={customBackgroundPrompt}
+                    onChange={(e) => setCustomBackgroundPrompt(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Aspect Ratio</Label>
