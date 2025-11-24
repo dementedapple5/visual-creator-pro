@@ -11,6 +11,11 @@ interface StepTextProps {
 }
 
 export const StepText = ({ data, updateData, onNext, onPrev }: StepTextProps) => {
+  const handleSkip = () => {
+    updateData({ title: undefined, subtitle: undefined });
+    onNext();
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -46,6 +51,9 @@ export const StepText = ({ data, updateData, onNext, onPrev }: StepTextProps) =>
       <div className="flex gap-4 pt-8">
         <Button variant="outline" onClick={onPrev}>
           Back
+        </Button>
+        <Button variant="outline" onClick={handleSkip} className="flex-1">
+          Skip
         </Button>
         <Button onClick={onNext} className="flex-1">
           Continue
