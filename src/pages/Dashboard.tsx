@@ -105,7 +105,11 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {thumbnails.map((thumbnail) => (
-              <div key={thumbnail.id} className="group cursor-pointer">
+              <div 
+                key={thumbnail.id} 
+                className="group cursor-pointer"
+                onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
+              >
                 <div className="aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
                   <img
                     src={thumbnail.image_url}

@@ -17,6 +17,8 @@ interface ThumbnailData {
   textStyle?: string;
   backgroundType?: string;
   backgroundValue?: string;
+  aspectRatio?: string;
+  iterationPrompt?: string;
 }
 
 serve(async (req) => {
@@ -36,7 +38,9 @@ serve(async (req) => {
     console.log("Thumbnail data received:", thumbnailData);
 
     // Build the prompt
-    let prompt = `Generate a high-impact YouTube thumbnail in 2K resolution (2560x1440). `;
+    const platformType = thumbnailData.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
+    const resolution = thumbnailData.aspectRatio === "9:16" ? "1080x1920" : "2560x1440";
+    let prompt = `Generate a high-impact ${platformType} thumbnail in ${resolution} resolution. `;
 
     // Visual style
     if (thumbnailData.visualStyle) {
@@ -83,6 +87,11 @@ serve(async (req) => {
     // Expression for avatar
     if (thumbnailData.avatarId && thumbnailData.expression) {
       prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
+    }
+
+    // Iteration prompt for refinement
+    if (thumbnailData.iterationPrompt) {
+      prompt += `\n\nADDITIONAL CHANGES REQUESTED:\n${thumbnailData.iterationPrompt}\n`;
     }
 
     // Build content array with text and images
