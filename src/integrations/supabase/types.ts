@@ -132,6 +132,8 @@ export type Database = {
         Row: {
           aspect_ratio: string
           avatar_id: string | null
+          avatar_importance: number | null
+          avatar_position: string | null
           background_type: string
           background_value: string | null
           created_at: string | null
@@ -139,7 +141,11 @@ export type Database = {
           id: string
           image_url: string
           product_id: string | null
+          product_importance: number | null
+          product_position: string | null
           subtitle: string | null
+          text_importance: number | null
+          text_position: string | null
           text_style: string
           title: string | null
           user_id: string
@@ -148,6 +154,8 @@ export type Database = {
         Insert: {
           aspect_ratio?: string
           avatar_id?: string | null
+          avatar_importance?: number | null
+          avatar_position?: string | null
           background_type: string
           background_value?: string | null
           created_at?: string | null
@@ -155,7 +163,11 @@ export type Database = {
           id?: string
           image_url: string
           product_id?: string | null
+          product_importance?: number | null
+          product_position?: string | null
           subtitle?: string | null
+          text_importance?: number | null
+          text_position?: string | null
           text_style: string
           title?: string | null
           user_id: string
@@ -164,6 +176,8 @@ export type Database = {
         Update: {
           aspect_ratio?: string
           avatar_id?: string | null
+          avatar_importance?: number | null
+          avatar_position?: string | null
           background_type?: string
           background_value?: string | null
           created_at?: string | null
@@ -171,7 +185,11 @@ export type Database = {
           id?: string
           image_url?: string
           product_id?: string | null
+          product_importance?: number | null
+          product_position?: string | null
           subtitle?: string | null
+          text_importance?: number | null
+          text_position?: string | null
           text_style?: string
           title?: string | null
           user_id?: string
