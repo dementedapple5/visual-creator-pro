@@ -158,15 +158,15 @@ CRITICAL INSTRUCTIONS:
 
     // Add product images
     if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
-      const { data: products } = await supabase
-        .from("products")
+      const { data: productImages } = await supabase
+        .from("product_images")
         .select("image_url")
-        .in("id", thumbnailData.productIds);
+        .in("product_id", thumbnailData.productIds);
 
-      if (products && products.length > 0) {
-        for (const product of products) {
-          if (product.image_url) {
-            const base64Image = await fetchImageAsBase64(product.image_url);
+      if (productImages && productImages.length > 0) {
+        for (const productImage of productImages) {
+          if (productImage.image_url) {
+            const base64Image = await fetchImageAsBase64(productImage.image_url);
             messageContent.push({
               type: "image_url",
               image_url: {
