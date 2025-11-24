@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { compressAndConvertToJpg, extractStoragePath } from "@/lib/imageUtils";
 
 interface Avatar {
   id: string;
@@ -52,12 +53,15 @@ const Profile = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Compress and convert to JPG
+      const compressedBlob = await compressAndConvertToJpg(file);
+      const fileName = `${user.id}/${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(fileName, file);
+        .upload(fileName, compressedBlob, {
+          contentType: "image/jpeg",
+        });
 
       if (uploadError) throw uploadError;
 
@@ -83,12 +87,25 @@ const Profile = () => {
 
   const handleDelete = async (avatar: Avatar) => {
     try {
-      const { error } = await supabase
+      // Delete from database first
+      const { error: dbError } = await supabase
         .from("avatars")
         .delete()
         .eq("id", avatar.id);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
+
+      // Extract storage path and delete from storage
+      const storagePath = extractStoragePath(avatar.image_url, "avatars");
+      if (storagePath) {
+        const { error: storageError } = await supabase.storage
+          .from("avatars")
+          .remove([storagePath]);
+
+        if (storageError) {
+          console.error("Error deleting from storage:", storageError);
+        }
+      }
 
       toast.success("Avatar deleted");
       fetchAvatars();

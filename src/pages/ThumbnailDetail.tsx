@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Download, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { extractStoragePath } from "@/lib/imageUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,12 +141,25 @@ const ThumbnailDetail = () => {
     if (!thumbnail) return;
 
     try {
-      const { error } = await supabase
+      // Delete from database first
+      const { error: dbError } = await supabase
         .from("thumbnails")
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
+
+      // Extract storage path and delete from storage
+      const storagePath = extractStoragePath(thumbnail.image_url, "thumbnails");
+      if (storagePath) {
+        const { error: storageError } = await supabase.storage
+          .from("thumbnails")
+          .remove([storagePath]);
+
+        if (storageError) {
+          console.error("Error deleting from storage:", storageError);
+        }
+      }
 
       toast.success("Thumbnail deleted successfully!");
       navigate("/dashboard");
