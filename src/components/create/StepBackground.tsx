@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Upload } from "lucide-react";
 import { CreateData } from "@/pages/Create";
 import { supabase } from "@/integrations/supabase/client";
@@ -253,13 +252,20 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
                   <Label>Hue</Label>
                   <span className="text-sm font-mono">{hue}</span>
                 </div>
-                <Slider
-                  value={[hue]}
-                  onValueChange={([v]) => handleHslChange(v, saturation, lightness)}
+                <input
+                  type="range"
+                  value={hue}
+                  onChange={(e) => handleHslChange(Number(e.target.value), saturation, lightness)}
                   min={0}
                   max={360}
                   step={1}
-                  className="[&>span]:bg-gradient-to-r [&>span]:from-red-500 [&>span]:via-yellow-500 [&>span]:via-green-500 [&>span]:via-cyan-500 [&>span]:via-blue-500 [&>span]:via-purple-500 [&>span]:to-red-500"
+                  className="w-full h-2 rounded-lg cursor-pointer"
+                  style={{
+                    background: 'linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%))',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                    outline: 'none',
+                  }}
                 />
               </div>
 
@@ -269,14 +275,19 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
                   <Label>Saturation</Label>
                   <span className="text-sm font-mono">{saturation}%</span>
                 </div>
-                <Slider
-                  value={[saturation]}
-                  onValueChange={([v]) => handleHslChange(hue, v, lightness)}
+                <input
+                  type="range"
+                  value={saturation}
+                  onChange={(e) => handleHslChange(hue, Number(e.target.value), lightness)}
                   min={0}
                   max={100}
                   step={1}
+                  className="w-full h-2 rounded-lg cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, hsl(${hue}, 0%, ${lightness}%), hsl(${hue}, 100%, ${lightness}%))`
+                    background: `linear-gradient(to right, hsl(${hue}, 0%, ${lightness}%), hsl(${hue}, 100%, ${lightness}%))`,
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                    outline: 'none',
                   }}
                 />
               </div>
@@ -287,19 +298,48 @@ export const StepBackground = ({ data, updateData, onNext, onPrev }: StepBackgro
                   <Label>Lightness</Label>
                   <span className="text-sm font-mono">{lightness}%</span>
                 </div>
-                <Slider
-                  value={[lightness]}
-                  onValueChange={([v]) => handleHslChange(hue, saturation, v)}
+                <input
+                  type="range"
+                  value={lightness}
+                  onChange={(e) => handleHslChange(hue, saturation, Number(e.target.value))}
                   min={0}
                   max={100}
                   step={1}
+                  className="w-full h-2 rounded-lg cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, hsl(${hue}, ${saturation}%, 0%), hsl(${hue}, ${saturation}%, 50%), hsl(${hue}, ${saturation}%, 100%))`
+                    background: `linear-gradient(to right, hsl(${hue}, ${saturation}%, 0%), hsl(${hue}, ${saturation}%, 50%), hsl(${hue}, ${saturation}%, 100%))`,
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                    outline: 'none',
                   }}
                 />
               </div>
             </div>
           </div>
+
+          <style>{`
+            input[type="range"]::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: white;
+              border: 3px solid hsl(var(--primary));
+              cursor: pointer;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            
+            input[type="range"]::-moz-range-thumb {
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: white;
+              border: 3px solid hsl(var(--primary));
+              cursor: pointer;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+          `}</style>
 
           {/* Color Values Display */}
           <div className="grid grid-cols-2 gap-4">
