@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 
 const menuItems = [
@@ -24,6 +25,16 @@ export const AppDrawer = () => {
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<{ username: string | null; email: string | null } | null>(null);
   const [generationsCount, setGenerationsCount] = useState(0);
+  const [subscription, setSubscription] = useState<{
+    subscribed: boolean;
+    product_id: string | null;
+  }>({ subscribed: false, product_id: null });
+
+  const subscriptionPlans = {
+    "prod_TTytxm2oUYxzXe": { name: "Starter", variant: "secondary" as const },
+    "prod_TTytaKmSmKge2x": { name: "Pro", variant: "default" as const },
+    "prod_TTyuNeWPfbeOFz": { name: "Enterprise", variant: "default" as const }
+  };
 
   useEffect(() => {
     fetchUserData();
@@ -51,6 +62,12 @@ export const AppDrawer = () => {
       .eq("user_id", user.id);
 
     setGenerationsCount(count || 0);
+
+    // Fetch subscription status
+    const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
+    if (subscriptionData) {
+      setSubscription(subscriptionData);
+    }
   };
 
   const getInitials = () => {
@@ -110,9 +127,16 @@ export const AppDrawer = () => {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {profile?.username || profile?.email || "User"}
-                </p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-sm font-medium truncate">
+                    {profile?.username || profile?.email || "User"}
+                  </p>
+                  {subscription.subscribed && subscription.product_id && subscriptionPlans[subscription.product_id as keyof typeof subscriptionPlans] && (
+                    <Badge variant={subscriptionPlans[subscription.product_id as keyof typeof subscriptionPlans].variant} className="text-xs py-0 px-1.5">
+                      {subscriptionPlans[subscription.product_id as keyof typeof subscriptionPlans].name}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {generationsCount} generations
                 </p>
