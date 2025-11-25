@@ -309,6 +309,20 @@ const Profile = () => {
               </Card>
             )}
 
+            {!subscription.subscribed && (
+              <Card className="mb-6 bg-muted/50 border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Check className="w-5 h-5 text-muted-foreground" />
+                    <span className="font-semibold">Free Tier</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    You're currently on the free plan: 1 thumbnail per day
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid md:grid-cols-3 gap-4">
               {subscriptionPlans.map((plan) => {
                 const isCurrentPlan = subscription.subscribed && subscription.product_id === plan.productId;
