@@ -18,13 +18,22 @@ const Avatars = () => {
   const [uploading, setUploading] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<{ subscribed: boolean } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     checkUser();
     fetchAvatars();
+    checkSubscription();
   }, []);
+
+  const checkSubscription = async () => {
+    const { data } = await supabase.functions.invoke("check-subscription");
+    if (data) {
+      setSubscription(data);
+    }
+  };
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -56,6 +65,13 @@ const Avatars = () => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
+
+      // Check free tier limit
+      if (!subscription?.subscribed && avatars.length >= 1) {
+        toast.error("Free tier users can only upload 1 avatar. Upgrade to add more.");
+        setUploading(false);
+        return;
+      }
 
       const compressedBlob = await compressAndConvertToJpg(file);
       const fileName = `${user.id}/${Date.now()}.jpg`;
@@ -102,6 +118,14 @@ const Avatars = () => {
 
     try {
       setUploading(true);
+
+      // Check free tier limit
+      if (!subscription?.subscribed && avatars.length >= 1) {
+        toast.error("Free tier users can only upload 1 avatar. Upgrade to add more.");
+        setUploading(false);
+        return;
+      }
+
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
@@ -194,38 +218,48 @@ const Avatars = () => {
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               {/* Image Upload */}
               <label htmlFor="image-upload">
-                <div className="border border-border rounded-lg p-6 text-center cursor-pointer hover:bg-secondary/50 transition-colors h-full flex flex-col items-center justify-center">
+                <div className={`border border-border rounded-lg p-6 text-center ${(!subscription?.subscribed && avatars.length >= 1) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-secondary/50'} transition-colors h-full flex flex-col items-center justify-center`}>
                   <Upload className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
                   <p className="text-sm font-medium mb-1">Upload Image</p>
                   <p className="text-xs text-muted-foreground">
                     PNG, JPG up to 10MB
                   </p>
+                  {!subscription?.subscribed && avatars.length >= 1 && (
+                    <p className="text-xs text-destructive mt-2">
+                      Free tier limit reached
+                    </p>
+                  )}
                 </div>
                 <input
                   id="image-upload"
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  disabled={uploading}
+                  disabled={uploading || (!subscription?.subscribed && avatars.length >= 1)}
                   className="hidden"
                 />
               </label>
 
               {/* Video Upload */}
               <label htmlFor="video-upload">
-                <div className="border border-border rounded-lg p-6 text-center cursor-pointer hover:bg-secondary/50 transition-colors h-full flex flex-col items-center justify-center">
+                <div className={`border border-border rounded-lg p-6 text-center ${(!subscription?.subscribed && avatars.length >= 1) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-secondary/50'} transition-colors h-full flex flex-col items-center justify-center`}>
                   <Video className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
                   <p className="text-sm font-medium mb-1">Upload Video</p>
                   <p className="text-xs text-muted-foreground">
                     MP4, MOV to capture frame
                   </p>
+                  {!subscription?.subscribed && avatars.length >= 1 && (
+                    <p className="text-xs text-destructive mt-2">
+                      Free tier limit reached
+                    </p>
+                  )}
                 </div>
                 <input
                   id="video-upload"
                   type="file"
                   accept="video/*"
                   onChange={handleVideoUpload}
-                  disabled={uploading}
+                  disabled={uploading || (!subscription?.subscribed && avatars.length >= 1)}
                   className="hidden"
                 />
               </label>
