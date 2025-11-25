@@ -11,8 +11,10 @@ import { Check } from "lucide-react";
 const subscriptionPlans = [
   {
     name: "Free",
-    price: "$0",
+    monthlyPrice: "$0",
+    yearlyPrice: "$0",
     priceId: null,
+    yearlyPriceId: null,
     productId: null,
     features: [
       "1 thumbnail/day",
@@ -22,8 +24,12 @@ const subscriptionPlans = [
   },
   {
     name: "Starter",
-    price: "$17.99",
+    monthlyPrice: "$17.99",
+    yearlyPrice: "$172.70",
+    monthlySavings: null,
+    yearlySavings: "20%",
     priceId: "price_1SX0vtISMAOMUNUM7hJ7Mk45",
+    yearlyPriceId: "price_yearly_starter",
     productId: "prod_TTytxm2oUYxzXe",
     features: [
       "50 HD thumbnails/month",
@@ -33,8 +39,12 @@ const subscriptionPlans = [
   },
   {
     name: "Pro",
-    price: "$29.99",
+    monthlyPrice: "$29.99",
+    yearlyPrice: "$287.90",
+    monthlySavings: null,
+    yearlySavings: "20%",
     priceId: "price_1SX0w8ISMAOMUNUM8zz7KCfk",
+    yearlyPriceId: "price_yearly_pro",
     productId: "prod_TTytaKmSmKge2x",
     popular: true,
     features: [
@@ -45,8 +55,12 @@ const subscriptionPlans = [
   },
   {
     name: "Enterprise",
-    price: "$99.99",
+    monthlyPrice: "$99.99",
+    yearlyPrice: "$959.90",
+    monthlySavings: null,
+    yearlySavings: "20%",
     priceId: "price_1SX0wNISMAOMUNUMTz5N3THc",
+    yearlyPriceId: "price_yearly_enterprise",
     productId: "prod_TTyuNeWPfbeOFz",
     features: [
       "300 HD thumbnails/month",
@@ -71,6 +85,7 @@ const Profile = () => {
     subscription_end: string | null;
   }>({ subscribed: false, product_id: null, subscription_end: null });
   const [checkingSubscription, setCheckingSubscription] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
 
   useEffect(() => {
     checkUser();
@@ -295,6 +310,33 @@ const Profile = () => {
               )}
             </div>
 
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <span className={`text-sm ${billingInterval === "monthly" ? "font-semibold" : "text-muted-foreground"}`}>
+                Monthly
+              </span>
+              <button
+                onClick={() => setBillingInterval(billingInterval === "monthly" ? "yearly" : "monthly")}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  billingInterval === "yearly" ? "bg-primary" : "bg-secondary"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
+                    billingInterval === "yearly" ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+              <span className={`text-sm ${billingInterval === "yearly" ? "font-semibold" : "text-muted-foreground"}`}>
+                Yearly
+              </span>
+              {billingInterval === "yearly" && (
+                <span className="text-xs text-primary font-semibold bg-primary/10 px-2 py-1 rounded-full">
+                  Save 20%
+                </span>
+              )}
+            </div>
+
             {subscription.subscribed && (
               <Card className="mb-6 bg-primary/5 border-primary">
                 <CardContent className="pt-6">
@@ -334,6 +376,9 @@ const Profile = () => {
                   ? subscription.subscribed && subscription.product_id === plan.productId
                   : !subscription.subscribed;
                 const isFree = !plan.priceId;
+                const currentPrice = billingInterval === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
+                const currentPriceId = billingInterval === "monthly" ? plan.priceId : plan.yearlyPriceId;
+                const savings = billingInterval === "yearly" ? plan.yearlySavings : null;
                 
                 return (
                   <Card
@@ -356,13 +401,25 @@ const Profile = () => {
                         </span>
                       </div>
                     )}
+                    {savings && !isFree && (
+                      <div className="absolute -top-3 right-4">
+                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                          Save {savings}
+                        </span>
+                      </div>
+                    )}
                     <CardHeader>
                       <CardTitle className="text-lg">{plan.name}</CardTitle>
                       <CardDescription>
                         <span className="text-3xl font-bold text-foreground">
-                          {plan.price}
+                          {currentPrice}
                         </span>
-                        <span className="text-muted-foreground">/month</span>
+                        <span className="text-muted-foreground">/{billingInterval === "monthly" ? "month" : "year"}</span>
+                        {billingInterval === "yearly" && !isFree && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            ${(parseFloat(currentPrice.replace("$", "")) / 12).toFixed(2)}/month
+                          </div>
+                        )}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -376,7 +433,7 @@ const Profile = () => {
                       </ul>
                       {!isFree && (
                         <Button
-                          onClick={() => handleSubscribe(plan.priceId!)}
+                          onClick={() => handleSubscribe(currentPriceId!)}
                           className="w-full"
                           variant={plan.popular ? "default" : "outline"}
                           size="sm"
