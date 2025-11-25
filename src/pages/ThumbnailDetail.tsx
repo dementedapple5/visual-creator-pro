@@ -126,17 +126,19 @@ const ThumbnailDetail = () => {
       // Generate a new version based on the prompt
       const { data: result, error } = await supabase.functions.invoke("generate-thumbnail", {
         body: {
-          avatarId: thumbnail.avatar_id,
-          productId: thumbnail.product_id,
-          title: thumbnail.title,
-          subtitle: thumbnail.subtitle,
-          expression: thumbnail.expression,
-          visualStyle: thumbnail.visual_style,
-          textStyle: thumbnail.text_style,
-          backgroundType: thumbnail.background_type,
-          backgroundValue: thumbnail.background_value,
-          aspectRatio: thumbnail.aspect_ratio,
-          iterationPrompt: prompt, // Additional prompt for iteration
+          thumbnailData: {
+            avatarId: thumbnail.avatar_id,
+            productIds: thumbnail.product_id ? [thumbnail.product_id] : [],
+            title: thumbnail.title,
+            subtitle: thumbnail.subtitle,
+            expression: thumbnail.expression,
+            visualStyle: thumbnail.visual_style,
+            textStyle: thumbnail.text_style,
+            backgroundType: thumbnail.background_type,
+            backgroundValue: thumbnail.background_value,
+            aspectRatio: thumbnail.aspect_ratio,
+            iterationPrompt: prompt,
+          },
         },
       });
 
