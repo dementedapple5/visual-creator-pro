@@ -33,12 +33,12 @@ const subscriptionPlans = [
   },
   {
     name: "Pro",
-    price: "$42.99",
+    price: "$29.99",
     priceId: "price_1SX0w8ISMAOMUNUM8zz7KCfk",
     productId: "prod_TTytaKmSmKge2x",
     popular: true,
     features: [
-      "150 HD thumbnails/month",
+      "90 HD thumbnails/month",
       "4K resolution",
       "Priority support"
     ]
