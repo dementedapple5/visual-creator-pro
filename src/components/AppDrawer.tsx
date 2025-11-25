@@ -131,9 +131,13 @@ export const AppDrawer = () => {
                   <p className="text-sm font-medium truncate">
                     {profile?.username || profile?.email || "User"}
                   </p>
-                  {subscription.subscribed && subscription.product_id && subscriptionPlans[subscription.product_id as keyof typeof subscriptionPlans] && (
+                  {subscription.subscribed && subscription.product_id && subscriptionPlans[subscription.product_id as keyof typeof subscriptionPlans] ? (
                     <Badge variant={subscriptionPlans[subscription.product_id as keyof typeof subscriptionPlans].variant} className="text-xs py-0 px-1.5">
                       {subscriptionPlans[subscription.product_id as keyof typeof subscriptionPlans].name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs py-0 px-1.5">
+                      Free
                     </Badge>
                   )}
                 </div>
