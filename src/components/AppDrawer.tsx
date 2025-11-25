@@ -55,18 +55,33 @@ export const AppDrawer = () => {
       setProfile(profileData);
     }
 
-    // Count thumbnails generated
-    const { count } = await supabase
-      .from("thumbnails")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
-
-    setGenerationsCount(count || 0);
-
     // Fetch subscription status
     const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
     if (subscriptionData) {
       setSubscription(subscriptionData);
+    }
+
+    // Count generations based on subscription status
+    if (!subscriptionData?.subscribed) {
+      // Free tier: count today's generations only
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { count } = await supabase
+        .from("thumbnails")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", today.toISOString());
+
+      setGenerationsCount(count || 0);
+    } else {
+      // Paid tier: count all generations
+      const { count } = await supabase
+        .from("thumbnails")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      setGenerationsCount(count || 0);
     }
   };
 
@@ -142,7 +157,9 @@ export const AppDrawer = () => {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {generationsCount} generations
+                  {subscription.subscribed 
+                    ? `${generationsCount} generations` 
+                    : `${generationsCount}/1 today`}
                 </p>
               </div>
             </div>
