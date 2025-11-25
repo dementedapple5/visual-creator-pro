@@ -32,16 +32,25 @@ const Products = () => {
   const [brand, setBrand] = useState("");
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [subscription, setSubscription] = useState<{ subscribed: boolean } | null>(null);
 
   useEffect(() => {
     checkUser();
     fetchProducts();
+    checkSubscription();
     
     if (searchParams.get("action") === "create") {
       setShowDialog(true);
       setSearchParams({});
     }
   }, []);
+
+  const checkSubscription = async () => {
+    const { data } = await supabase.functions.invoke("check-subscription");
+    if (data) {
+      setSubscription(data);
+    }
+  };
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -123,6 +132,12 @@ const Products = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
+      // Check free tier limit
+      if (!subscription?.subscribed && products.length >= 3) {
+        toast.error("Free tier users can only create 3 products. Upgrade to add more.");
+        return;
+      }
+
       const { data: product, error: productError } = await supabase
         .from("products")
         .insert({
@@ -164,9 +179,13 @@ const Products = () => {
       <main className="container mx-auto px-6 py-12 pl-20">
         <div className="mb-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Products</h1>
-          <Button onClick={() => setShowDialog(true)}>
+          <Button 
+            onClick={() => setShowDialog(true)}
+            disabled={!subscription?.subscribed && products.length >= 3}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Product
+            {!subscription?.subscribed && products.length >= 3 && " (Limit Reached)"}
           </Button>
         </div>
 
