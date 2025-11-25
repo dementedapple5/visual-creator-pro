@@ -29,7 +29,7 @@ const subscriptionPlans = [
     monthlySavings: null,
     yearlySavings: "20%",
     priceId: "price_1SX0vtISMAOMUNUM7hJ7Mk45",
-    yearlyPriceId: "price_yearly_starter",
+    yearlyPriceId: "price_1SXHyGISMAOMUNUMx0LrXEZg",
     productId: "prod_TTytxm2oUYxzXe",
     features: [
       "50 HD thumbnails/month",
@@ -43,9 +43,9 @@ const subscriptionPlans = [
     yearlyPrice: "$287.90",
     monthlySavings: null,
     yearlySavings: "20%",
-    priceId: "price_1SX0w8ISMAOMUNUM8zz7KCfk",
-    yearlyPriceId: "price_yearly_pro",
-    productId: "prod_TTytaKmSmKge2x",
+    priceId: "price_1SXHwFISMAOMUNUM0syTOyVg",
+    yearlyPriceId: "price_1SXI02ISMAOMUNUMd8oTYJPc",
+    productId: "prod_TUGTkbIPU5H2pn",
     popular: true,
     features: [
       "100 HD thumbnails/month",
@@ -60,7 +60,7 @@ const subscriptionPlans = [
     monthlySavings: null,
     yearlySavings: "20%",
     priceId: "price_1SX0wNISMAOMUNUMTz5N3THc",
-    yearlyPriceId: "price_yearly_enterprise",
+    yearlyPriceId: "price_1SXI0FISMAOMUNUMgfSnO0Y0",
     productId: "prod_TTyuNeWPfbeOFz",
     features: [
       "300 HD thumbnails/month",

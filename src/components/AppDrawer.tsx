@@ -32,7 +32,7 @@ export const AppDrawer = () => {
 
   const subscriptionPlans = {
     "prod_TTytxm2oUYxzXe": { name: "Starter", variant: "secondary" as const },
-    "prod_TTytaKmSmKge2x": { name: "Pro", variant: "default" as const },
+    "prod_TUGTkbIPU5H2pn": { name: "Pro", variant: "default" as const },
     "prod_TTyuNeWPfbeOFz": { name: "Enterprise", variant: "default" as const }
   };
 
