@@ -38,8 +38,8 @@ const subscriptionPlans = [
     productId: "prod_TTytaKmSmKge2x",
     popular: true,
     features: [
-      "90 HD thumbnails/month",
-      "4K resolution",
+      "100 HD thumbnails/month",
+      "2K resolution",
       "Priority support"
     ]
   },
