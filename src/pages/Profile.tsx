@@ -10,14 +10,24 @@ import { Check } from "lucide-react";
 
 const subscriptionPlans = [
   {
+    name: "Free",
+    price: "$0",
+    priceId: null,
+    productId: null,
+    features: [
+      "1 thumbnail/day",
+      "HD resolution",
+      "Email support"
+    ]
+  },
+  {
     name: "Starter",
     price: "$17.99",
     priceId: "price_1SX0vtISMAOMUNUM7hJ7Mk45",
     productId: "prod_TTytxm2oUYxzXe",
     features: [
       "50 HD thumbnails/month",
-      "Up to 2K resolution",
-      "AI-powered generation",
+      "2K resolution",
       "Email support"
     ]
   },
@@ -29,10 +39,8 @@ const subscriptionPlans = [
     popular: true,
     features: [
       "150 HD thumbnails/month",
-      "25 4K thumbnails/month",
-      "Priority AI generation",
-      "Priority support",
-      "Advanced customization"
+      "4K resolution",
+      "Priority support"
     ]
   },
   {
@@ -42,11 +50,8 @@ const subscriptionPlans = [
     productId: "prod_TTyuNeWPfbeOFz",
     features: [
       "300 HD thumbnails/month",
-      "100 4K thumbnails/month",
-      "Premium AI generation",
-      "24/7 dedicated support",
-      "Custom branding",
-      "API access"
+      "4K resolution",
+      "24/7 support"
     ]
   }
 ];
@@ -317,21 +322,25 @@ const Profile = () => {
                     <span className="font-semibold">Free Tier</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    You're currently on the free plan: 1 thumbnail per day
+                    You're currently on the free plan
                   </p>
                 </CardContent>
               </Card>
             )}
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               {subscriptionPlans.map((plan) => {
-                const isCurrentPlan = subscription.subscribed && subscription.product_id === plan.productId;
+                const isCurrentPlan = plan.productId 
+                  ? subscription.subscribed && subscription.product_id === plan.productId
+                  : !subscription.subscribed;
+                const isFree = !plan.priceId;
+                
                 return (
                   <Card
-                    key={plan.priceId}
-                    className={`bg-card border-border relative ${
+                    key={plan.name}
+                    className={`bg-card border-border relative transition-all duration-300 hover:scale-105 hover:shadow-lg ${
                       plan.popular ? "ring-2 ring-primary" : ""
-                    } ${isCurrentPlan ? "ring-2 ring-green-500" : ""}`}
+                    } ${isCurrentPlan ? "ring-2 ring-primary" : ""}`}
                   >
                     {plan.popular && !isCurrentPlan && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -342,7 +351,7 @@ const Profile = () => {
                     )}
                     {isCurrentPlan && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full">
+                        <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
                           Your Plan
                         </span>
                       </div>
@@ -365,15 +374,17 @@ const Profile = () => {
                           </li>
                         ))}
                       </ul>
-                      <Button
-                        onClick={() => handleSubscribe(plan.priceId)}
-                        className="w-full"
-                        variant={plan.popular ? "default" : "outline"}
-                        size="sm"
-                        disabled={loading || isCurrentPlan}
-                      >
-                        {isCurrentPlan ? "Current Plan" : "Subscribe"}
-                      </Button>
+                      {!isFree && (
+                        <Button
+                          onClick={() => handleSubscribe(plan.priceId!)}
+                          className="w-full"
+                          variant={plan.popular ? "default" : "outline"}
+                          size="sm"
+                          disabled={loading || isCurrentPlan}
+                        >
+                          {isCurrentPlan ? "Current Plan" : "Subscribe"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 );
