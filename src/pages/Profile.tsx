@@ -85,7 +85,7 @@ const Profile = () => {
     subscription_end: string | null;
   }>({ subscribed: false, product_id: null, subscription_end: null });
   const [checkingSubscription, setCheckingSubscription] = useState(false);
-  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("yearly");
 
   useEffect(() => {
     checkUser();
@@ -376,9 +376,12 @@ const Profile = () => {
                   ? subscription.subscribed && subscription.product_id === plan.productId
                   : !subscription.subscribed;
                 const isFree = !plan.priceId;
-                const currentPrice = billingInterval === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
                 const currentPriceId = billingInterval === "monthly" ? plan.priceId : plan.yearlyPriceId;
-                const savings = billingInterval === "yearly" ? plan.yearlySavings : null;
+                
+                // Calculate prices
+                const monthlyPrice = parseFloat(plan.monthlyPrice.replace("$", ""));
+                const discountedMonthlyPrice = monthlyPrice * 0.8;
+                const yearlyTotal = parseFloat(plan.yearlyPrice.replace("$", ""));
                 
                 return (
                   <Card
@@ -401,24 +404,49 @@ const Profile = () => {
                         </span>
                       </div>
                     )}
-                    {savings && !isFree && (
+                    {billingInterval === "yearly" && !isFree && (
                       <div className="absolute -top-3 right-4">
                         <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                          Save {savings}
+                          Save 20%
                         </span>
                       </div>
                     )}
                     <CardHeader>
                       <CardTitle className="text-lg">{plan.name}</CardTitle>
                       <CardDescription>
-                        <span className="text-3xl font-bold text-foreground">
-                          {currentPrice}
-                        </span>
-                        <span className="text-muted-foreground">/{billingInterval === "monthly" ? "month" : "year"}</span>
-                        {billingInterval === "yearly" && !isFree && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            ${(parseFloat(currentPrice.replace("$", "")) / 12).toFixed(2)}/month
-                          </div>
+                        {billingInterval === "monthly" ? (
+                          <>
+                            <span className="text-3xl font-bold text-foreground">
+                              {plan.monthlyPrice}
+                            </span>
+                            <span className="text-muted-foreground">/month</span>
+                          </>
+                        ) : (
+                          <>
+                            {!isFree ? (
+                              <>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-lg text-muted-foreground line-through">
+                                    {plan.monthlyPrice}
+                                  </span>
+                                  <span className="text-3xl font-bold text-foreground">
+                                    ${discountedMonthlyPrice.toFixed(2)}
+                                  </span>
+                                  <span className="text-muted-foreground">/month</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Billed annually at {plan.yearlyPrice}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-3xl font-bold text-foreground">
+                                  {plan.monthlyPrice}
+                                </span>
+                                <span className="text-muted-foreground">/month</span>
+                              </>
+                            )}
+                          </>
                         )}
                       </CardDescription>
                     </CardHeader>
