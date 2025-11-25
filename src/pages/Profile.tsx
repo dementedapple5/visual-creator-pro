@@ -404,13 +404,6 @@ const Profile = () => {
                         </span>
                       </div>
                     )}
-                    {billingInterval === "yearly" && !isFree && (
-                      <div className="absolute -top-3 right-4">
-                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                          Save 20%
-                        </span>
-                      </div>
-                    )}
                     <CardHeader>
                       <CardTitle className="text-lg">{plan.name}</CardTitle>
                       <CardDescription>
