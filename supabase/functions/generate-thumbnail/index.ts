@@ -9,9 +9,15 @@ const corsHeaders = {
 
 interface ThumbnailData {
   avatarId?: string;
+  customAvatarUrl?: string;
   avatarPosition?: string;
-  productIds?: string[];
-  productPosition?: string;
+  productIds?: string[]; // Legacy support
+  productPosition?: string; // Legacy support
+  elements?: {
+    id?: string;
+    url?: string;
+    position: string;
+  }[];
   title?: string;
   subtitle?: string;
   textPosition?: string;
@@ -32,12 +38,12 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { thumbnailData, remixImageUrl, remixPrompt } = await req.json() as { 
-      thumbnailData: ThumbnailData; 
+    const { thumbnailData, remixImageUrl, remixPrompt } = await req.json() as {
+      thumbnailData: ThumbnailData;
       remixImageUrl?: string;
       remixPrompt?: string;
     };
@@ -48,10 +54,9 @@ serve(async (req) => {
     // Build the prompt
     const platformType = thumbnailData.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
     const aspectRatio = thumbnailData.aspectRatio || "16:9";
-    const imageSize = "2K"; // High quality 2K resolution
-    
+
     let prompt = "";
-    
+
     // Check if this is a remix request
     if (remixImageUrl && remixPrompt) {
       prompt = `You are remixing an existing thumbnail. Apply the following changes to the image: ${remixPrompt}
@@ -106,7 +111,7 @@ CRITICAL INSTRUCTIONS:
         ? textStyles[thumbnailData.textStyle]
         : "bold and large";
       prompt += `Include the text "${thumbnailData.title}" in ${textStyle} typography. `;
-      
+
       if (thumbnailData.subtitle) {
         prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text. `;
       }
@@ -118,17 +123,28 @@ CRITICAL INSTRUCTIONS:
     }
 
     // Expression for avatar
-    if (thumbnailData.avatarId && thumbnailData.expression) {
+    if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.expression) {
       prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
     }
 
     // Avatar positioning
-    if (thumbnailData.avatarId && thumbnailData.avatarPosition) {
+    if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.avatarPosition) {
       prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
     }
 
-    // Product positioning
-    if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
+    // Elements positioning
+    if (thumbnailData.elements && thumbnailData.elements.length > 0) {
+      thumbnailData.elements.forEach((element, index) => {
+        const position = element.position.replace('-', ' ');
+        // We can't easily identify "which" element is which in the prompt without more context,
+        // but we can give general instructions or try to map them by order.
+        // Since we are sending images in order, we can refer to them by order.
+        // However, mixing avatar and elements makes "order" tricky for the model.
+        // A simple approach is to list positions.
+        prompt += `Position element ${index + 1} at ${position}. `;
+      });
+    } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
+      // Legacy support
       prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
     }
 
@@ -137,9 +153,9 @@ CRITICAL INSTRUCTIONS:
       prompt += `\n\nADDITIONAL CHANGES REQUESTED:\n${thumbnailData.iterationPrompt}\n`;
     }
 
-    // Build content array with text and images for messages format
-    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
-      { type: "text", text: prompt }
+    // Build content parts array for Gemini API
+    const contentParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+      { text: prompt }
     ];
 
     // Helper function to fetch and convert image to base64 (without data URI prefix)
@@ -155,50 +171,98 @@ CRITICAL INSTRUCTIONS:
     // If this is a remix, add the source image first
     if (remixImageUrl) {
       const base64Image = await fetchImageAsBase64(remixImageUrl);
-      messageContent.push({
-        type: "image_url",
-        image_url: {
-          url: `data:image/jpeg;base64,${base64Image}`
+      contentParts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Image
         }
       });
     }
 
     // Add avatar image (skip in remix mode)
-    if (!remixImageUrl && thumbnailData.avatarId) {
-      const { data: avatar } = await supabase
-        .from("avatars")
-        .select("image_url")
-        .eq("id", thumbnailData.avatarId)
-        .single();
-
-      if (avatar?.image_url) {
-        const base64Image = await fetchImageAsBase64(avatar.image_url);
-        messageContent.push({
-          type: "image_url",
-          image_url: {
-            url: `data:image/jpeg;base64,${base64Image}`
+    if (!remixImageUrl) {
+      if (thumbnailData.customAvatarUrl) {
+        // Use custom uploaded avatar
+        const base64Image = await fetchImageAsBase64(thumbnailData.customAvatarUrl);
+        contentParts.push({
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: base64Image
           }
         });
+      } else if (thumbnailData.avatarId) {
+        // Fetch avatar from DB
+        const { data: avatar } = await supabase
+          .from("avatars")
+          .select("image_url")
+          .eq("id", thumbnailData.avatarId)
+          .single();
+
+        if (avatar?.image_url) {
+          const base64Image = await fetchImageAsBase64(avatar.image_url);
+          contentParts.push({
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: base64Image
+            }
+          });
+        }
       }
     }
 
-    // Add product images (skip in remix mode)
-    if (!remixImageUrl && thumbnailData.productIds && thumbnailData.productIds.length > 0) {
-      const { data: productImages } = await supabase
-        .from("product_images")
-        .select("image_url")
-        .in("product_id", thumbnailData.productIds);
-
-      if (productImages && productImages.length > 0) {
-        for (const productImage of productImages) {
-          if (productImage.image_url) {
-            const base64Image = await fetchImageAsBase64(productImage.image_url);
-            messageContent.push({
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
+    // Add element images (skip in remix mode)
+    if (!remixImageUrl) {
+      if (thumbnailData.elements && thumbnailData.elements.length > 0) {
+        // Process new elements structure
+        for (const element of thumbnailData.elements) {
+          if (element.url) {
+            // Custom element URL
+            const base64Image = await fetchImageAsBase64(element.url);
+            contentParts.push({
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: base64Image
               }
             });
+          } else if (element.id) {
+            // Library element (product)
+            // We need to fetch the image URL for this product ID
+            // Assuming product_images table links to product_id
+            const { data: productImages } = await supabase
+              .from("product_images")
+              .select("image_url")
+              .eq("product_id", element.id)
+              .limit(1); // Just take the first image for now
+
+            if (productImages && productImages.length > 0 && productImages[0].image_url) {
+              const base64Image = await fetchImageAsBase64(productImages[0].image_url);
+              contentParts.push({
+                inlineData: {
+                  mimeType: "image/jpeg",
+                  data: base64Image
+                }
+              });
+            }
+          }
+        }
+      } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
+        // Legacy support for productIds
+        const { data: productImages } = await supabase
+          .from("product_images")
+          .select("image_url")
+          .in("product_id", thumbnailData.productIds);
+
+        if (productImages && productImages.length > 0) {
+          for (const productImage of productImages) {
+            if (productImage.image_url) {
+              const base64Image = await fetchImageAsBase64(productImage.image_url);
+              contentParts.push({
+                inlineData: {
+                  mimeType: "image/jpeg",
+                  data: base64Image
+                }
+              });
+            }
           }
         }
       }
@@ -207,18 +271,18 @@ CRITICAL INSTRUCTIONS:
     // Add custom background (skip in remix mode)
     if (!remixImageUrl && thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
       const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
-      messageContent.push({
-        type: "image_url",
-        image_url: {
-          url: `data:image/jpeg;base64,${base64Image}`
+      contentParts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Image
         }
       });
     }
 
     console.log("Generated prompt:", prompt);
-    console.log("Number of message content parts:", messageContent.length);
+    console.log("Number of content parts:", contentParts.length);
 
-    // Retry logic for AI Gateway calls
+    // Retry logic for Gemini API calls
     const maxRetries = 3;
     const baseDelay = 2000; // 2 seconds
     let lastError: Error | null = null;
@@ -226,42 +290,43 @@ CRITICAL INSTRUCTIONS:
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        console.log(`Attempt ${attempt + 1} of ${maxRetries} to call AI Gateway`);
-        
-        // Call Lovable AI with Gemini 3 Pro Image
+        console.log(`Attempt ${attempt + 1} of ${maxRetries} to call Gemini API`);
+
+        // Call Google Gemini image generation model directly
+        // Using gemini-3-pro-image-preview as requested
         response = await fetch(
-          "https://ai.gateway.lovable.dev/v1/chat/completions",
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${lovableApiKey}`,
               "Content-Type": "application/json",
+              "x-goog-api-key": geminiApiKey,
             },
             body: JSON.stringify({
-              model: "google/gemini-3-pro-image-preview",
-              messages: [
+              contents: [
                 {
-                  role: "user",
-                  content: messageContent
-                }
+                  parts: contentParts,
+                },
               ],
-              modalities: ["image", "text"],
-              imageConfig: {
-                aspectRatio: aspectRatio,
-                imageSize: imageSize,
+              generationConfig: {
+                responseModalities: ["TEXT", "IMAGE"],
+                imageConfig: {
+                  aspectRatio: aspectRatio,
+                  imageSize: "2K",
+                },
               },
             }),
           }
         );
 
         if (response.ok) {
-          console.log("AI Gateway call successful");
+          console.log("Gemini API call successful");
           break; // Success, exit retry loop
         }
 
         const errorText = await response.text();
-        console.error(`AI Gateway error on attempt ${attempt + 1}:`, response.status, errorText);
-        
+        console.error(`Gemini API error on attempt ${attempt + 1}:`, response.status, errorText);
+
         // Handle specific error codes
         if (response.status === 429) {
           return new Response(
@@ -269,11 +334,11 @@ CRITICAL INSTRUCTIONS:
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        
-        if (response.status === 402) {
+
+        if (response.status === 403) {
           return new Response(
-            JSON.stringify({ error: "Payment required. Please add credits to your workspace." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ error: "API key invalid or quota exceeded. Please check your Gemini API configuration." }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -286,13 +351,13 @@ CRITICAL INSTRUCTIONS:
             continue;
           }
         }
-        
-        lastError = new Error(`AI Gateway error: ${response.status} ${errorText}`);
-        
+
+        lastError = new Error(`Gemini API error: ${response.status} ${errorText}`);
+
       } catch (error) {
         console.error(`Network error on attempt ${attempt + 1}:`, error);
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         // Retry on network errors
         if (attempt < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, attempt);
@@ -308,7 +373,7 @@ CRITICAL INSTRUCTIONS:
       const errorMessage = lastError?.message || "Failed to generate thumbnail after multiple attempts";
       console.error("All retry attempts failed:", errorMessage);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: "The AI service is temporarily unavailable. Please try again in a few moments.",
           details: errorMessage
         }),
@@ -317,16 +382,16 @@ CRITICAL INSTRUCTIONS:
     }
 
     const data = await response.json();
-    console.log("AI response received");
+    console.log("Gemini API response received");
 
-    // Extract the base64 image from the response (Gemini format)
-    let imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    // Also check alternative response format
-    if (!imageData && data.candidates?.[0]?.content?.parts) {
+    // Extract the base64 image from the Gemini response
+    let imageData: string | null = null;
+
+    // Gemini API response format: candidates[0].content.parts[].inlineData.data
+    if (data.candidates?.[0]?.content?.parts) {
       for (const part of data.candidates[0].content.parts) {
         if (part.inlineData?.data) {
-          imageData = `data:image/png;base64,${part.inlineData.data}`;
+          imageData = part.inlineData.data;
           break;
         }
       }
@@ -356,9 +421,8 @@ CRITICAL INSTRUCTIONS:
 
     const fileName = `${user.id}/${Date.now()}.png`;
 
-    // Convert base64 to binary
-    const base64Data = imageData.includes(",") ? imageData.split(",")[1] : imageData;
-    const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    // Convert base64 to binary (imageData is already without the data URI prefix)
+    const binaryData = Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0));
 
     console.log("Uploading image to storage, size:", binaryData.length);
 
@@ -388,7 +452,7 @@ CRITICAL INSTRUCTIONS:
   } catch (error) {
     console.error("Error in generate-thumbnail function:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",
         details: error instanceof Error ? error.stack : undefined
       }),

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -34,12 +34,28 @@ export interface CreateData {
 
 const Create = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [data, setData] = useState<CreateData>({});
 
   useEffect(() => {
     checkUser();
-  }, []);
+    
+    // Check for pre-filled data from Smart Create
+    if (location.state?.smartCreateData) {
+      const smartData = location.state.smartCreateData;
+      setData(prev => ({
+        ...prev,
+        ...smartData,
+        backgroundType: "custom",
+        backgroundValue: smartData.capturedFrameUrl,
+        // Clear avatar since we use background frame
+        avatarId: undefined 
+      }));
+      // Jump to generation step
+      setCurrentStep(8);
+    }
+  }, [location.state]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();

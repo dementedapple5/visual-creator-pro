@@ -60,9 +60,9 @@ const Dashboard = () => {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-            {[...Array(16)].map((_, i) => (
-              <div key={i} className="aspect-square bg-secondary rounded-lg animate-pulse" />
+          <div className="flex flex-wrap gap-4">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="h-48 w-80 bg-secondary rounded-lg animate-pulse" />
             ))}
           </div>
         ) : thumbnails.length === 0 ? (
@@ -74,22 +74,22 @@ const Dashboard = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+          <div className="flex flex-wrap gap-4">
             {thumbnails.map((thumbnail) => (
               <div
                 key={thumbnail.id}
-                className="group cursor-pointer"
+                className="group cursor-pointer relative"
                 onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
               >
-                <div className="relative aspect-square bg-secondary rounded-lg overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all">
+                <div className="relative bg-secondary rounded-lg overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all">
                   <img
                     src={thumbnail.image_url}
                     alt={thumbnail.title || "Thumbnail"}
-                    className="w-full h-full object-cover"
+                    className="h-48 w-auto object-cover"
                   />
                 </div>
                 {thumbnail.title && (
-                  <p className="mt-1.5 text-xs text-muted-foreground truncate">
+                  <p className="mt-1.5 text-xs text-muted-foreground truncate max-w-[200px]">
                     {thumbnail.title}
                   </p>
                 )}
