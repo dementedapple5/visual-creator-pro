@@ -305,7 +305,7 @@ const Generations = () => {
                 No generations yet in this period.
               </div>
             ) : (
-              <ScrollArea className="max-h-[600px] pr-4">
+              <ScrollArea className="h-[600px] pr-4">
                 <div className="relative pl-4">
                   <div className="absolute left-1 top-0 bottom-0 w-px bg-border" />
                   {generations.map((item, index) => (
