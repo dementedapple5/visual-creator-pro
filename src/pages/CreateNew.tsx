@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Sparkles, Download, Upload, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { compressAndConvertToJpg } from "@/lib/imageUtils";
+import type { Tables } from "@/integrations/supabase/types";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
 
 interface Avatar {
   id: string;
@@ -32,6 +34,9 @@ interface Product {
   brand: string;
   images: { image_url: string }[];
 }
+
+type SavedBackground = Tables<"backgrounds">;
+type SavedTitle = Tables<"titles">;
 
 const POSITIONS = [
   { value: "top-left", label: "Top Left" },
@@ -87,6 +92,9 @@ const CreateNew = () => {
   // Data states
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  // Saved presets
+  const [savedBackgrounds, setSavedBackgrounds] = useState<SavedBackground[]>([]);
+  const [savedTitles, setSavedTitles] = useState<SavedTitle[]>([]);
 
   // Form states
   const [selectedAvatar, setSelectedAvatar] = useState<string>("");
@@ -122,10 +130,17 @@ const CreateNew = () => {
   const [gradientColor2, setGradientColor2] = useState<string>("#C239B3");
   const [solidColor, setSolidColor] = useState<string>("#FF6B9D");
 
+  const [activeTab, setActiveTab] = useState<string>("avatar");
+
+  const hasGeneratedImage = Boolean(selectedImage || generatedThumbnails.length > 0);
+  const previewImage = selectedImage || generatedThumbnails[0] || null;
+
   useEffect(() => {
     checkUser();
     fetchAvatars();
     fetchProducts();
+    fetchSavedBackgrounds();
+    fetchSavedTitles();
   }, []);
 
   // Update backgroundValue when colors change
@@ -282,12 +297,174 @@ const CreateNew = () => {
     }
   };
 
+  const fetchSavedBackgrounds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("backgrounds")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setSavedBackgrounds((data as SavedBackground[]) || []);
+    } catch (error) {
+      console.error("Error fetching backgrounds:", error);
+    }
+  };
+
+  const fetchSavedTitles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("titles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setSavedTitles((data as SavedTitle[]) || []);
+    } catch (error) {
+      console.error("Error fetching titles:", error);
+    }
+  };
+
+  const applySavedBackground = (background: SavedBackground) => {
+    const meta = (background.metadata as Record<string, any>) || {};
+
+    setBackgroundType(background.type);
+    setActiveTab("background");
+
+    if (background.type === "gradient") {
+      const [first, second] = (background.value || "").split(",");
+      const start = meta.color1 || first || "#FF6B9D";
+      const end = meta.color2 || second || "#C239B3";
+      setGradientColor1(start);
+      setGradientColor2(end);
+      setBackgroundValue(`${start},${end}`);
+      setBackgroundImageUrl("");
+      setCustomBackgroundPrompt("");
+    } else if (background.type === "solid") {
+      const color = meta.color || background.value || "#FF6B9D";
+      setSolidColor(color);
+      setBackgroundValue(color);
+      setBackgroundImageUrl("");
+      setCustomBackgroundPrompt("");
+    } else if (background.type === "image") {
+      const url = meta.imageUrl || background.value || "";
+      setBackgroundImageUrl(url);
+      setBackgroundValue(url);
+      setCustomBackgroundPrompt("");
+    } else if (background.type === "avatar") {
+      const avatarValue = meta.avatarId || background.value || "";
+      setSelectedAvatar(avatarValue);
+      setCustomAvatarUrl(null);
+      setBackgroundValue(avatarValue);
+      setBackgroundImageUrl("");
+      setCustomBackgroundPrompt("");
+    } else if (background.type === "custom-prompt") {
+      const promptVal = meta.prompt || background.value || "";
+      setCustomBackgroundPrompt(promptVal);
+      setBackgroundValue(promptVal);
+      setBackgroundImageUrl("");
+    }
+
+    toast.success("Background applied");
+  };
+
+  const applySavedTitle = (savedTitle: SavedTitle) => {
+    setTitle(savedTitle.title);
+    setSubtitle(savedTitle.subtitle || "");
+    setTextStyle(savedTitle.text_style);
+    setCustomTextStyle(savedTitle.custom_text_style || "");
+    setTextPosition(savedTitle.text_position || "top-center");
+    setActiveTab("title");
+    toast.success("Title applied");
+  };
+
+  const renderSavedBackgroundPreview = (background: SavedBackground) => {
+    const meta = (background.metadata as Record<string, any>) || {};
+
+    if (background.type === "gradient") {
+      const [first, second] = (background.value || "").split(",");
+      const start = meta.color1 || first || "#FF6B9D";
+      const end = meta.color2 || second || "#C239B3";
+      return (
+        <div
+          className="h-16 w-full rounded-md border border-border"
+          style={{ background: `linear-gradient(135deg, ${start}, ${end})` }}
+        />
+      );
+    }
+
+    if (background.type === "solid") {
+      const color = meta.color || background.value || "#FF6B9D";
+      return (
+        <div
+          className="h-16 w-full rounded-md border border-border"
+          style={{ background: color }}
+        />
+      );
+    }
+
+    if (background.type === "image") {
+      const url = meta.imageUrl || background.value;
+      return (
+        <div className="h-16 w-full rounded-md border border-border overflow-hidden bg-secondary">
+          {url ? (
+            <img src={url} alt={background.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+              No image
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (background.type === "avatar") {
+      const avatar = avatars.find((a) => a.id === (background.value || meta.avatarId));
+      return (
+        <div className="h-16 w-full rounded-md border border-border overflow-hidden bg-secondary flex items-center justify-center">
+          {avatar ? (
+            <img src={avatar.image_url} alt="Avatar" className="h-full w-full object-cover" />
+          ) : (
+            <div className="text-xs text-muted-foreground">Avatar not found</div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-16 w-full rounded-md border border-border bg-secondary/60 p-2 text-xs text-muted-foreground overflow-hidden">
+        {background.value || (meta.prompt as string) || "Custom prompt"}
+      </div>
+    );
+  };
+
   const handleGenerate = async () => {
     try {
       setGenerating(true);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
+
+      // Check subscription and quota before generating
+      const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
+      const monthlyLimit = subscriptionData?.monthly_limit || 1;
+      const countStartDate = getGenerationWindowStart(subscriptionData || {});
+
+      const { count } = await supabase
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("created_at", countStartDate);
+
+      const usedGenerations = count || 0;
+
+      if (usedGenerations >= monthlyLimit) {
+        const limitType = getGenerationLimitLabel(subscriptionData || {});
+        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
+        setGenerating(false);
+        return;
+      }
 
       // Call edge function to generate thumbnail
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
@@ -324,6 +501,7 @@ const CreateNew = () => {
       if (functionError) throw functionError;
 
       const imageUrl = functionData.imageUrl;
+      const generationId = functionData.generationId as string | undefined;
 
       // Save to database
       const { data: thumbnail, error: insertError } = await supabase
@@ -352,6 +530,17 @@ const CreateNew = () => {
 
       if (insertError) throw insertError;
 
+      if (generationId && thumbnail?.id) {
+        const { error: generationUpdateError } = await supabase
+          .from("generations")
+          .update({ thumbnail_id: thumbnail.id })
+          .eq("id", generationId);
+
+        if (generationUpdateError) {
+          console.warn("Could not attach thumbnail to generation record", generationUpdateError);
+        }
+      }
+
       // Add to gallery instead of navigating
       setGeneratedThumbnails(prev => [imageUrl, ...prev]);
       setSelectedImage(imageUrl); // Set as selected when generated
@@ -365,10 +554,11 @@ const CreateNew = () => {
   };
 
   const handleDownload = () => {
-    if (!selectedImage) return;
+    const imageToDownload = selectedImage || generatedThumbnails[0];
+    if (!imageToDownload) return;
 
     const link = document.createElement("a");
-    link.href = selectedImage;
+    link.href = imageToDownload;
     link.download = `thumbnail-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
@@ -381,6 +571,30 @@ const CreateNew = () => {
 
     try {
       setRemixing(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      // Check subscription and quota before remixing (remix also counts as a generation)
+      const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
+      const monthlyLimit = subscriptionData?.monthly_limit || 1;
+      const countStartDate = getGenerationWindowStart(subscriptionData || {});
+
+      const { count } = await supabase
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("created_at", countStartDate);
+
+      const usedGenerations = count || 0;
+
+      if (usedGenerations >= monthlyLimit) {
+        const limitType = getGenerationLimitLabel(subscriptionData || {});
+        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
+        setRemixing(false);
+        return;
+      }
 
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
@@ -416,9 +630,9 @@ const CreateNew = () => {
       if (functionError) throw functionError;
 
       const imageUrl = functionData.imageUrl;
+      const generationId = functionData.generationId as string | undefined;
 
       // Save to database
-      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase
           .from("thumbnails")
@@ -444,6 +658,28 @@ const CreateNew = () => {
           });
       }
 
+      if (generationId) {
+        const { data: newThumbnail, error: fetchError } = await supabase
+          .from("thumbnails")
+          .select("id")
+          .eq("image_url", imageUrl)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (!fetchError && newThumbnail?.id) {
+          const { error: generationUpdateError } = await supabase
+            .from("generations")
+            .update({ thumbnail_id: newThumbnail.id })
+            .eq("id", generationId);
+
+          if (generationUpdateError) {
+            console.warn("Could not attach remix thumbnail to generation record", generationUpdateError);
+          }
+        }
+      }
+
       setGeneratedThumbnails(prev => [imageUrl, ...prev]);
       setSelectedImage(imageUrl);
       setRemixDialogOpen(false);
@@ -458,37 +694,34 @@ const CreateNew = () => {
   };
 
   return (
-    <div className="h-screen flex bg-background overflow-hidden">
-      {/* Main Canvas Area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
-        <div className={`w-full max-w-4xl aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden ${generating ? 'animate-pulse' : ''}`}>
-          {(selectedImage || generatedThumbnails.length > 0) && !generating ? (
-            <img
-              src={selectedImage || generatedThumbnails[0]}
-              alt="Selected thumbnail"
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <div className="text-center">
-              <Sparkles className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {generating ? "Generating thumbnail..." : "Preview will appear here"}
-              </p>
-            </div>
-          )}
-        </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playground</p>
+            <h2 className="text-2xl font-semibold leading-tight">Create Thumbnail</h2>
+            <p className="text-sm text-muted-foreground">
+              Move through the stages to craft your thumbnail without losing context.
+            </p>
+          </div>
 
-        {/* Action Buttons */}
-        {(selectedImage || generatedThumbnails.length > 0) && !generating && (
-          <div className="w-full max-w-4xl flex gap-2">
-            <Button onClick={handleDownload} variant="outline" className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+              Back to dashboard
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownload}
+              disabled={!hasGeneratedImage}
+            >
               <Download className="w-4 h-4 mr-2" />
               Download
             </Button>
 
             <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="flex-1">
+                <Button variant="outline" size="sm" disabled={!hasGeneratedImage}>
                   <Sparkles className="w-4 h-4 mr-2" />
                   Remix
                 </Button>
@@ -528,266 +761,332 @@ const CreateNew = () => {
               </DialogContent>
             </Dialog>
           </div>
-        )}
+        </div>
 
-        {/* Gallery View */}
-        {generatedThumbnails.length > 0 && (
-          <div className="w-full max-w-4xl">
-            <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Generated Thumbnails</h3>
-            <div className="grid grid-cols-4 gap-4">
-              {generatedThumbnails.map((url, index) => (
-                <button
-                  key={index}
-                  className={`aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${selectedImage === url || (!selectedImage && index === 0)
-                    ? "border-primary ring-2 ring-primary/20"
-                    : "border-border hover:border-primary/50"
-                    }`}
-                  onClick={() => setSelectedImage(url)}
-                >
-                  <img
-                    src={url}
-                    alt={`Generated thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Right Sidebar with Controls */}
-      <ScrollArea className="w-96 border-l border-border bg-card">
-        <div className="p-4 space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Create Thumbnail</h2>
-            <p className="text-sm text-muted-foreground">
-              Configure all settings to generate your thumbnail
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Avatar Section */}
+        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.75fr]">
           <div className="space-y-4">
-            <h3 className="font-semibold flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary"></div>
-              Avatar
-            </h3>
+            <div className="rounded-xl border border-border bg-card/60 shadow-sm backdrop-blur">
+              <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Live preview</p>
+                  <p className="font-semibold">Canvas</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setActiveTab("avatar")}>
+                  Start with avatar
+                </Button>
+              </div>
 
-            {avatars.length > 0 ? (
-              <>
-                <div className="grid grid-cols-3 gap-2">
-                  {/* Upload Placeholder */}
-                  <div className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-all flex flex-col items-center justify-center cursor-pointer relative group">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarUpload}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    />
-                    {customAvatarUrl ? (
-                      <>
-                        <img
-                          src={customAvatarUrl}
-                          alt="Custom Avatar"
-                          className="absolute inset-0 w-full h-full object-cover rounded-lg"
-                        />
-                        <div className={`absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg ${!selectedAvatar ? 'ring-2 ring-primary' : ''}`}>
-                          <Upload className="w-6 h-6 text-white" />
+              <div className="p-4 space-y-4">
+                <div className="relative w-full aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden">
+                  {previewImage ? (
+                    <>
+                      <img
+                        src={previewImage}
+                        alt="Selected thumbnail"
+                        className="w-full h-full object-contain"
+                      />
+                      {generating && (
+                        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center">
+                          <div className="text-center space-y-3">
+                            <div className="relative inline-flex items-center justify-center">
+                              <span className="absolute h-16 w-16 rounded-full bg-primary/25 animate-ping" />
+                              <span className="absolute h-24 w-24 rounded-full bg-primary/15 animate-ping [animation-delay:150ms]" />
+                              <Sparkles className="relative w-8 h-8 text-primary" />
+                            </div>
+                            <p className="text-sm text-muted-foreground">Generating thumbnail...</p>
+                          </div>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-8 h-8 text-muted-foreground mb-1" />
-                        <span className="text-xs text-muted-foreground font-medium">Upload</span>
-                      </>
-                    )}
-                    {customAvatarUrl && !selectedAvatar && (
-                      <div className="absolute inset-0 ring-2 ring-primary rounded-lg pointer-events-none" />
-                    )}
-                  </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center">
+                      <Sparkles className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        {generating ? "Generating thumbnail..." : "Preview will appear here"}
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-                  {avatars.slice(0, 5).map((avatar) => (
+                {hasGeneratedImage && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleDownload} variant="outline" className="flex-1 min-w-[140px]">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 min-w-[140px]"
+                      onClick={() => setRemixDialogOpen(true)}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Remix
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {generatedThumbnails.length > 0 && (
+              <div className="rounded-xl border border-border bg-card/50 shadow-sm p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold">Generated thumbnails</p>
+                    <p className="text-xs text-muted-foreground">Tap any to set as active preview</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{generatedThumbnails.length} results</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {generatedThumbnails.map((url, index) => (
                     <button
-                      key={avatar.id}
-                      onClick={() => {
-                        setSelectedAvatar(avatar.id);
-                        setCustomAvatarUrl(null); // Clear custom avatar when selecting from library
-                      }}
-                      className={`aspect-square rounded-lg border-2 overflow-hidden transition-all ${selectedAvatar === avatar.id
-                        ? "border-primary ring-2 ring-primary/50"
-                        : "border-border hover:border-muted-foreground"
-                        }`}
+                      key={index}
+                      className={`aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${previewImage === url ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"}`}
+                      onClick={() => setSelectedImage(url)}
                     >
                       <img
-                        src={avatar.image_url}
-                        alt="Avatar"
+                        src={url}
+                        alt={`Generated thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
                     </button>
                   ))}
                 </div>
-
-                {(selectedAvatar || customAvatarUrl) && (
-                  <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                    <div className="space-y-2">
-                      <Label>Expression</Label>
-                      <Select value={expression} onValueChange={setExpression}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EXPRESSIONS.map((exp) => (
-                            <SelectItem key={exp.id} value={exp.id}>
-                              {exp.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {expression === "custom" && (
-                      <div className="space-y-2">
-                        <Label>Custom Expression</Label>
-                        <Input
-                          placeholder="e.g., thoughtful, energetic, mysterious..."
-                          value={customExpression}
-                          onChange={(e) => setCustomExpression(e.target.value)}
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label>Position</Label>
-                      <Select value={avatarPosition} onValueChange={setAvatarPosition}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {POSITIONS.map((pos) => (
-                            <SelectItem key={pos.value} value={pos.value}>
-                              {pos.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No avatars available. Upload one in your Profile.
-              </p>
+              </div>
             )}
           </div>
 
-          <Separator />
+          <div className="rounded-xl border border-border bg-card/70 shadow-sm">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+              <div className="p-4 border-b border-border/60 space-y-1">
+                <p className="text-sm font-semibold">Creation stages</p>
+                <p className="text-xs text-muted-foreground">
+                  Navigate between Avatar, Elements, Title, and Background.
+                </p>
+              </div>
 
-          {/* Elements Section */}
-          <div className="space-y-4">
-            <h3 className="font-semibold flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-accent"></div>
-              Elements
-            </h3>
+              <div className="px-4 pt-4">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="avatar">Avatar</TabsTrigger>
+                  <TabsTrigger value="elements">Elements</TabsTrigger>
+                  <TabsTrigger value="title">Title</TabsTrigger>
+                  <TabsTrigger value="background">Background</TabsTrigger>
+                </TabsList>
+              </div>
 
-            {true ? (
-              <>
-                <div className="grid grid-cols-3 gap-2">
-                  {/* Upload Placeholder - Only show if less than 3 elements selected */}
-                  {selectedProducts.length < 3 && (
-                    <div className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center cursor-pointer relative group">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleElementUpload}
-                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                      />
-                      <Plus className="w-8 h-8 text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground font-medium">Upload</span>
+              <ScrollArea className="flex-1 px-4 pb-4 pt-3 max-h-[65vh]">
+                <div className="pr-2 space-y-2">
+                  <TabsContent value="avatar" className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-semibold">Avatar</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Choose or upload an avatar, set expression and position.
+                      </p>
                     </div>
-                  )}
 
-                  {/* Custom Elements */}
-                  {customElements.map((customEl) => (
-                    <button
-                      key={customEl.id}
-                      onClick={() => {
-                        if (selectedProducts.includes(customEl.id)) {
-                          setSelectedProducts(selectedProducts.filter(id => id !== customEl.id));
-                        } else {
-                          if (selectedProducts.length < 3) {
-                            setSelectedProducts([...selectedProducts, customEl.id]);
-                            setElementPositions(prev => ({ ...prev, [customEl.id]: "center-right" }));
-                          } else {
-                            toast.error("Maximum 3 elements allowed");
-                          }
-                        }
-                      }}
-                      className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(customEl.id)
-                        ? "border-accent ring-2 ring-accent/50"
-                        : "border-border hover:border-muted-foreground"
-                        }`}
-                    >
-                      <img
-                        src={customEl.url}
-                        alt="Custom Element"
-                        className="w-full h-full object-cover"
-                      />
-                      {selectedProducts.includes(customEl.id) && (
-                        <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                          {selectedProducts.indexOf(customEl.id) + 1}
+                    {avatars.length > 0 ? (
+                      <>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-all flex flex-col items-center justify-center cursor-pointer relative group">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAvatarUpload}
+                              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                            />
+                            {customAvatarUrl ? (
+                              <>
+                                <img
+                                  src={customAvatarUrl}
+                                  alt="Custom Avatar"
+                                  className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                                />
+                                <div className={`absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg ${!selectedAvatar ? 'ring-2 ring-primary' : ''}`}>
+                                  <Upload className="w-6 h-6 text-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-8 h-8 text-muted-foreground mb-1" />
+                                <span className="text-xs text-muted-foreground font-medium">Upload</span>
+                              </>
+                            )}
+                            {customAvatarUrl && !selectedAvatar && (
+                              <div className="absolute inset-0 ring-2 ring-primary rounded-lg pointer-events-none" />
+                            )}
+                          </div>
+
+                          {avatars.slice(0, 5).map((avatar) => (
+                            <button
+                              key={avatar.id}
+                              onClick={() => {
+                                setSelectedAvatar(avatar.id);
+                                setCustomAvatarUrl(null);
+                              }}
+                              className={`aspect-square rounded-lg border-2 overflow-hidden transition-all ${selectedAvatar === avatar.id
+                                ? "border-primary ring-2 ring-primary/50"
+                                : "border-border hover:border-muted-foreground"
+                                }`}
+                            >
+                              <img
+                                src={avatar.image_url}
+                                alt="Avatar"
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+
+                        {(selectedAvatar || customAvatarUrl) && (
+                          <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
+                            <div className="space-y-2">
+                              <Label>Expression</Label>
+                              <Select value={expression} onValueChange={setExpression}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {EXPRESSIONS.map((exp) => (
+                                    <SelectItem key={exp.id} value={exp.id}>
+                                      {exp.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {expression === "custom" && (
+                              <div className="space-y-2">
+                                <Label>Custom Expression</Label>
+                                <Input
+                                  placeholder="e.g., thoughtful, energetic, mysterious..."
+                                  value={customExpression}
+                                  onChange={(e) => setCustomExpression(e.target.value)}
+                                />
+                              </div>
+                            )}
+
+                            <div className="space-y-2">
+                              <Label>Position</Label>
+                              <Select value={avatarPosition} onValueChange={setAvatarPosition}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {POSITIONS.map((pos) => (
+                                    <SelectItem key={pos.value} value={pos.value}>
+                                      {pos.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No avatars available. Upload one in your Profile.
+                      </p>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="elements" className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-semibold">Elements</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Bring in up to 3 elements and place them where you need.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedProducts.length < 3 && (
+                        <div className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center cursor-pointer relative group">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleElementUpload}
+                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                          />
+                          <Plus className="w-8 h-8 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground font-medium">Upload</span>
                         </div>
                       )}
-                    </button>
-                  ))}
 
-                  {/* Library Products */}
-                  {products.slice(0, 6).map((product) => (
-                    <button
-                      key={product.id}
-                      onClick={() => {
-                        if (selectedProducts.includes(product.id)) {
-                          setSelectedProducts(selectedProducts.filter(id => id !== product.id));
-                        } else {
-                          if (selectedProducts.length < 3) {
-                            setSelectedProducts([...selectedProducts, product.id]);
-                            setElementPositions(prev => ({ ...prev, [product.id]: "center-right" }));
-                          } else {
-                            toast.error("Maximum 3 elements allowed");
-                          }
-                        }
-                      }}
-                      className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(product.id)
-                        ? "border-accent ring-2 ring-accent/50"
-                        : "border-border hover:border-muted-foreground"
-                        }`}
-                    >
-                      {product.images?.[0] ? (
-                        <img
-                          src={product.images[0].image_url}
-                          alt={product.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <span className="text-xs">No image</span>
-                        </div>
-                      )}
-                      {selectedProducts.includes(product.id) && (
-                        <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                          {selectedProducts.indexOf(product.id) + 1}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                      {customElements.map((customEl) => (
+                        <button
+                          key={customEl.id}
+                          onClick={() => {
+                            if (selectedProducts.includes(customEl.id)) {
+                              setSelectedProducts(selectedProducts.filter(id => id !== customEl.id));
+                            } else {
+                              if (selectedProducts.length < 3) {
+                                setSelectedProducts([...selectedProducts, customEl.id]);
+                                setElementPositions(prev => ({ ...prev, [customEl.id]: "center-right" }));
+                              } else {
+                                toast.error("Maximum 3 elements allowed");
+                              }
+                            }
+                          }}
+                          className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(customEl.id)
+                            ? "border-accent ring-2 ring-accent/50"
+                            : "border-border hover:border-muted-foreground"
+                            }`}
+                        >
+                          <img
+                            src={customEl.url}
+                            alt="Custom Element"
+                            className="w-full h-full object-cover"
+                          />
+                          {selectedProducts.includes(customEl.id) && (
+                            <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                              {selectedProducts.indexOf(customEl.id) + 1}
+                            </div>
+                          )}
+                        </button>
+                      ))}
 
-                {selectedProducts.length > 0 && (
-                  <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                    <div className="space-y-2">
-                      <div className="space-y-4">
+                      {products.slice(0, 6).map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            if (selectedProducts.includes(product.id)) {
+                              setSelectedProducts(selectedProducts.filter(id => id !== product.id));
+                            } else {
+                              if (selectedProducts.length < 3) {
+                                setSelectedProducts([...selectedProducts, product.id]);
+                                setElementPositions(prev => ({ ...prev, [product.id]: "center-right" }));
+                              } else {
+                                toast.error("Maximum 3 elements allowed");
+                              }
+                            }
+                          }}
+                          className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(product.id)
+                            ? "border-accent ring-2 ring-accent/50"
+                            : "border-border hover:border-muted-foreground"
+                            }`}
+                        >
+                          {product.images?.[0] ? (
+                            <img
+                              src={product.images[0].image_url}
+                              alt={product.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <span className="text-xs">No image</span>
+                            </div>
+                          )}
+                          {selectedProducts.includes(product.id) && (
+                            <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                              {selectedProducts.indexOf(product.id) + 1}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selectedProducts.length > 0 && (
+                      <div className="space-y-3">
                         <Label>Positions</Label>
                         {selectedProducts.map(id => {
                           const customEl = customElements.find(el => el.id === id);
@@ -816,306 +1115,401 @@ const CreateNew = () => {
                           );
                         })}
                       </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="title" className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-semibold">Title & text</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Control the copy, font style, and placement on the canvas.
+                      </p>
                     </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No elements available. Create one in Elements or upload one here.
-              </p>
-            )}
-          </div>
 
-          <Separator />
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <Input
+                        placeholder="Enter title..."
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                    </div>
 
-          {/* Text Section */}
-          <div className="space-y-4">
-            <h3 className="font-semibold flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary"></div>
-              Text
-            </h3>
+                    <div className="space-y-2">
+                      <Label>Subtitle</Label>
+                      <Textarea
+                        placeholder="Enter subtitle..."
+                        value={subtitle}
+                        onChange={(e) => setSubtitle(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
 
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                placeholder="Enter title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
+                    <div className="space-y-2">
+                      <Label>Text Style</Label>
+                      <Select value={textStyle} onValueChange={setTextStyle}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TEXT_STYLES.map((style) => (
+                            <SelectItem key={style} value={style}>
+                              {style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="space-y-2">
-              <Label>Subtitle</Label>
-              <Textarea
-                placeholder="Enter subtitle..."
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Text Style</Label>
-              <Select value={textStyle} onValueChange={setTextStyle}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TEXT_STYLES.map((style) => (
-                    <SelectItem key={style} value={style}>
-                      {style}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {textStyle === "Custom" && (
-              <div className="space-y-2">
-                <Label>Custom Text Style</Label>
-                <Input
-                  placeholder="e.g., graffiti style, neon glow, 3D effect..."
-                  value={customTextStyle}
-                  onChange={(e) => setCustomTextStyle(e.target.value)}
-                />
-              </div>
-            )}
-
-            {(title || subtitle) && (
-              <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                <div className="space-y-2">
-                  <Label>Position</Label>
-                  <Select value={textPosition} onValueChange={setTextPosition}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {POSITIONS.map((pos) => (
-                        <SelectItem key={pos.value} value={pos.value}>
-                          {pos.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Style Section */}
-          <div className="space-y-4">
-            <h3 className="font-semibold flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-accent"></div>
-              Style
-            </h3>
-
-            <div className="space-y-2">
-              <Label>Visual Style</Label>
-              <Select value={visualStyle} onValueChange={setVisualStyle}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {VISUAL_STYLES.map((style) => (
-                    <SelectItem key={style} value={style}>
-                      {style}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {visualStyle === "Custom" && (
-              <div className="space-y-2">
-                <Label>Custom Visual Style</Label>
-                <Input
-                  placeholder="e.g., cyberpunk aesthetic, watercolor painting, retro 80s..."
-                  value={customVisualStyle}
-                  onChange={(e) => setCustomVisualStyle(e.target.value)}
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>Background</Label>
-              <Select value={backgroundType} onValueChange={setBackgroundType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gradient">Gradient</SelectItem>
-                  <SelectItem value="solid">Solid Color</SelectItem>
-                  <SelectItem value="image">Upload Image</SelectItem>
-                  <SelectItem value="avatar">From Avatar</SelectItem>
-                  <SelectItem value="custom-prompt">Custom Prompt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Gradient Color Pickers */}
-            {backgroundType === "gradient" && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label>Color 1</Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={gradientColor1}
-                      onChange={(e) => setGradientColor1(e.target.value)}
-                      className="w-12 h-10 rounded border border-border cursor-pointer"
-                    />
-                    <Input
-                      value={gradientColor1}
-                      onChange={(e) => setGradientColor1(e.target.value)}
-                      placeholder="#FF6B9D"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Color 2</Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={gradientColor2}
-                      onChange={(e) => setGradientColor2(e.target.value)}
-                      className="w-12 h-10 rounded border border-border cursor-pointer"
-                    />
-                    <Input
-                      value={gradientColor2}
-                      onChange={(e) => setGradientColor2(e.target.value)}
-                      placeholder="#C239B3"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Solid Color Picker */}
-            {backgroundType === "solid" && (
-              <div className="space-y-2">
-                <Label>Color</Label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={solidColor}
-                    onChange={(e) => setSolidColor(e.target.value)}
-                    className="w-12 h-10 rounded border border-border cursor-pointer"
-                  />
-                  <Input
-                    value={solidColor}
-                    onChange={(e) => setSolidColor(e.target.value)}
-                    placeholder="#FF6B9D"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Upload Image */}
-            {backgroundType === "image" && (
-              <div className="space-y-2">
-                <Label>Upload Background Image</Label>
-                <label htmlFor="bg-upload" className="block">
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
-                    {backgroundImageUrl ? (
+                    {textStyle === "Custom" && (
                       <div className="space-y-2">
-                        <img
-                          src={backgroundImageUrl}
-                          alt="Background preview"
-                          className="w-full h-32 object-cover rounded-lg"
+                        <Label>Custom Text Style</Label>
+                        <Input
+                          placeholder="e.g., graffiti style, neon glow, 3D effect..."
+                          value={customTextStyle}
+                          onChange={(e) => setCustomTextStyle(e.target.value)}
                         />
-                        <p className="text-sm text-muted-foreground">Click to change</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-sm text-muted-foreground">Click to upload</p>
-                        <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
                       </div>
                     )}
-                  </div>
-                  <input
-                    id="bg-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBackgroundImageUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            )}
 
-            {/* Avatar Background */}
-            {backgroundType === "avatar" && selectedAvatar && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  Background will be generated from the selected avatar
-                </p>
-              </div>
-            )}
+                    {(title || subtitle) && (
+                      <div className="space-y-2 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
+                        <Label>Position</Label>
+                        <Select value={textPosition} onValueChange={setTextPosition}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {POSITIONS.map((pos) => (
+                              <SelectItem key={pos.value} value={pos.value}>
+                                {pos.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-            {backgroundType === "avatar" && !selectedAvatar && (
-              <div className="p-3 bg-destructive/10 rounded-lg">
-                <p className="text-sm text-destructive">
-                  Please select an avatar first to use this option
-                </p>
-              </div>
-            )}
+                    {savedTitles.length > 0 && (
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Saved titles
+                          </Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-3"
+                            onClick={() => navigate("/titles")}
+                          >
+                            Manage
+                          </Button>
+                        </div>
+                        <div className="space-y-2">
+                          {savedTitles.slice(0, 4).map((saved) => (
+                            <div
+                              key={saved.id}
+                              className="rounded-lg border border-border p-3 bg-secondary/40 space-y-1"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium text-sm truncate">{saved.name}</p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-3 text-xs"
+                                  onClick={() => applySavedTitle(saved)}
+                                >
+                                  Use
+                                </Button>
+                              </div>
+                              <p className="text-sm font-semibold truncate">{saved.title}</p>
+                              {saved.subtitle && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {saved.subtitle}
+                                </p>
+                              )}
+                              <p className="text-[11px] text-muted-foreground">
+                                Style: {saved.text_style} • Position: {saved.text_position}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        {savedTitles.length > 4 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => navigate("/titles")}
+                          >
+                            View all titles
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </TabsContent>
 
-            {/* Custom Prompt */}
-            {backgroundType === "custom-prompt" && (
-              <div className="space-y-2">
-                <Label>Background Description</Label>
-                <Textarea
-                  placeholder="Describe the background you want... (e.g., 'Futuristic city skyline at sunset')"
-                  value={customBackgroundPrompt}
-                  onChange={(e) => setCustomBackgroundPrompt(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            )}
+                  <TabsContent value="background" className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-semibold">Background & style</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Define the overall mood, background type, and aspect ratio.
+                      </p>
+                    </div>
 
-            <div className="space-y-2">
-              <Label>Aspect Ratio</Label>
-              <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="16:9">16:9 (YouTube)</SelectItem>
-                  <SelectItem value="9:16">9:16 (Stories)</SelectItem>
-                  <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                  <SelectItem value="4:3">4:3 (Classic)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                    <div className="space-y-2">
+                      <Label>Visual Style</Label>
+                      <Select value={visualStyle} onValueChange={setVisualStyle}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VISUAL_STYLES.map((style) => (
+                            <SelectItem key={style} value={style}>
+                              {style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {visualStyle === "Custom" && (
+                      <div className="space-y-2">
+                        <Label>Custom Visual Style</Label>
+                        <Input
+                          placeholder="e.g., cyberpunk aesthetic, watercolor painting, retro 80s..."
+                          value={customVisualStyle}
+                          onChange={(e) => setCustomVisualStyle(e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Background</Label>
+                      <Select value={backgroundType} onValueChange={setBackgroundType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gradient">Gradient</SelectItem>
+                          <SelectItem value="solid">Solid Color</SelectItem>
+                          <SelectItem value="image">Upload Image</SelectItem>
+                          <SelectItem value="avatar">From Avatar</SelectItem>
+                          <SelectItem value="custom-prompt">Custom Prompt</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {backgroundType === "gradient" && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label>Color 1</Label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={gradientColor1}
+                              onChange={(e) => setGradientColor1(e.target.value)}
+                              className="w-12 h-10 rounded border border-border cursor-pointer"
+                            />
+                            <Input
+                              value={gradientColor1}
+                              onChange={(e) => setGradientColor1(e.target.value)}
+                              placeholder="#FF6B9D"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Color 2</Label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={gradientColor2}
+                              onChange={(e) => setGradientColor2(e.target.value)}
+                              className="w-12 h-10 rounded border border-border cursor-pointer"
+                            />
+                            <Input
+                              value={gradientColor2}
+                              onChange={(e) => setGradientColor2(e.target.value)}
+                              placeholder="#C239B3"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {backgroundType === "solid" && (
+                      <div className="space-y-2">
+                        <Label>Color</Label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={solidColor}
+                            onChange={(e) => setSolidColor(e.target.value)}
+                            className="w-12 h-10 rounded border border-border cursor-pointer"
+                          />
+                          <Input
+                            value={solidColor}
+                            onChange={(e) => setSolidColor(e.target.value)}
+                            placeholder="#FF6B9D"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {backgroundType === "image" && (
+                      <div className="space-y-2">
+                        <Label>Upload Background Image</Label>
+                        <label htmlFor="bg-upload" className="block">
+                          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
+                            {backgroundImageUrl ? (
+                              <div className="space-y-2">
+                                <img
+                                  src={backgroundImageUrl}
+                                  alt="Background preview"
+                                  className="w-full h-32 object-cover rounded-lg"
+                                />
+                                <p className="text-sm text-muted-foreground">Click to change</p>
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="text-sm text-muted-foreground">Click to upload</p>
+                                <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                              </div>
+                            )}
+                          </div>
+                          <input
+                            id="bg-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleBackgroundImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {backgroundType === "avatar" && selectedAvatar && (
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Background will be generated from the selected avatar
+                        </p>
+                      </div>
+                    )}
+
+                    {backgroundType === "avatar" && !selectedAvatar && (
+                      <div className="p-3 bg-destructive/10 rounded-lg">
+                        <p className="text-sm text-destructive">
+                          Please select an avatar first to use this option
+                        </p>
+                      </div>
+                    )}
+
+                    {backgroundType === "custom-prompt" && (
+                      <div className="space-y-2">
+                        <Label>Background Description</Label>
+                        <Textarea
+                          placeholder="Describe the background you want... (e.g., 'Futuristic city skyline at sunset')"
+                          value={customBackgroundPrompt}
+                          onChange={(e) => setCustomBackgroundPrompt(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Aspect Ratio</Label>
+                      <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="16:9">16:9 (YouTube)</SelectItem>
+                          <SelectItem value="9:16">9:16 (Stories)</SelectItem>
+                          <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                          <SelectItem value="4:3">4:3 (Classic)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {savedBackgrounds.length > 0 && (
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Saved backgrounds
+                          </Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-3"
+                            onClick={() => navigate("/backgrounds")}
+                          >
+                            Manage
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {savedBackgrounds.slice(0, 4).map((bg) => (
+                            <div
+                              key={bg.id}
+                              className="rounded-lg border border-border p-2 space-y-2 bg-secondary/40"
+                            >
+                              <p className="text-sm font-medium truncate">{bg.name}</p>
+                              {renderSavedBackgroundPreview(bg)}
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span className="capitalize">
+                                  {(bg.type as string).replace("-", " ")}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-3 text-xs"
+                                  onClick={() => applySavedBackground(bg)}
+                                >
+                                  Use
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {savedBackgrounds.length > 4 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => navigate("/backgrounds")}
+                          >
+                            View all backgrounds
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </TabsContent>
+                </div>
+              </ScrollArea>
+
+              <div className="border-t border-border/60 p-4">
+                <Button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  variant="default"
+                  className="w-full"
+                  size="lg"
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Generate Thumbnail
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Tabs>
           </div>
-
-          <Separator />
-
-          {/* Generate Button */}
-          <Button
-            onClick={handleGenerate}
-            disabled={generating}
-            variant="default"
-            className="w-full"
-            size="lg"
-          >
-            {generating ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 mr-2" />
-                Generate Thumbnail
-              </>
-            )}
-          </Button>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

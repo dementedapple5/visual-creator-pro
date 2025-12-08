@@ -10,9 +10,12 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Avatars from "./pages/Avatars";
 import CreateNew from "./pages/CreateNew";
+import Generations from "./pages/Generations";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import ThumbnailDetail from "./pages/ThumbnailDetail";
+import Backgrounds from "./pages/Backgrounds";
+import Titles from "./pages/Titles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,10 +54,34 @@ const App = () => (
             }
           />
           <Route
+            path="/backgrounds"
+            element={
+              <AppLayout>
+                <Backgrounds />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/titles"
+            element={
+              <AppLayout>
+                <Titles />
+              </AppLayout>
+            }
+          />
+          <Route
             path="/create"
             element={
               <AppLayout>
                 <CreateNew />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/generations"
+            element={
+              <AppLayout>
+                <Generations />
               </AppLayout>
             }
           />

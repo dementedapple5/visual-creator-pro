@@ -80,7 +80,26 @@ See `.env.example` for all required environment variables.
 Set these in your Supabase dashboard under Settings > Edge Functions:
 
 - `GEMINI_API_KEY` - Google Gemini API key
-- `STRIPE_SECRET_KEY` - Stripe secret key
+- `STRIPE_SECRET_KEY` - Stripe secret key (production/live mode)
+- `STRIPE_TEST_SECRET_KEY` - Stripe test secret key (for localhost testing, optional but recommended)
+
+**Note:** When running on localhost, the app automatically uses test mode:
+- Frontend uses test Price IDs when `import.meta.env.DEV` is true or hostname is localhost
+- Edge Functions use `STRIPE_TEST_SECRET_KEY` when the request origin is localhost
+- If `STRIPE_TEST_SECRET_KEY` is not set, functions fall back to `STRIPE_SECRET_KEY`
+
+### Testing Stripe Sandbox
+
+1. Set `STRIPE_TEST_SECRET_KEY` in Supabase Dashboard > Edge Functions > Secrets
+2. Update test Price IDs in `src/pages/Profile.tsx` (testPlans array) or set environment variables:
+   - `VITE_STRIPE_TEST_STARTER_MONTHLY`
+   - `VITE_STRIPE_TEST_STARTER_YEARLY`
+   - `VITE_STRIPE_TEST_PRO_MONTHLY`
+   - `VITE_STRIPE_TEST_PRO_YEARLY`
+   - `VITE_STRIPE_TEST_ENTERPRISE_MONTHLY`
+   - `VITE_STRIPE_TEST_ENTERPRISE_YEARLY`
+3. Run `npm run dev` - the app will automatically use test mode on localhost
+4. Use Stripe test card `4242 4242 4242 4242` for testing checkout
 
 ## Deployment
 

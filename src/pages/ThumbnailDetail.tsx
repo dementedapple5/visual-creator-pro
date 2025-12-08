@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Download, Trash2, Wand2, Palette, Type, Image as ImageIcon, Smile, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/imageUtils";
+import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -197,6 +198,28 @@ const ThumbnailDetail = () => {
 
     setIterating(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
+      const monthlyLimit = subscriptionData?.monthly_limit || 1;
+      const countStartDate = getGenerationWindowStart(subscriptionData || {});
+
+      const { count } = await supabase
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("created_at", countStartDate);
+
+      const usedGenerations = count || 0;
+      if (usedGenerations >= monthlyLimit) {
+        const limitType = getGenerationLimitLabel(subscriptionData || {});
+        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
+        setIterating(false);
+        return;
+      }
+
       // Generate a new version based on the prompt
       const { data: result, error } = await supabase.functions.invoke("generate-thumbnail", {
         body: {

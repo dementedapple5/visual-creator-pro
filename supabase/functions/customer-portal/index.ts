@@ -20,9 +20,27 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
+    // Detect if request is from localhost
+    const origin = req.headers.get("origin") || "";
+    const isLocalhost = origin.includes("localhost") || 
+                        origin.includes("127.0.0.1") || 
+                        origin.includes("[::1]");
+    
+    // Use test key for localhost, fallback to production key
+    const testKey = Deno.env.get("STRIPE_TEST_SECRET_KEY");
+    const productionKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const stripeKey = (isLocalhost && testKey) ? testKey : (productionKey || "");
+    
+    if (!stripeKey) {
+      throw new Error(isLocalhost 
+        ? "STRIPE_TEST_SECRET_KEY is not set (required for localhost)" 
+        : "STRIPE_SECRET_KEY is not set");
+    }
+    
+    logStep("Stripe key selected", { 
+      mode: isLocalhost && testKey ? "TEST" : "PRODUCTION",
+      keyPrefix: stripeKey.substring(0, 7) + "..."
+    });
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -48,10 +66,10 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    const origin = req.headers.get("origin") || "http://localhost:8080";
+    const portalOrigin = origin || "http://localhost:8080";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/profile`,
+      return_url: `${portalOrigin}/profile`,
     });
     logStep("Customer portal session created", { sessionId: portalSession.id, url: portalSession.url });
 

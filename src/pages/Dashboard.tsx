@@ -1,25 +1,72 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, User, Image as ImageIcon, Package } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Search, CalendarDays, Filter } from "lucide-react";
 import { toast } from "sonner";
+import type { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 
 interface Thumbnail {
   id: string;
   title: string | null;
+  subtitle: string | null;
   image_url: string;
   created_at: string;
+  avatar_id: string | null;
+  product_id: string | null;
 }
+
+interface AvatarOption {
+  id: string;
+  image_url: string;
+}
+
+interface ProductOption {
+  id: string;
+  title: string;
+  brand: string;
+  images?: { image_url: string }[];
+}
+
+interface FiltersState {
+  search: string;
+  avatar: string;
+  element: string;
+}
+
+const initialFilters: FiltersState = {
+  search: "",
+  avatar: "all",
+  element: "all",
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
+  const [avatars, setAvatars] = useState<AvatarOption[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [filters, setFilters] = useState<FiltersState>(initialFilters);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkUser();
     fetchThumbnails();
+    fetchFilterOptions();
   }, []);
 
   const checkUser = async () => {
@@ -31,6 +78,7 @@ const Dashboard = () => {
 
   const fetchThumbnails = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("thumbnails")
         .select("*")
@@ -46,53 +94,319 @@ const Dashboard = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+  const fetchFilterOptions = async () => {
+    try {
+      const [{ data: avatarData, error: avatarError }, { data: productData, error: productError }] =
+        await Promise.all([
+          supabase.from("avatars").select("id, image_url").order("created_at", { ascending: false }),
+          supabase
+            .from("products")
+            .select(`
+              id,
+              title,
+              brand,
+              images:product_images(image_url)
+            `)
+            .order("created_at", { ascending: false }),
+        ]);
+
+      if (avatarError) throw avatarError;
+      if (productError) throw productError;
+
+      setAvatars(avatarData || []);
+      setProducts((productData as ProductOption[]) || []);
+    } catch (error) {
+      console.error("Error fetching filter options:", error);
+    }
   };
 
+  const formatDate = (value: string) => {
+    return new Date(value).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const filteredThumbnails = useMemo(() => {
+    return thumbnails.filter((thumbnail) => {
+      const matchesSearch =
+        !filters.search.trim() ||
+        (thumbnail.title || "").toLowerCase().includes(filters.search.toLowerCase()) ||
+        (thumbnail.subtitle || "").toLowerCase().includes(filters.search.toLowerCase());
+
+      const matchesAvatar = filters.avatar === "all" || thumbnail.avatar_id === filters.avatar;
+      const matchesElement = filters.element === "all" || thumbnail.product_id === filters.element;
+
+      const createdDate = new Date(thumbnail.created_at);
+      const fromDate = dateRange?.from ? new Date(dateRange.from) : null;
+      const toDate = dateRange?.to ? new Date(dateRange.to) : null;
+
+      if (toDate) {
+        toDate.setHours(23, 59, 59, 999);
+      }
+      if (fromDate) {
+        fromDate.setHours(0, 0, 0, 0);
+      }
+
+      const matchesFrom = !fromDate || createdDate >= fromDate;
+      const matchesTo = !toDate || createdDate <= toDate;
+
+      return matchesSearch && matchesAvatar && matchesElement && matchesFrom && matchesTo;
+    });
+  }, [filters, thumbnails, dateRange]);
+
+  const resetFilters = () => {
+    setFilters(initialFilters);
+    setDateRange(undefined);
+  };
+
+  const dateRangeLabel = useMemo(() => {
+    if (dateRange?.from && dateRange?.to) {
+      return `${formatDate(dateRange.from.toISOString())} → ${formatDate(dateRange.to.toISOString())}`;
+    }
+    if (dateRange?.from) {
+      return formatDate(dateRange.from.toISOString());
+    }
+    return "Select date range";
+  }, [dateRange]);
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold mb-1">Your Thumbnails</h1>
-          <p className="text-sm text-muted-foreground">Browse and manage your creations</p>
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/90">
+      <div className="container mx-auto px-6 py-8 space-y-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-primary/80">Gallery</p>
+            <h1 className="text-3xl font-semibold tracking-tight">Your Thumbnails</h1>
+            <p className="text-sm text-muted-foreground">
+              Browse, search and filter all your creations in one place.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => navigate("/create")}
+              size="sm"
+              className="shadow-lg shadow-primary/20"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Thumbnail
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={filters.search}
+                onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+                placeholder="Search by title or subtitle"
+                className="w-full bg-card/70 pl-10"
+              />
+            </div>
+
+            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 bg-card/70">
+                  <Filter className="h-4 w-4" />
+                  Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] sm:w-[420px] space-y-4" align="end">
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Filters</p>
+                  <p className="text-xs text-muted-foreground">Refine your gallery by avatar, element, or date.</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Avatar</label>
+                    <Select
+                      value={filters.avatar}
+                      onValueChange={(value) => setFilters((prev) => ({ ...prev, avatar: value }))}
+                    >
+                      <SelectTrigger className="bg-background/60">
+                        <SelectValue placeholder="Filter by avatar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All avatars</SelectItem>
+                        {avatars.map((avatar, index) => (
+                          <SelectItem key={avatar.id} value={avatar.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="h-6 w-6 overflow-hidden rounded-full bg-muted">
+                                <img src={avatar.image_url} alt="" className="h-full w-full object-cover" />
+                              </span>
+                              <span>Avatar {index + 1}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Element</label>
+                    <Select
+                      value={filters.element}
+                      onValueChange={(value) => setFilters((prev) => ({ ...prev, element: value }))}
+                    >
+                      <SelectTrigger className="bg-background/60">
+                        <SelectValue placeholder="Filter by element" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All elements</SelectItem>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="h-6 w-6 overflow-hidden rounded bg-muted">
+                                {product.images?.[0]?.image_url ? (
+                                  <img
+                                    src={product.images[0].image_url}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="block h-full w-full bg-muted" />
+                                )}
+                              </span>
+                              <span className="truncate">
+                                {product.title} {product.brand ? `· ${product.brand}` : ""}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-muted-foreground">Date range</label>
+                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-between bg-background/60 text-left font-normal",
+                            !dateRange?.from && "text-muted-foreground"
+                          )}
+                        >
+                          <span>{dateRangeLabel}</span>
+                          <CalendarDays className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                        <Calendar
+                          mode="range"
+                          numberOfMonths={2}
+                          selected={dateRange}
+                          onSelect={(range) => setDateRange(range)}
+                          defaultMonth={dateRange?.from}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      resetFilters();
+                      setFiltersOpen(false);
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                  <Button size="sm" onClick={() => setFiltersOpen(false)}>
+                    Apply
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         {loading ? (
-          <div className="flex flex-wrap gap-4">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="h-48 w-80 bg-secondary rounded-lg animate-pulse" />
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 p-4 shadow-lg"
+              >
+                <Skeleton className="aspect-video w-full rounded-xl" />
+                <div className="mt-4 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
             ))}
           </div>
         ) : thumbnails.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20 rounded-2xl border border-border/60 bg-card/70 shadow-inner">
             <p className="text-muted-foreground mb-4">No thumbnails yet. Create your first one!</p>
-            <Button onClick={() => navigate("/create")} size="sm" className="bg-primary hover:bg-primary/90">
+            <Button
+              onClick={() => navigate("/create")}
+              size="sm"
+              className="bg-primary hover:bg-primary/90 shadow-primary/20 shadow-lg"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Thumbnail
             </Button>
           </div>
+        ) : filteredThumbnails.length === 0 ? (
+          <div className="rounded-2xl border border-border/60 bg-card/70 p-10 text-center shadow-inner">
+            <p className="text-lg font-semibold mb-2">No results match these filters</p>
+            <p className="text-muted-foreground mb-6">
+              Try adjusting your search terms, avatar, element, or date range.
+            </p>
+            <Button onClick={resetFilters} variant="outline">
+              Reset filters
+            </Button>
+          </div>
         ) : (
-          <div className="flex flex-wrap gap-4">
-            {thumbnails.map((thumbnail) => (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredThumbnails.map((thumbnail) => (
               <div
                 key={thumbnail.id}
-                className="group cursor-pointer relative"
+                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
                 onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
               >
-                <div className="relative bg-secondary rounded-lg overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="relative aspect-video overflow-hidden">
                   <img
                     src={thumbnail.image_url}
                     alt={thumbnail.title || "Thumbnail"}
-                    className="h-48 w-auto object-cover"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
+                  <div className="absolute left-3 top-3 flex items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="bg-background/80 text-xs font-medium backdrop-blur-sm border-border/60"
+                    >
+                      <CalendarDays className="mr-1 h-3.5 w-3.5" />
+                      {formatDate(thumbnail.created_at)}
+                    </Badge>
+                  </div>
                 </div>
-                {thumbnail.title && (
-                  <p className="mt-1.5 text-xs text-muted-foreground truncate max-w-[200px]">
-                    {thumbnail.title}
-                  </p>
-                )}
+                <div className="relative space-y-2 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base font-semibold leading-tight truncate">
+                      {thumbnail.title || "Untitled thumbnail"}
+                    </h3>
+                    <span className="h-2 w-2 rounded-full bg-primary/70" />
+                  </div>
+                  {thumbnail.subtitle && (
+                    <p className="text-sm text-muted-foreground truncate">{thumbnail.subtitle}</p>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {thumbnail.avatar_id && <Badge variant="outline">Avatar</Badge>}
+                    {thumbnail.product_id && <Badge variant="outline">Element</Badge>}
+                  </div>
+                </div>
               </div>
             ))}
           </div>

@@ -43,6 +43,116 @@ export type Database = {
           },
         ]
       }
+      backgrounds: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json
+          name: string
+          type: string
+          user_id: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          type: string
+          user_id: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          type?: string
+          user_id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backgrounds_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generations: {
+        Row: {
+          aspect_ratio: string | null
+          completed_at: string | null
+          created_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          image_url: string | null
+          mode: string
+          prompt: string | null
+          remix_prompt: string | null
+          request: Json | null
+          status: string
+          subtitle: string | null
+          thumbnail_id: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          mode: string
+          prompt?: string | null
+          remix_prompt?: string | null
+          request?: Json | null
+          status?: string
+          subtitle?: string | null
+          thumbnail_id?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          mode?: string
+          prompt?: string | null
+          remix_prompt?: string | null
+          request?: Json | null
+          status?: string
+          subtitle?: string | null
+          thumbnail_id?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generations_thumbnail_id_fkey"
+            columns: ["thumbnail_id"]
+            isOneToOne: false
+            referencedRelation: "thumbnails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           created_at: string | null
@@ -71,6 +181,82 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_create_jobs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          source_type: string
+          source_url: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          source_type: string
+          source_url?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_create_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_create_suggestions: {
+        Row: {
+          created_at: string | null
+          frame_url: string
+          id: string
+          job_id: string
+          subtitle: string | null
+          timestamp: number | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          frame_url: string
+          id?: string
+          job_id: string
+          subtitle?: string | null
+          timestamp?: number | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          frame_url?: string
+          id?: string
+          job_id?: string
+          subtitle?: string | null
+          timestamp?: number | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_create_suggestions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "smart_create_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -130,6 +316,82 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      titles: {
+        Row: {
+          created_at: string | null
+          custom_text_style: string | null
+          id: string
+          name: string
+          subtitle: string | null
+          text_position: string
+          text_style: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custom_text_style?: string | null
+          id?: string
+          name: string
+          subtitle?: string | null
+          text_position?: string
+          text_style?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custom_text_style?: string | null
+          id?: string
+          name?: string
+          subtitle?: string | null
+          text_position?: string
+          text_style?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thumbnail_versions: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          prompt: string | null
+          thumbnail_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url: string
+          prompt?: string | null
+          thumbnail_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          prompt?: string | null
+          thumbnail_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thumbnail_versions_thumbnail_id_fkey"
+            columns: ["thumbnail_id"]
+            isOneToOne: false
+            referencedRelation: "thumbnails"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       thumbnails: {
         Row: {

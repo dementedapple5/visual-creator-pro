@@ -35,18 +35,67 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startedAt = Date.now();
+  let generationId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let userId: string | null = null;
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!;
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    supabase = createClient(supabaseUrl, supabaseKey);
 
     const { thumbnailData, remixImageUrl, remixPrompt } = await req.json() as {
       thumbnailData: ThumbnailData;
       remixImageUrl?: string;
       remixPrompt?: string;
     };
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+
+    if (userError || !user) {
+      console.error("User auth error:", userError);
+      throw new Error("User not authenticated");
+    }
+
+    userId = user.id;
+
+    const generationMode = remixImageUrl
+      ? "remix"
+      : thumbnailData.iterationPrompt
+        ? "iterate"
+        : "create";
+
+    const { data: generationRecord, error: generationError } = await supabase
+      .from("generations")
+      .insert({
+        user_id: userId,
+        status: "processing",
+        mode: generationMode,
+        request: { thumbnailData, remixPrompt, remixImageUrl },
+        prompt: thumbnailData?.iterationPrompt || null,
+        remix_prompt: remixPrompt || null,
+        aspect_ratio: thumbnailData?.aspectRatio || null,
+        title: thumbnailData?.title || null,
+        subtitle: thumbnailData?.subtitle || null,
+      })
+      .select("id")
+      .single();
+
+    if (generationError) {
+      throw generationError;
+    }
+
+    generationId = generationRecord?.id || null;
 
     console.log("Thumbnail data received:", thumbnailData);
     console.log("Remix mode:", !!remixImageUrl);
@@ -404,22 +453,7 @@ CRITICAL INSTRUCTIONS:
 
     console.log("Image data received, preparing to upload to storage");
 
-    // Get authenticated user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-
-    if (userError || !user) {
-      console.error("User auth error:", userError);
-      throw new Error("User not authenticated");
-    }
-
-    const fileName = `${user.id}/${Date.now()}.png`;
+    const fileName = `${userId}/${Date.now()}.png`;
 
     // Convert base64 to binary (imageData is already without the data URI prefix)
     const binaryData = Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0));
@@ -443,13 +477,38 @@ CRITICAL INSTRUCTIONS:
 
     console.log("Image uploaded successfully:", publicUrl);
 
+    if (generationId) {
+      await supabase
+        .from("generations")
+        .update({
+          status: "completed",
+          image_url: publicUrl,
+          completed_at: new Date().toISOString(),
+          duration_ms: Date.now() - startedAt,
+        })
+        .eq("id", generationId);
+    }
+
     return new Response(
-      JSON.stringify({ imageUrl: publicUrl }),
+      JSON.stringify({ imageUrl: publicUrl, generationId }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
+    if (generationId && supabase) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      await supabase
+        .from("generations")
+        .update({
+          status: "failed",
+          error_message: errorMessage,
+          completed_at: new Date().toISOString(),
+          duration_ms: Date.now() - startedAt,
+        })
+        .eq("id", generationId);
+    }
+
     console.error("Error in generate-thumbnail function:", error);
     return new Response(
       JSON.stringify({

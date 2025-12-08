@@ -8,7 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 
-const subscriptionPlans = [
+// Detect if running on localhost
+const isLocalhost = import.meta.env.DEV || 
+  (typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '[::1]'
+  ));
+
+// Production Price IDs (Live mode)
+const productionPlans = [
   {
     name: "Free",
     monthlyPrice: "$0",
@@ -16,6 +25,7 @@ const subscriptionPlans = [
     priceId: null,
     yearlyPriceId: null,
     productId: null,
+    tier: "free" as const,
     features: [
       "1 thumbnail/day",
       "HD resolution",
@@ -31,6 +41,7 @@ const subscriptionPlans = [
     priceId: "price_1SX0vtISMAOMUNUM7hJ7Mk45",
     yearlyPriceId: "price_1SXHyGISMAOMUNUMx0LrXEZg",
     productId: "prod_TTytxm2oUYxzXe",
+    tier: "starter" as const,
     features: [
       "50 HD thumbnails/month",
       "2K resolution",
@@ -46,6 +57,7 @@ const subscriptionPlans = [
     priceId: "price_1SXHwFISMAOMUNUM0syTOyVg",
     yearlyPriceId: "price_1SXI02ISMAOMUNUMd8oTYJPc",
     productId: "prod_TUGTkbIPU5H2pn",
+    tier: "pro" as const,
     popular: true,
     features: [
       "100 HD thumbnails/month",
@@ -62,6 +74,7 @@ const subscriptionPlans = [
     priceId: "price_1SX0wNISMAOMUNUMTz5N3THc",
     yearlyPriceId: "price_1SXI0FISMAOMUNUMgfSnO0Y0",
     productId: "prod_TTyuNeWPfbeOFz",
+    tier: "enterprise" as const,
     features: [
       "300 HD thumbnails/month",
       "4K resolution",
@@ -69,6 +82,82 @@ const subscriptionPlans = [
     ]
   }
 ];
+
+// Test/Sandbox Price IDs (Test mode)
+// ⚠️ IMPORTANT: Replace the placeholder Price IDs below with your actual test Price IDs from Stripe Dashboard (Test mode)
+// To get your test Price IDs:
+// 1. Go to Stripe Dashboard (make sure Test mode toggle is ON)
+// 2. Go to Products
+// 3. Click on each product and copy the Price IDs (they start with "price_")
+// 4. Replace the placeholder values below
+const testPlans = [
+  {
+    name: "Free",
+    monthlyPrice: "$0",
+    yearlyPrice: "$0",
+    priceId: null,
+    yearlyPriceId: null,
+    productId: null,
+    tier: "free" as const,
+    features: [
+      "1 thumbnail/day",
+      "HD resolution",
+      "Email support"
+    ]
+  },
+  {
+    name: "Starter",
+    monthlyPrice: "$17.99",
+    yearlyPrice: "$172.70",
+    monthlySavings: null,
+    yearlySavings: "20%",
+    priceId: import.meta.env.VITE_STRIPE_TEST_STARTER_MONTHLY || "price_1SZg9TEWPks3JDZoOTWeeWtL",
+    yearlyPriceId: import.meta.env.VITE_STRIPE_TEST_STARTER_YEARLY || "price_1SZg9QEWPks3JDZoFjQaUHxY",
+    productId: import.meta.env.VITE_STRIPE_TEST_STARTER_PRODUCT || null,
+    tier: "starter" as const,
+    features: [
+      "50 HD thumbnails/month",
+      "2K resolution",
+      "Email support"
+    ]
+  },
+  {
+    name: "Pro",
+    monthlyPrice: "$29.99",
+    yearlyPrice: "$287.90",
+    monthlySavings: null,
+    yearlySavings: "20%",
+    priceId: import.meta.env.VITE_STRIPE_TEST_PRO_MONTHLY || "price_1SZg9REWPks3JDZop3BiasS8",
+    yearlyPriceId: import.meta.env.VITE_STRIPE_TEST_PRO_YEARLY || "price_1SZg9PEWPks3JDZoFf6QuI9W",
+    productId: import.meta.env.VITE_STRIPE_TEST_PRO_PRODUCT || null,
+    tier: "pro" as const,
+    popular: true,
+    features: [
+      "100 HD thumbnails/month",
+      "2K resolution",
+      "Priority support"
+    ]
+  },
+  {
+    name: "Enterprise",
+    monthlyPrice: "$99.99",
+    yearlyPrice: "$959.90",
+    monthlySavings: null,
+    yearlySavings: "20%",
+    priceId: import.meta.env.VITE_STRIPE_TEST_ENTERPRISE_MONTHLY || "price_1SZg9SEWPks3JDZobpOOCLPy",
+    yearlyPriceId: import.meta.env.VITE_STRIPE_TEST_ENTERPRISE_YEARLY || "price_1SZg9OEWPks3JDZoxGEh7vDM",
+    productId: import.meta.env.VITE_STRIPE_TEST_ENTERPRISE_PRODUCT || null,
+    tier: "enterprise" as const,
+    features: [
+      "300 HD thumbnails/month",
+      "4K resolution",
+      "24/7 support"
+    ]
+  }
+];
+
+// Use test plans on localhost, production plans otherwise
+const subscriptionPlans = isLocalhost ? testPlans : productionPlans;
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -83,7 +172,23 @@ const Profile = () => {
     subscribed: boolean;
     product_id: string | null;
     subscription_end: string | null;
-  }>({ subscribed: false, product_id: null, subscription_end: null });
+    plan_name: string;
+    plan_tier: "free" | "starter" | "pro" | "enterprise";
+    monthly_limit: number;
+    is_daily_limit: boolean;
+    billing_period_start: string | null;
+    billing_period_end: string | null;
+  }>({ 
+    subscribed: false, 
+    product_id: null, 
+    subscription_end: null,
+    plan_name: "Free",
+    plan_tier: "free",
+    monthly_limit: 1,
+    is_daily_limit: true,
+    billing_period_start: null,
+    billing_period_end: null,
+  });
   const [checkingSubscription, setCheckingSubscription] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("yearly");
 
@@ -143,7 +248,7 @@ const Profile = () => {
       
       if (error) throw error;
       
-      if (data) {
+      if (data && !data.error) {
         setSubscription(data);
       }
     } catch (error: any) {
@@ -185,19 +290,84 @@ const Profile = () => {
   const handleSubscribe = async (priceId: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId },
+      
+      // Validate Price ID format - must be a real Stripe Price ID
+      if (!priceId || !priceId.startsWith("price_") || priceId.length < 25) {
+        const errorMsg = `Invalid Price ID: "${priceId}". This looks like a placeholder. Please update testPlans in Profile.tsx with real Stripe test Price IDs from your Stripe Dashboard (Test mode).`;
+        console.error(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
+      
+      // Check if it's a placeholder
+      if (priceId.includes("TEST_") && !priceId.match(/^price_[a-zA-Z0-9]{24,}$/)) {
+        const errorMsg = `Placeholder Price ID detected: "${priceId}". Please replace it with a real Stripe test Price ID. Get it from Stripe Dashboard > Products (Test mode) > Your Product > Copy Price ID.`;
+        console.error(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
+      
+      console.log("Initiating checkout with:", { priceId, isLocalhost, testMode: isLocalhost });
+      
+      const response = await supabase.functions.invoke("create-checkout", {
+        body: { 
+          priceId,
+          testMode: isLocalhost // Explicitly pass test mode flag
+        },
       });
 
-      if (error) throw error;
+      const { data, error } = response;
+      
+      console.log("Checkout response:", { data, error });
+
+      if (error) {
+        console.error("Checkout error:", error);
+        
+        // Try to extract error message
+        let errorMessage = "Failed to start checkout";
+        
+        // Check error.message
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Check error.context
+        if (error.context && typeof error.context === 'object' && Object.keys(error.context).length > 0) {
+          const context = error.context as any;
+          if (context.error) errorMessage = context.error;
+          else if (context.message) errorMessage = context.message;
+        }
+        
+        // Check data for error
+        if (data?.error) {
+          errorMessage = data.error;
+        }
+        
+        console.error("Error message:", errorMessage);
+        console.error("💡 Check Network tab > create-checkout request > Response tab for detailed error");
+        console.error("💡 Check Supabase Dashboard > Edge Functions > create-checkout > Logs");
+        
+        toast.error(errorMessage);
+        return;
+      }
 
       if (data?.url) {
         window.open(data.url, "_blank");
         toast.success("Opening checkout...");
         setTimeout(() => checkSubscription(), 3000);
+      } else if (data?.error) {
+        toast.error(data.error);
+      } else {
+        console.warn("No URL or error in response:", data);
+        toast.error("Unexpected response from checkout. Check console for details.");
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to start checkout");
+      console.error("Checkout exception:", error);
+      const errorMessage = error?.message || 
+                          error?.error?.message ||
+                          error?.context?.error ||
+                          "Failed to start checkout. Check console for details.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -298,7 +468,14 @@ const Profile = () => {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-semibold mb-2">Subscription Plans</h2>
+                <div className="flex items-center gap-2 mb-2">
+                  <h2 className="text-2xl font-semibold">Subscription Plans</h2>
+                  {isLocalhost && (
+                    <span className="text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded-full font-medium">
+                      TEST MODE
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Choose the plan that fits your needs
                 </p>
@@ -345,7 +522,10 @@ const Profile = () => {
                     <span className="font-semibold">Active Subscription</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Current plan: {subscriptionPlans.find(p => p.productId === subscription.product_id)?.name || "Active"}
+                    Current plan: {subscription.plan_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Monthly limit: {subscription.monthly_limit} thumbnails
                   </p>
                   {subscription.subscription_end && (
                     <p className="text-sm text-muted-foreground">
@@ -372,10 +552,10 @@ const Profile = () => {
 
             <div className="grid md:grid-cols-4 gap-4">
               {subscriptionPlans.map((plan) => {
-                const isCurrentPlan = plan.productId 
-                  ? subscription.subscribed && subscription.product_id === plan.productId
-                  : !subscription.subscribed;
                 const isFree = !plan.priceId;
+                // Match current plan using plan_tier from subscription response
+                // This works for both test and production environments
+                const isCurrentPlan = subscription.plan_tier === plan.tier;
                 const currentPriceId = billingInterval === "monthly" ? plan.priceId : plan.yearlyPriceId;
                 
                 // Calculate prices
@@ -454,13 +634,19 @@ const Profile = () => {
                       </ul>
                       {!isFree && (
                         <Button
-                          onClick={() => handleSubscribe(currentPriceId!)}
+                          onClick={() => {
+                            if (!currentPriceId) {
+                              toast.error(`Test Price ID not configured for ${plan.name}. Please update testPlans in Profile.tsx with your Stripe test Price IDs.`);
+                              return;
+                            }
+                            handleSubscribe(currentPriceId);
+                          }}
                           className="w-full"
                           variant={plan.popular ? "default" : "outline"}
                           size="sm"
-                          disabled={loading || isCurrentPlan}
+                          disabled={loading || isCurrentPlan || !currentPriceId}
                         >
-                          {isCurrentPlan ? "Current Plan" : "Subscribe"}
+                          {isCurrentPlan ? "Current Plan" : !currentPriceId ? "Price ID Missing" : "Subscribe"}
                         </Button>
                       )}
                     </CardContent>

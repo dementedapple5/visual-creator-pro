@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
 
 interface Avatar {
   id: string;
@@ -95,6 +96,30 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       setGenerating(true);
       updateData({ aspectRatio });
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      // Check subscription and quota before generating
+      const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
+      const monthlyLimit = subscriptionData?.monthly_limit || 1;
+      const countStartDate = getGenerationWindowStart(subscriptionData || {});
+
+      const { count } = await supabase
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("created_at", countStartDate);
+
+      const usedGenerations = count || 0;
+
+      if (usedGenerations >= monthlyLimit) {
+        const limitType = getGenerationLimitLabel(subscriptionData || {});
+        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
+        setGenerating(false);
+        return;
+      }
+
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
         {
@@ -124,6 +149,30 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
 
     try {
       setRemixing(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      // Check subscription and quota before remixing (remix also counts as a generation)
+      const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
+      const monthlyLimit = subscriptionData?.monthly_limit || 1;
+      const countStartDate = getGenerationWindowStart(subscriptionData || {});
+
+      const { count } = await supabase
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .gte("created_at", countStartDate);
+
+      const usedGenerations = count || 0;
+
+      if (usedGenerations >= monthlyLimit) {
+        const limitType = getGenerationLimitLabel(subscriptionData || {});
+        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
+        setRemixing(false);
+        return;
+      }
 
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
