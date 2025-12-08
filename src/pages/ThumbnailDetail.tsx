@@ -40,6 +40,7 @@ interface Thumbnail {
   image_url: string;
   avatar_id: string | null;
   product_id: string | null;
+  product_ids?: string[];
   visual_style: string;
   text_style: string;
   background_type: string;
@@ -76,7 +77,7 @@ const ThumbnailDetail = () => {
   const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [avatar, setAvatar] = useState<Avatar | null>(null);
-  const [product, setProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [iterating, setIterating] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -141,17 +142,31 @@ const ThumbnailDetail = () => {
           .eq("thumbnail_id", id)
           .order("created_at", { ascending: true });
 
+        // Always include the original thumbnail image as the first version
+        const originalVersion: ThumbnailVersion = { 
+          id: "original", 
+          image_url: data.image_url, 
+          created_at: data.created_at 
+        };
+
         if (!versionsError && versionsData && versionsData.length > 0) {
-          setVersions(versionsData);
-          setCurrentVersionIndex(versionsData.length - 1);
+          // Check if the original image is already in the versions (to avoid duplicates)
+          const originalAlreadyExists = versionsData.some(
+            (v) => v.image_url === data.image_url
+          );
+
+          if (originalAlreadyExists) {
+            // Just use the versions from the table
+            setVersions(versionsData);
+          } else {
+            // Prepend the original image as the first version
+            setVersions([originalVersion, ...versionsData]);
+          }
+          setCurrentVersionIndex(versionsData.length - (originalAlreadyExists ? 1 : 0));
         } else {
-          // Fallback or initialize first version if table exists but empty (handled by migration backfill theoretically)
-          // If table doesn't exist or empty, treat current thumbnail as single version
-          setVersions([{ 
-            id: "original", 
-            image_url: data.image_url, 
-            created_at: data.created_at 
-          }]);
+          // No versions in table, use just the original thumbnail image
+          setVersions([originalVersion]);
+          setCurrentVersionIndex(0);
         }
       } catch (vError) {
          console.warn("Could not fetch versions, defaulting to single image", vError);
@@ -175,9 +190,16 @@ const ThumbnailDetail = () => {
         }
       }
 
-      // Fetch product if exists
-      if (data.product_id) {
-        const { data: productData, error: productError } = await supabase
+      // Fetch products if they exist (supports multiple)
+      const productIds: string[] =
+        Array.isArray((data as any).product_ids) && (data as any).product_ids.length > 0
+          ? (data as any).product_ids
+          : data.product_id
+            ? [data.product_id]
+            : [];
+
+      if (productIds.length > 0) {
+        const { data: productsData, error: productsError } = await supabase
           .from("products")
           .select(`
             id,
@@ -185,12 +207,16 @@ const ThumbnailDetail = () => {
             brand,
             images:product_images(image_url)
           `)
-          .eq("id", data.product_id)
-          .single();
+          .in("id", productIds);
 
-        if (!productError && productData) {
-          setProduct(productData as Product);
+        if (!productsError && productsData) {
+          const orderedProducts = productIds
+            .map((pid) => productsData.find((p) => p.id === pid))
+            .filter((p): p is Product => Boolean(p));
+          setProducts(orderedProducts);
         }
+      } else {
+        setProducts([]);
       }
     } catch (error) {
       console.error("Error fetching thumbnail:", error);
@@ -228,36 +254,25 @@ const ThumbnailDetail = () => {
         return;
       }
 
-      // Generate a new version based on the prompt
+      // Get the currently selected version's image URL to use as reference
+      const currentVersionImageUrl = versions[currentVersionIndex]?.image_url || thumbnail.image_url;
+
+      // Generate a new version based on the current image and the prompt
       const { data: result, error } = await supabase.functions.invoke("generate-thumbnail", {
         body: {
+          thumbnailId: id, // Pass the thumbnail ID to link the generation for dashboard loading state
+          // Send the current version's image as the base for iteration
+          iterationImageUrl: currentVersionImageUrl,
+          iterationPrompt: prompt,
           thumbnailData: {
-            avatarId: thumbnail.avatar_id,
-            productIds: thumbnail.product_id ? [thumbnail.product_id] : [],
-            title: thumbnail.title,
-            subtitle: thumbnail.subtitle,
-            expression: thumbnail.expression,
-            visualStyle: thumbnail.visual_style,
-            textStyle: thumbnail.text_style,
-            backgroundType: thumbnail.background_type,
-            backgroundValue: thumbnail.background_value,
             aspectRatio: thumbnail.aspect_ratio,
-            iterationPrompt: prompt,
           },
         },
       });
 
       if (error) throw error;
 
-      // Update the thumbnail with the new image
-      const { error: updateError } = await supabase
-        .from("thumbnails")
-        .update({ image_url: result.imageUrl })
-        .eq("id", id);
-
-      if (updateError) throw updateError;
-
-      // Insert new version
+      // Insert new version to thumbnail_versions (don't update thumbnail.image_url)
       const { data: newVersion, error: versionError } = await supabase
         .from("thumbnail_versions")
         .insert({
@@ -282,6 +297,7 @@ const ThumbnailDetail = () => {
         setVersions(prev => [...prev, newVersion]);
       }
 
+      // Update local state to show the new version (for immediate UI feedback)
       setThumbnail({ ...thumbnail, image_url: result.imageUrl });
       setPrompt("");
       
@@ -545,42 +561,42 @@ const ThumbnailDetail = () => {
               {avatar && (
                 <div className="pt-6 border-t border-white/10">
                   <h4 className="font-medium mb-4 text-sm text-muted-foreground uppercase tracking-wide">Avatar Used</h4>
-                  <div className="glass-panel rounded-2xl p-4 hover:bg-white/10 transition-all w-fit">
-                    <div className="w-24 h-24 rounded-xl overflow-hidden border border-white/10">
-                      <img
-                        src={avatar.image_url}
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                  <div className="w-24 h-24 rounded-full overflow-hidden border border-white/10">
+                    <img
+                      src={avatar.image_url}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Product Section */}
-              {product && (
+              {/* Element Section */}
+              {products.length > 0 && (
                 <div className="pt-6 border-t border-white/10">
-                  <h4 className="font-medium mb-4 text-sm text-muted-foreground uppercase tracking-wide">Product Used</h4>
-                  <button
-                    onClick={() => navigate(`/products/${product.id}`)}
-                    className="w-full text-left glass-panel rounded-2xl p-4 hover:bg-white/10 transition-all group"
-                  >
-                    <div className="flex items-center gap-4">
-                      {product.images?.[0] && (
-                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0 group-hover:border-white/20 transition-colors">
-                          <img
-                            src={product.images[0].image_url}
-                            alt={product.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate group-hover:text-white transition-colors">{product.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{product.brand}</p>
-                      </div>
+                  <h4 className="font-medium mb-4 text-sm text-muted-foreground uppercase tracking-wide">Elements Used</h4>
+                  <div className="flex justify-start">
+                    <div className="flex -space-x-6">
+                      {products.map((product, index) => (
+                        product.images?.[0] && (
+                          <button
+                            key={product.id}
+                            onClick={() => navigate(`/products/${product.id}`)}
+                            className="group relative"
+                            style={{ zIndex: products.length - index }}
+                          >
+                            <div className="w-24 h-24 rounded-full overflow-hidden border border-white/10 flex-shrink-0 group-hover:border-white/20 transition-colors shadow-lg">
+                              <img
+                                src={product.images[0].image_url}
+                                alt={product.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </button>
+                        )
+                      ))}
                     </div>
-                  </button>
+                  </div>
                 </div>
               )}
             </div>

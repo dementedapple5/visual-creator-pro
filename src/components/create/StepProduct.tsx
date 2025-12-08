@@ -46,7 +46,7 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
       setProducts(productData || []);
     } catch (error) {
       console.error("Error fetching products:", error);
-      toast.error("Failed to load products");
+      toast.error("Failed to load elements");
     } finally {
       setLoading(false);
     }
@@ -80,9 +80,9 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold mb-2">Add Products</h2>
+        <h2 className="text-3xl font-bold mb-2">Add Elements</h2>
         <p className="text-muted-foreground">
-          Select one or more products to feature in your thumbnail (optional)
+          Select one or more elements to feature in your thumbnail (optional)
           {data.productIds && data.productIds.length > 0 && (
             <span className="ml-2 text-primary font-medium transition-all duration-300 ease-in-out animate-in fade-in">
               {data.productIds.length} selected
@@ -97,9 +97,9 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
           className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
         >
           <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-sm font-medium mb-1">Add New Product</p>
+          <p className="text-sm font-medium mb-1">Add New Element</p>
           <p className="text-xs text-muted-foreground">
-            Go to Products page to create a product with title, brand and images
+            Go to Elements page to create an element with title, optional brand, and images
           </p>
         </div>
       </div>
@@ -149,7 +149,7 @@ export const StepProduct = ({ data, updateData, onNext, onPrev }: StepProductPro
 
       {data.productIds && data.productIds.length > 0 && (
         <div className="space-y-6 p-6 bg-card border border-border rounded-lg transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-          <h3 className="text-lg font-semibold">Product Customization</h3>
+          <h3 className="text-lg font-semibold">Element Customization</h3>
           
           <div>
             <Label htmlFor="product-position">Position</Label>

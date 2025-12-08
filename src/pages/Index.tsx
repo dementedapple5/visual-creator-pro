@@ -98,7 +98,7 @@ const bentoFeatures = [
     span: "lg:col-span-3",
     steps: [
       { title: "Avatar stage", detail: "Pick saved faces or upload, set expressions, place them." },
-      { title: "Elements board", detail: "Drop up to 3 products or uploads and choose positions." },
+      { title: "Elements board", detail: "Drop up to 3 elements or uploads and choose positions." },
       { title: "Canvas controls", detail: "Live preview, remix, and download from the same screen." }
     ],
     footnote: "Aspect ratios ready: 16:9, 9:16, 1:1, 4:3."
@@ -145,15 +145,15 @@ const bentoFeatures = [
   },
   {
     title: "Elements board",
-    desc: "Attach up to 3 products or uploads, then set per-element placement.",
+    desc: "Attach up to 3 elements or uploads, then set per-element placement.",
     icon: LayoutGrid,
     badge: "3 slots",
     span: "lg:col-span-2",
     stats: [
       { label: "Positions", value: "9 options", sub: "Top/center/bottom presets" },
-      { label: "Sources", value: "Catalog + uploads", sub: "Mix product records and custom PNGs" }
+      { label: "Sources", value: "Catalog + uploads", sub: "Mix element records and custom PNGs" }
     ],
-    chips: ["Per-element placement", "Order indicators", "Works with products or custom files"]
+    chips: ["Per-element placement", "Order indicators", "Works with elements or custom files"]
   },
   {
     title: "Remix & exports",
@@ -355,7 +355,7 @@ const Index = () => {
               What you can do in Vizion today
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              Build thumbnails with the pieces you already have—avatars, backgrounds, titles, products—and keep every step in one place.
+              Build thumbnails with the pieces you already have—avatars, backgrounds, titles, elements—and keep every step in one place.
             </p>
           </div>
 

@@ -37,6 +37,8 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
   completed: "secondary",
   processing: "default",
   pending: "default",
+  queued: "default",
+  in_progress: "default",
   failed: "destructive",
 };
 
@@ -89,23 +91,37 @@ const Generations = () => {
 
       const windowStart = getGenerationWindowStart(activeSubscription || {});
 
-      const { data, error } = await supabase
-        .from("generations")
-        .select("id, status, mode, created_at, completed_at, image_url, title, subtitle, aspect_ratio, thumbnail_id, error_message, remix_prompt, prompt", { count: "exact" })
-        .eq("user_id", session.user.id)
-        .gte("created_at", windowStart)
-        .order("created_at", { ascending: false });
+      const [{ data, error: generationsError }, { count: completedCount, error: countError }] =
+        await Promise.all([
+          supabase
+            .from("generations")
+            .select("id, status, mode, created_at, completed_at, image_url, title, subtitle, aspect_ratio, thumbnail_id, error_message, remix_prompt, prompt")
+            .eq("user_id", session.user.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("generations")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", session.user.id)
+            .eq("status", "completed")
+            .gte("created_at", windowStart),
+        ]);
 
-      if (error) {
-        throw error;
+      if (generationsError) {
+        throw generationsError;
+      }
+
+      if (countError) {
+        console.warn("Error counting completed generations", countError);
       }
 
       const records = data || [];
-      const completedCount = records.filter((item) => item.status === "completed").length;
+      const completed = typeof completedCount === "number"
+        ? completedCount
+        : records.filter((item) => item.status === "completed").length;
 
       setGenerations(records as GenerationRecord[]);
-      setUsedCount(completedCount);
-      setRemaining(calculateRemainingGenerations(activeSubscription || {}, completedCount));
+      setUsedCount(completed);
+      setRemaining(calculateRemainingGenerations(activeSubscription || {}, completed));
     } catch (error) {
       console.error("Error loading generations", error);
       toast.error("Failed to load generations history");

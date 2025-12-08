@@ -321,10 +321,10 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             )}
           </div>
 
-          {/* Products Preview */}
+          {/* Elements Preview */}
           <div className="space-y-2">
             <span className="text-sm font-medium text-muted-foreground">
-              Products: {productData.length > 0 ? `${productData.length} selected` : "None"}
+              Elements: {productData.length > 0 ? `${productData.length} selected` : "None"}
             </span>
             {productData.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
@@ -343,7 +343,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
               </div>
             ) : (
               <div className="aspect-square rounded-lg overflow-hidden border border-dashed border-border bg-muted flex items-center justify-center">
-                <span className="text-sm text-muted-foreground">No products</span>
+                <span className="text-sm text-muted-foreground">No elements</span>
               </div>
             )}
           </div>

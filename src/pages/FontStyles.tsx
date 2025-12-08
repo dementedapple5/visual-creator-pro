@@ -22,10 +22,13 @@ import {
   Type as TypeIcon,
   Crown,
 } from "lucide-react";
-import { compressAndConvertToJpg } from "@/lib/imageUtils";
+import { compressAndConvertToJpg, extractStoragePath } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
 
 type FontStyle = Tables<"font_styles">;
+
+const FONT_STYLES_BUCKET = "thumbnails";
+const FONT_STYLES_FOLDER = "font-styles";
 
 const FontStyles = () => {
   const navigate = useNavigate();
@@ -46,6 +49,18 @@ const FontStyles = () => {
     if (!session) {
       navigate("/auth");
     }
+  };
+
+  const getStorageLocation = (publicUrl: string) => {
+    const matches = publicUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
+    if (matches) {
+      return { bucket: matches[1], path: matches[2] };
+    }
+
+    return {
+      bucket: FONT_STYLES_BUCKET,
+      path: extractStoragePath(publicUrl, FONT_STYLES_BUCKET),
+    };
   };
 
   const fetchFontStyles = async () => {
@@ -93,11 +108,11 @@ const FontStyles = () => {
 
       // Compress and convert to JPG
       const compressedBlob = await compressAndConvertToJpg(selectedFile);
-      const fileName = `${user.id}/${Date.now()}.jpg`;
+      const fileName = `${user.id}/${FONT_STYLES_FOLDER}/${Date.now()}.jpg`;
 
-      // Upload to vizion-fonts bucket
+      // Upload to shared thumbnails bucket under font-styles folder
       const { error: uploadError } = await supabase.storage
-        .from("vizion-fonts")
+        .from(FONT_STYLES_BUCKET)
         .upload(fileName, compressedBlob, {
           contentType: "image/jpeg",
         });
@@ -105,7 +120,7 @@ const FontStyles = () => {
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from("vizion-fonts")
+        .from(FONT_STYLES_BUCKET)
         .getPublicUrl(fileName);
 
       // Save to database
@@ -146,11 +161,11 @@ const FontStyles = () => {
       if (error) throw error;
 
       // Try to delete from storage (extract path from URL)
-      const urlParts = fontStyle.image_url.split("/vizion-fonts/");
-      if (urlParts.length > 1) {
+      const { bucket, path } = getStorageLocation(fontStyle.image_url);
+      if (path) {
         await supabase.storage
-          .from("vizion-fonts")
-          .remove([urlParts[1]]);
+          .from(bucket)
+          .remove([path]);
       }
 
       toast.success("Font style deleted");

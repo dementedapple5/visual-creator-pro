@@ -19,7 +19,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -770,77 +769,44 @@ const CreateNew = () => {
             <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
               Back to dashboard
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!hasGeneratedImage || downloading}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {downloading ? "Downloading..." : "Download"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Select size</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => handleDownload("youtube")}
-                  disabled={downloading}
-                >
-                  {DOWNLOAD_SIZES.youtube.label}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleDownload("full")}
-                  disabled={downloading}
-                >
-                  {DOWNLOAD_SIZES.full.label}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={!hasGeneratedImage}>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Remix
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Remix Thumbnail</DialogTitle>
-                  <DialogDescription>
-                    Add custom instructions to create a variation of this thumbnail
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <Textarea
-                    placeholder="E.g., Make the background more vibrant, change text color to blue, add motion blur effect..."
-                    value={remixPrompt}
-                    onChange={(e) => setRemixPrompt(e.target.value)}
-                    rows={4}
-                  />
-                  <Button
-                    onClick={handleRemix}
-                    disabled={remixing || !remixPrompt.trim()}
-                    className="w-full"
-                  >
-                    {remixing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generating Remix...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Generate Remix
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
+
+        <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Remix Thumbnail</DialogTitle>
+              <DialogDescription>
+                Add custom instructions to create a variation of this thumbnail
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <Textarea
+                placeholder="E.g., Make the background more vibrant, change text color to blue, add motion blur effect..."
+                value={remixPrompt}
+                onChange={(e) => setRemixPrompt(e.target.value)}
+                rows={4}
+              />
+              <Button
+                onClick={handleRemix}
+                disabled={remixing || !remixPrompt.trim()}
+                className="w-full"
+              >
+                {remixing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating Remix...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Remix
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.75fr]">
           <div className="space-y-4">

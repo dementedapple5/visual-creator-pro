@@ -48,10 +48,13 @@ serve(async (req) => {
 
     supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { thumbnailData, remixImageUrl, remixPrompt } = await req.json() as {
+    const { thumbnailData, remixImageUrl, remixPrompt, thumbnailId, iterationImageUrl, iterationPrompt } = await req.json() as {
       thumbnailData: ThumbnailData;
       remixImageUrl?: string;
       remixPrompt?: string;
+      thumbnailId?: string; // For iterations, pass the thumbnail ID to link the generation
+      iterationImageUrl?: string; // The current version's image URL to iterate on
+      iterationPrompt?: string; // What changes to apply to the iteration
     };
 
     const authHeader = req.headers.get("Authorization");
@@ -72,7 +75,7 @@ serve(async (req) => {
 
     const generationMode = remixImageUrl
       ? "remix"
-      : thumbnailData.iterationPrompt
+      : iterationImageUrl
         ? "iterate"
         : "create";
 
@@ -82,12 +85,13 @@ serve(async (req) => {
         user_id: userId,
         status: "processing",
         mode: generationMode,
-        request: { thumbnailData, remixPrompt, remixImageUrl },
-        prompt: thumbnailData?.iterationPrompt || null,
+        request: { thumbnailData, remixPrompt, remixImageUrl, iterationImageUrl, iterationPrompt },
+        prompt: iterationPrompt || null,
         remix_prompt: remixPrompt || null,
         aspect_ratio: thumbnailData?.aspectRatio || null,
         title: thumbnailData?.title || null,
         subtitle: thumbnailData?.subtitle || null,
+        thumbnail_id: thumbnailId || null, // Link to existing thumbnail for iterations
       })
       .select("id")
       .single();
@@ -100,15 +104,27 @@ serve(async (req) => {
 
     console.log("Thumbnail data received:", thumbnailData);
     console.log("Remix mode:", !!remixImageUrl);
+    console.log("Iteration mode:", !!iterationImageUrl);
 
     // Build the prompt
-    const platformType = thumbnailData.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
-    const aspectRatio = thumbnailData.aspectRatio || "16:9";
+    const platformType = thumbnailData?.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
+    const aspectRatio = thumbnailData?.aspectRatio || "16:9";
 
     let prompt = "";
 
+    // Check if this is an iteration request (modifying an existing version)
+    if (iterationImageUrl && iterationPrompt) {
+      prompt = `You are iterating on an existing thumbnail. Apply the following changes to the image: ${iterationPrompt}
+
+CRITICAL INSTRUCTIONS:
+- Use the provided image as the BASE and apply ONLY the requested modifications
+- Maintain the overall composition, style, colors, and layout of the original thumbnail
+- PRESERVE all elements that are not explicitly mentioned to be changed
+- Keep the same aspect ratio (${aspectRatio})
+- Do NOT change anything that wasn't specifically requested`;
+    }
     // Check if this is a remix request
-    if (remixImageUrl && remixPrompt) {
+    else if (remixImageUrl && remixPrompt) {
       prompt = `You are remixing an existing thumbnail. Apply the following changes to the image: ${remixPrompt}
 
 CRITICAL: Maintain the overall composition and style of the original thumbnail while applying the requested changes.`;
@@ -121,91 +137,84 @@ CRITICAL INSTRUCTIONS:
 - Keep them looking EXACTLY as they appear in the source images`;
     }
 
-    // Visual style
-    if (thumbnailData.visualStyle) {
-      const styles: Record<string, string> = {
-        epic: "Epic and bold with dramatic lighting and strong contrast",
-        dramatic: "Cinematic and dramatic with high contrast",
-        vibrant: "Vibrant, colorful, and energetic",
-        professional: "Clean, professional, and polished",
-        creative: "Artistic, creative, and unique",
-        minimalist: "Simple, minimalist, and elegant",
-      };
-      prompt += `Style: ${styles[thumbnailData.visualStyle] || thumbnailData.visualStyle}. `;
-    }
-
-    // Background
-    if (thumbnailData.backgroundType && thumbnailData.backgroundValue) {
-      if (thumbnailData.backgroundType === "preset") {
-        prompt += `\n\nBackground: ${thumbnailData.backgroundValue} setting. `;
-      } else if (thumbnailData.backgroundType === "color") {
-        prompt += `\n\nBackground: solid ${thumbnailData.backgroundValue} color. `;
-      } else if (thumbnailData.backgroundType === "prompt" || thumbnailData.backgroundType === "custom-prompt") {
-        prompt += `\n\nBackground: ${thumbnailData.backgroundValue}. `;
-      } else if (thumbnailData.backgroundType === "avatar" || thumbnailData.backgroundType === "avatar-bg") {
-        prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
-      }
-    }
-
-    // Text styling
-    if (thumbnailData.title) {
-      // Check if using image-based font style reference
-      if (thumbnailData.fontStyleImageUrl) {
-        prompt += `Include the text "${thumbnailData.title}" styled EXACTLY like the font/text style shown in the provided font reference image. Match the font style, weight, effects, colors, and overall aesthetic from the reference image. `;
-      } else {
-        const textStyles: Record<string, string> = {
-          "Bold & Large": "large, bold, and impactful",
-          "Elegant Script": "elegant script style",
-          "Modern Sans": "modern, clean sans-serif",
-          "Handwritten": "handwritten style",
-          "Futuristic": "futuristic style with modern effects",
-          "Classic Serif": "classic serif typography"
+    // Only add detailed styling instructions for new creations (not for iterations or remixes)
+    if (!iterationImageUrl && !remixImageUrl && thumbnailData) {
+      // Visual style
+      if (thumbnailData.visualStyle) {
+        const styles: Record<string, string> = {
+          epic: "Epic and bold with dramatic lighting and strong contrast",
+          dramatic: "Cinematic and dramatic with high contrast",
+          vibrant: "Vibrant, colorful, and energetic",
+          professional: "Clean, professional, and polished",
+          creative: "Artistic, creative, and unique",
+          minimalist: "Simple, minimalist, and elegant",
         };
-        const textStyle = thumbnailData.textStyle && textStyles[thumbnailData.textStyle]
-          ? textStyles[thumbnailData.textStyle]
-          : "bold and large";
-        prompt += `Include the text "${thumbnailData.title}" in ${textStyle} typography. `;
+        prompt += `Style: ${styles[thumbnailData.visualStyle] || thumbnailData.visualStyle}. `;
       }
 
-      if (thumbnailData.subtitle) {
-        prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title. `;
+      // Background
+      if (thumbnailData.backgroundType && thumbnailData.backgroundValue) {
+        if (thumbnailData.backgroundType === "preset") {
+          prompt += `\n\nBackground: ${thumbnailData.backgroundValue} setting. `;
+        } else if (thumbnailData.backgroundType === "color") {
+          prompt += `\n\nBackground: solid ${thumbnailData.backgroundValue} color. `;
+        } else if (thumbnailData.backgroundType === "prompt" || thumbnailData.backgroundType === "custom-prompt") {
+          prompt += `\n\nBackground: ${thumbnailData.backgroundValue}. `;
+        } else if (thumbnailData.backgroundType === "avatar" || thumbnailData.backgroundType === "avatar-bg") {
+          prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
+        }
       }
 
-      // Add text positioning
-      if (thumbnailData.textPosition) {
-        prompt += `Position the text at ${thumbnailData.textPosition.replace('-', ' ')}. `;
+      // Text styling
+      if (thumbnailData.title) {
+        // Check if using image-based font style reference
+        if (thumbnailData.fontStyleImageUrl) {
+          prompt += `Include the text "${thumbnailData.title}" styled EXACTLY like the font/text style shown in the provided font reference image. Match the font style, weight, effects, colors, and overall aesthetic from the reference image. `;
+        } else {
+          const textStyles: Record<string, string> = {
+            "Bold & Large": "large, bold, and impactful",
+            "Elegant Script": "elegant script style",
+            "Modern Sans": "modern, clean sans-serif",
+            "Handwritten": "handwritten style",
+            "Futuristic": "futuristic style with modern effects",
+            "Classic Serif": "classic serif typography"
+          };
+          const textStyle = thumbnailData.textStyle && textStyles[thumbnailData.textStyle]
+            ? textStyles[thumbnailData.textStyle]
+            : "bold and large";
+          prompt += `Include the text "${thumbnailData.title}" in ${textStyle} typography. `;
+        }
+
+        if (thumbnailData.subtitle) {
+          prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title. `;
+        }
+
+        // Add text positioning
+        if (thumbnailData.textPosition) {
+          prompt += `Position the text at ${thumbnailData.textPosition.replace('-', ' ')}. `;
+        }
       }
-    }
 
-    // Expression for avatar
-    if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.expression) {
-      prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
-    }
+      // Expression for avatar
+      if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.expression) {
+        prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
+      }
 
-    // Avatar positioning
-    if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.avatarPosition) {
-      prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
-    }
+      // Avatar positioning
+      if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.avatarPosition) {
+        prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
+      }
 
-    // Elements positioning
-    if (thumbnailData.elements && thumbnailData.elements.length > 0) {
-      thumbnailData.elements.forEach((element, index) => {
-        const position = element.position.replace('-', ' ');
-        // We can't easily identify "which" element is which in the prompt without more context,
-        // but we can give general instructions or try to map them by order.
-        // Since we are sending images in order, we can refer to them by order.
-        // However, mixing avatar and elements makes "order" tricky for the model.
-        // A simple approach is to list positions.
-        prompt += `Position element ${index + 1} at ${position}. `;
-      });
-    } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
-      // Legacy support
-      prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
-    }
-
-    // Iteration prompt for refinement
-    if (thumbnailData.iterationPrompt) {
-      prompt += `\n\nADDITIONAL CHANGES REQUESTED:\n${thumbnailData.iterationPrompt}\n`;
+      // Elements positioning
+      if (thumbnailData.elements && thumbnailData.elements.length > 0) {
+        thumbnailData.elements.forEach((element, index) => {
+          const position = element.position.replace('-', ' ');
+          prompt += `Position element ${index + 1} at ${position}. `;
+        });
+      } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
+        // Legacy support
+        prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
+      }
     }
 
     // Build content parts array for Gemini API
@@ -223,8 +232,19 @@ CRITICAL INSTRUCTIONS:
       return base64;
     };
 
-    // If this is a remix, add the source image first
-    if (remixImageUrl) {
+    // If this is an iteration, add the source image (the version being iterated on)
+    if (iterationImageUrl) {
+      console.log("Adding iteration source image:", iterationImageUrl);
+      const base64Image = await fetchImageAsBase64(iterationImageUrl);
+      contentParts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Image
+        }
+      });
+    }
+    // If this is a remix, add the source image
+    else if (remixImageUrl) {
       const base64Image = await fetchImageAsBase64(remixImageUrl);
       contentParts.push({
         inlineData: {
@@ -234,8 +254,8 @@ CRITICAL INSTRUCTIONS:
       });
     }
 
-    // Add avatar image (skip in remix mode)
-    if (!remixImageUrl) {
+    // Add avatar image (skip in remix/iteration mode - they work from existing complete image)
+    if (!remixImageUrl && !iterationImageUrl) {
       if (thumbnailData.customAvatarUrl) {
         // Use custom uploaded avatar
         const base64Image = await fetchImageAsBase64(thumbnailData.customAvatarUrl);
@@ -265,8 +285,8 @@ CRITICAL INSTRUCTIONS:
       }
     }
 
-    // Add element images (skip in remix mode)
-    if (!remixImageUrl) {
+    // Add element images (skip in remix/iteration mode)
+    if (!remixImageUrl && !iterationImageUrl) {
       if (thumbnailData.elements && thumbnailData.elements.length > 0) {
         // Process new elements structure
         for (const element of thumbnailData.elements) {
@@ -323,8 +343,8 @@ CRITICAL INSTRUCTIONS:
       }
     }
 
-    // Add custom background (skip in remix mode)
-    if (!remixImageUrl && thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
+    // Add custom background (skip in remix/iteration mode)
+    if (!remixImageUrl && !iterationImageUrl && thumbnailData?.backgroundType === "custom" && thumbnailData?.backgroundValue) {
       const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
       contentParts.push({
         inlineData: {
@@ -334,8 +354,8 @@ CRITICAL INSTRUCTIONS:
       });
     }
 
-    // Add font style reference image (skip in remix mode)
-    if (!remixImageUrl && thumbnailData.fontStyleImageUrl) {
+    // Add font style reference image (skip in remix/iteration mode)
+    if (!remixImageUrl && !iterationImageUrl && thumbnailData?.fontStyleImageUrl) {
       console.log("Adding font style reference image");
       const base64Image = await fetchImageAsBase64(thumbnailData.fontStyleImageUrl);
       contentParts.push({

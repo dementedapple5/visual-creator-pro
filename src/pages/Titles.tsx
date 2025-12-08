@@ -221,7 +221,7 @@ const Titles = () => {
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Product launch hook"
+                  placeholder="e.g., Element launch hook"
                 />
               </div>
 

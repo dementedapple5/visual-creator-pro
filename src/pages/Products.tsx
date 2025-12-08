@@ -73,7 +73,7 @@ const Products = () => {
       setProducts(data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
-      toast.error("Failed to load products");
+      toast.error("Failed to load elements");
     } finally {
       setLoading(false);
     }
@@ -123,8 +123,11 @@ const Products = () => {
   };
 
   const handleCreateProduct = async () => {
-    if (!title.trim() || !brand.trim() || uploadedImages.length === 0) {
-      toast.error("Please fill all fields and upload at least one image");
+    const titleValue = title.trim();
+    const brandValue = brand.trim();
+
+    if (!titleValue || uploadedImages.length === 0) {
+      toast.error("Add a title and at least one image");
       return;
     }
 
@@ -134,7 +137,7 @@ const Products = () => {
 
       // Check free tier limit
       if (!subscription?.subscribed && products.length >= 3) {
-        toast.error("Free tier users can only create 3 products. Upgrade to add more.");
+        toast.error("Free tier users can only create 3 elements. Upgrade to add more.");
         return;
       }
 
@@ -142,8 +145,8 @@ const Products = () => {
         .from("products")
         .insert({
           user_id: user.id,
-          title,
-          brand,
+          title: titleValue,
+          brand: brandValue,
         })
         .select()
         .single();
@@ -162,7 +165,7 @@ const Products = () => {
 
       if (imagesError) throw imagesError;
 
-      toast.success("Product created successfully");
+      toast.success("Element created successfully");
       setShowDialog(false);
       setTitle("");
       setBrand("");
@@ -170,7 +173,7 @@ const Products = () => {
       fetchProducts();
     } catch (error) {
       console.error("Error creating product:", error);
-      toast.error("Failed to create product");
+      toast.error("Failed to create element");
     }
   };
 
@@ -178,13 +181,13 @@ const Products = () => {
     <div className="min-h-screen">
       <main className="container mx-auto px-6 py-12 pl-20">
         <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Products</h1>
+          <h1 className="text-2xl font-bold">Elements</h1>
           <Button 
             onClick={() => setShowDialog(true)}
             disabled={!subscription?.subscribed && products.length >= 3}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Product
+            Add Element
             {!subscription?.subscribed && products.length >= 3 && " (Limit Reached)"}
           </Button>
         </div>
@@ -201,11 +204,11 @@ const Products = () => {
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-20 bg-card border border-border rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">No products yet</h3>
-            <p className="text-muted-foreground mb-6">Create your first product to get started</p>
+            <h3 className="text-xl font-semibold mb-2">No elements yet</h3>
+            <p className="text-muted-foreground mb-6">Create your first element to get started</p>
             <Button onClick={() => setShowDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Product
+              Create Element
             </Button>
           </div>
         ) : (
@@ -244,29 +247,29 @@ const Products = () => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Product</DialogTitle>
+            <DialogTitle>Create New Element</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Product Title *</Label>
+              <Label htmlFor="title">Element Title *</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter product title"
+                placeholder="Enter element title"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="brand">Brand *</Label>
+              <Label htmlFor="brand">Brand (optional)</Label>
               <Input
                 id="brand"
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                placeholder="Enter brand name"
+                placeholder="Enter brand name (optional)"
               />
             </div>
             <div className="space-y-2">
-              <Label>Product Images * (at least 1)</Label>
+              <Label>Element Images * (at least 1)</Label>
               <label htmlFor="images-upload">
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors">
                   <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
@@ -291,7 +294,7 @@ const Products = () => {
                   <div key={index} className="relative group">
                     <img
                       src={url}
-                      alt={`Product ${index + 1}`}
+                      alt={`Element ${index + 1}`}
                       className="w-full aspect-square object-cover rounded-lg"
                     />
                     <button
@@ -309,7 +312,7 @@ const Products = () => {
                 Cancel
               </Button>
               <Button onClick={handleCreateProduct} className="flex-1">
-                Create Product
+                Create Element
               </Button>
             </div>
           </div>

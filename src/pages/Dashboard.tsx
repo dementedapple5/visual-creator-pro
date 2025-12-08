@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, CalendarDays, Filter } from "lucide-react";
+import { Plus, Search, CalendarDays, Filter, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,16 @@ interface Thumbnail {
   created_at: string;
   avatar_id: string | null;
   product_id: string | null;
+}
+
+interface Generation {
+  id: string;
+  status: string;
+  mode: string;
+  thumbnail_id: string | null;
+  title: string | null;
+  subtitle: string | null;
+  created_at: string;
 }
 
 interface AvatarOption {
@@ -62,11 +72,21 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pendingGenerations, setPendingGenerations] = useState<Generation[]>([]);
+  const previousPendingCountRef = useRef(0);
 
   useEffect(() => {
     checkUser();
     fetchThumbnails();
     fetchFilterOptions();
+    fetchPendingGenerations();
+
+    // Poll for pending generations every 3 seconds
+    const interval = setInterval(() => {
+      fetchPendingGenerations();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const checkUser = async () => {
@@ -119,6 +139,47 @@ const Dashboard = () => {
       console.error("Error fetching filter options:", error);
     }
   };
+
+  const fetchPendingGenerations = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("generations")
+        .select("id, status, mode, thumbnail_id, title, subtitle, created_at")
+        .in("status", ["pending", "processing"])
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const newCount = (data || []).length;
+      const previousCount = previousPendingCountRef.current;
+
+      setPendingGenerations(data || []);
+
+      // Check if any generation just completed (was pending before, now isn't in the list)
+      if (previousCount > 0 && newCount < previousCount) {
+        // Refresh thumbnails to get the newly created ones
+        fetchThumbnails();
+      }
+
+      previousPendingCountRef.current = newCount;
+    } catch (error) {
+      console.error("Error fetching pending generations:", error);
+    }
+  }, []);
+
+  // Check if a thumbnail has a pending iteration
+  const hasPendingIteration = (thumbnailId: string) => {
+    return pendingGenerations.some(
+      (gen) => gen.thumbnail_id === thumbnailId && gen.mode === "iterate"
+    );
+  };
+
+  // Get new generations (create mode without thumbnail_id yet, or with thumbnail_id not in our list)
+  const newGenerations = useMemo(() => {
+    return pendingGenerations.filter(
+      (gen) => gen.mode === "create" || (gen.mode !== "iterate" && !gen.thumbnail_id)
+    );
+  }, [pendingGenerations]);
 
   const formatDate = (value: string) => {
     return new Date(value).toLocaleDateString(undefined, {
@@ -369,46 +430,95 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredThumbnails.map((thumbnail) => (
+            {/* Placeholder cards for new generations in progress */}
+            {newGenerations.map((generation) => (
               <div
-                key={thumbnail.id}
-                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
-                onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
+                key={generation.id}
+                className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="relative aspect-video overflow-hidden">
-                  <img
-                    src={thumbnail.image_url}
-                    alt={thumbnail.title || "Thumbnail"}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute left-3 top-3 flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="bg-background/80 text-xs font-medium backdrop-blur-sm border-border/60"
-                    >
-                      <CalendarDays className="mr-1 h-3.5 w-3.5" />
-                      {formatDate(thumbnail.created_at)}
-                    </Badge>
+                <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className="relative">
+                      <span className="absolute inset-0 h-12 w-12 rounded-full bg-primary/30 animate-ping" />
+                      <span className="absolute inset-0 h-12 w-12 rounded-full bg-primary/20 animate-ping [animation-delay:150ms]" />
+                      <div className="relative h-12 w-12 rounded-full bg-primary/20 backdrop-blur-sm flex items-center justify-center">
+                        <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm text-muted-foreground animate-pulse">
+                      Generating...
+                    </p>
                   </div>
                 </div>
                 <div className="relative space-y-2 p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base font-semibold leading-tight truncate">
-                      {thumbnail.title || "Untitled thumbnail"}
-                    </h3>
-                    <span className="h-2 w-2 rounded-full bg-primary/70" />
+                    <div className="h-5 w-3/4 rounded bg-muted animate-pulse" />
+                    <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                   </div>
-                  {thumbnail.subtitle && (
-                    <p className="text-sm text-muted-foreground truncate">{thumbnail.subtitle}</p>
-                  )}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {thumbnail.avatar_id && <Badge variant="outline">Avatar</Badge>}
-                    {thumbnail.product_id && <Badge variant="outline">Element</Badge>}
-                  </div>
+                  <div className="h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
                 </div>
               </div>
             ))}
+
+            {filteredThumbnails.map((thumbnail) => {
+              const isIterating = hasPendingIteration(thumbnail.id);
+
+              return (
+                <div
+                  key={thumbnail.id}
+                  className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
+                  onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="relative aspect-video overflow-hidden">
+                    <img
+                      src={thumbnail.image_url}
+                      alt={thumbnail.title || "Thumbnail"}
+                      className={cn(
+                        "h-full w-full object-cover transition duration-500 group-hover:scale-105",
+                        isIterating && "opacity-50"
+                      )}
+                    />
+                    {/* Loading overlay for iterations in progress */}
+                    {isIterating && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                          <span className="text-xs text-muted-foreground">Creating new version...</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute left-3 top-3 flex items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className="bg-background/80 text-xs font-medium backdrop-blur-sm border-border/60"
+                      >
+                        <CalendarDays className="mr-1 h-3.5 w-3.5" />
+                        {formatDate(thumbnail.created_at)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="relative space-y-2 p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-base font-semibold leading-tight truncate">
+                        {thumbnail.title || "Untitled thumbnail"}
+                      </h3>
+                      <span className={cn(
+                        "h-2 w-2 rounded-full",
+                        isIterating ? "bg-amber-500 animate-pulse" : "bg-primary/70"
+                      )} />
+                    </div>
+                    {thumbnail.subtitle && (
+                      <p className="text-sm text-muted-foreground truncate">{thumbnail.subtitle}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {thumbnail.avatar_id && <Badge variant="outline">Avatar</Badge>}
+                      {thumbnail.product_id && <Badge variant="outline">Element</Badge>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -72,7 +72,7 @@ const ProductDetail = () => {
       setProduct(data);
     } catch (error) {
       console.error("Error fetching product:", error);
-      toast.error("Failed to load product");
+      toast.error("Failed to load element");
       navigate("/products");
     } finally {
       setLoading(false);
@@ -121,11 +121,11 @@ const ProductDetail = () => {
 
       if (error) throw error;
 
-      toast.success("Product deleted");
+      toast.success("Element deleted");
       navigate("/products");
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast.error("Failed to delete product");
+      toast.error("Failed to delete element");
     }
   };
 
@@ -164,11 +164,11 @@ const ProductDetail = () => {
         <div className="flex justify-between items-center">
           <Button variant="ghost" onClick={() => navigate("/products")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Products
+            Back to Elements
           </Button>
           <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
             <Trash2 className="w-4 h-4 mr-2" />
-            Delete Product
+            Delete Element
           </Button>
         </div>
         {/* Product Details */}
@@ -182,9 +182,9 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Product Images */}
+        {/* Element Images */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Product Images ({product.images.length})</h2>
+          <h2 className="text-2xl font-semibold">Element Images ({product.images.length})</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {product.images.map((image, index) => (
               <div key={image.id} className="relative group">
@@ -200,14 +200,14 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Thumbnails with this product */}
+        {/* Thumbnails with this element */}
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold">
-            Thumbnails using this product ({thumbnails.length})
+            Thumbnails using this element ({thumbnails.length})
           </h2>
           {thumbnails.length === 0 ? (
             <div className="text-center py-12 bg-card border border-border rounded-lg">
-              <p className="text-muted-foreground">No thumbnails created with this product yet</p>
+              <p className="text-muted-foreground">No thumbnails created with this element yet</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -240,9 +240,9 @@ const ProductDetail = () => {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Element?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{product.title}" and all its images. This action cannot be undone.
+              This will permanently delete the element "{product.title}" and all its images. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
