@@ -16,6 +16,7 @@ import ProductDetail from "./pages/ProductDetail";
 import ThumbnailDetail from "./pages/ThumbnailDetail";
 import Backgrounds from "./pages/Backgrounds";
 import Titles from "./pages/Titles";
+import FontStyles from "./pages/FontStyles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,14 @@ const App = () => (
             element={
               <AppLayout>
                 <Titles />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/font-styles"
+            element={
+              <AppLayout>
+                <FontStyles />
               </AppLayout>
             }
           />

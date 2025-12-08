@@ -1,4 +1,4 @@
-import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, Type, History } from "lucide-react";
+import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, Type, History, PenTool } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ const contentMenuItems = [
   { icon: User, label: "Avatars", path: "/avatars" },
   { icon: ImageIcon, label: "Backgrounds", path: "/backgrounds" },
   { icon: Type, label: "Titles", path: "/titles" },
+  { icon: PenTool, label: "Font Styles", path: "/font-styles" },
 ];
 
 // Detect if running on localhost

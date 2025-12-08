@@ -24,6 +24,7 @@ interface ThumbnailData {
   expression?: string;
   visualStyle?: string;
   textStyle?: string;
+  fontStyleImageUrl?: string; // Image reference for font/text styling
   backgroundType?: string;
   backgroundValue?: string;
   aspectRatio?: string;
@@ -148,21 +149,26 @@ CRITICAL INSTRUCTIONS:
 
     // Text styling
     if (thumbnailData.title) {
-      const textStyles: Record<string, string> = {
-        "Bold & Large": "large, bold, and impactful",
-        "Elegant Script": "elegant script style",
-        "Modern Sans": "modern, clean sans-serif",
-        "Handwritten": "handwritten style",
-        "Futuristic": "futuristic style with modern effects",
-        "Classic Serif": "classic serif typography"
-      };
-      const textStyle = thumbnailData.textStyle && textStyles[thumbnailData.textStyle]
-        ? textStyles[thumbnailData.textStyle]
-        : "bold and large";
-      prompt += `Include the text "${thumbnailData.title}" in ${textStyle} typography. `;
+      // Check if using image-based font style reference
+      if (thumbnailData.fontStyleImageUrl) {
+        prompt += `Include the text "${thumbnailData.title}" styled EXACTLY like the font/text style shown in the provided font reference image. Match the font style, weight, effects, colors, and overall aesthetic from the reference image. `;
+      } else {
+        const textStyles: Record<string, string> = {
+          "Bold & Large": "large, bold, and impactful",
+          "Elegant Script": "elegant script style",
+          "Modern Sans": "modern, clean sans-serif",
+          "Handwritten": "handwritten style",
+          "Futuristic": "futuristic style with modern effects",
+          "Classic Serif": "classic serif typography"
+        };
+        const textStyle = thumbnailData.textStyle && textStyles[thumbnailData.textStyle]
+          ? textStyles[thumbnailData.textStyle]
+          : "bold and large";
+        prompt += `Include the text "${thumbnailData.title}" in ${textStyle} typography. `;
+      }
 
       if (thumbnailData.subtitle) {
-        prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text. `;
+        prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title. `;
       }
 
       // Add text positioning
@@ -320,6 +326,18 @@ CRITICAL INSTRUCTIONS:
     // Add custom background (skip in remix mode)
     if (!remixImageUrl && thumbnailData.backgroundType === "custom" && thumbnailData.backgroundValue) {
       const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
+      contentParts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Image
+        }
+      });
+    }
+
+    // Add font style reference image (skip in remix mode)
+    if (!remixImageUrl && thumbnailData.fontStyleImageUrl) {
+      console.log("Adding font style reference image");
+      const base64Image = await fetchImageAsBase64(thumbnailData.fontStyleImageUrl);
       contentParts.push({
         inlineData: {
           mimeType: "image/jpeg",

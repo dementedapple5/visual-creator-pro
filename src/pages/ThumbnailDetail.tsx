@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Download, Trash2, Wand2, Palette, Type, Image as ImageIcon, Smile, Monitor } from "lucide-react";
 import { toast } from "sonner";
-import { extractStoragePath } from "@/lib/imageUtils";
+import { DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, extractStoragePath } from "@/lib/imageUtils";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
 import {
   AlertDialog,
@@ -25,6 +25,13 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Thumbnail {
   id: string;
@@ -74,6 +81,7 @@ const ThumbnailDetail = () => {
   const [iterating, setIterating] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -293,24 +301,24 @@ const ThumbnailDetail = () => {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = async (size: DownloadSizeKey) => {
     if (!thumbnail) return;
 
+    const option = DOWNLOAD_SIZES[size];
+
     try {
-      const response = await fetch(thumbnail.image_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${thumbnail.title || "thumbnail"}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success("Download started!");
+      setDownloading(true);
+      await downloadImageWithSize(thumbnail.image_url, {
+        width: option.width,
+        height: option.height,
+        fileName: `${thumbnail.title || "thumbnail"}-${option.width}x${option.height}.png`,
+      });
+      toast.success(`${option.label} download started`);
     } catch (error) {
       console.error("Error downloading thumbnail:", error);
       toast.error("Failed to download thumbnail");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -378,13 +386,32 @@ const ThumbnailDetail = () => {
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-3">
-            <Button 
-              onClick={handleDownload}
-              className="glass-button rounded-full px-5 py-2 hover:bg-white/20 transition-all text-white"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  className="glass-button rounded-full px-5 py-2 hover:bg-white/20 transition-all text-white"
+                  disabled={downloading}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {downloading ? "Downloading..." : "Download"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Select size</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleDownload("youtube")}
+                  disabled={downloading}
+                >
+                  {DOWNLOAD_SIZES.youtube.label}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDownload("full")}
+                  disabled={downloading}
+                >
+                  {DOWNLOAD_SIZES.full.label}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button 
               variant="destructive" 
               onClick={() => setShowDeleteDialog(true)}

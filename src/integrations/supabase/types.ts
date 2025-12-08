@@ -81,6 +81,41 @@ export type Database = {
           },
         ]
       }
+      font_styles: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          is_system: boolean
+          name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url: string
+          is_system?: boolean
+          name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          is_system?: boolean
+          name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "font_styles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generations: {
         Row: {
           aspect_ratio: string | null
@@ -321,6 +356,7 @@ export type Database = {
         Row: {
           created_at: string | null
           custom_text_style: string | null
+          font_style_id: string | null
           id: string
           name: string
           subtitle: string | null
@@ -332,6 +368,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           custom_text_style?: string | null
+          font_style_id?: string | null
           id?: string
           name: string
           subtitle?: string | null
@@ -343,6 +380,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           custom_text_style?: string | null
+          font_style_id?: string | null
           id?: string
           name?: string
           subtitle?: string | null
@@ -352,6 +390,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "titles_font_style_id_fkey"
+            columns: ["font_style_id"]
+            isOneToOne: false
+            referencedRelation: "font_styles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "titles_user_id_fkey"
             columns: ["user_id"]

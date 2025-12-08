@@ -16,7 +16,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
+import { DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize } from "@/lib/imageUtils";
 
 interface Avatar {
   id: string;
@@ -52,6 +60,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   const [remixPrompt, setRemixPrompt] = useState("");
   const [remixing, setRemixing] = useState(false);
   const [remixDialogOpen, setRemixDialogOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -204,16 +213,25 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async (size: DownloadSizeKey) => {
     if (!selectedImage) return;
 
-    const link = document.createElement("a");
-    link.href = selectedImage;
-    link.download = `thumbnail-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Thumbnail downloaded!");
+    const option = DOWNLOAD_SIZES[size];
+
+    try {
+      setDownloading(true);
+      await downloadImageWithSize(selectedImage, {
+        width: option.width,
+        height: option.height,
+        fileName: `thumbnail-${option.width}x${option.height}.png`,
+      });
+      toast.success(`${option.label} download started`);
+    } catch (error: any) {
+      console.error("Error downloading thumbnail:", error);
+      toast.error(error?.message || "Failed to download thumbnail");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -371,10 +389,33 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
-              <Button onClick={handleDownload} variant="outline" className="flex-1">
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={!selectedImage || downloading}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    {downloading ? "Downloading..." : "Download"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>Select size</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => handleDownload("youtube")}
+                    disabled={downloading}
+                  >
+                    {DOWNLOAD_SIZES.youtube.label}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleDownload("full")}
+                    disabled={downloading}
+                  >
+                    {DOWNLOAD_SIZES.full.label}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
               <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
                 <DialogTrigger asChild>

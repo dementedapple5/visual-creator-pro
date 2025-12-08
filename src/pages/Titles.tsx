@@ -22,10 +22,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Trash2, Type as TypeIcon, BookmarkPlus } from "lucide-react";
+import { Loader2, Sparkles, Trash2, Type as TypeIcon, BookmarkPlus, Image as ImageIcon } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type SavedTitle = Tables<"titles">;
+type FontStyle = Tables<"font_styles">;
 
 const POSITIONS = [
   { value: "top-left", label: "Top Left" },
@@ -52,6 +53,7 @@ const TEXT_STYLES = [
 const Titles = () => {
   const navigate = useNavigate();
   const [titles, setTitles] = useState<SavedTitle[]>([]);
+  const [fontStyles, setFontStyles] = useState<FontStyle[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -61,10 +63,12 @@ const Titles = () => {
   const [textStyle, setTextStyle] = useState<string>("Bold & Large");
   const [customTextStyle, setCustomTextStyle] = useState("");
   const [textPosition, setTextPosition] = useState<string>("top-center");
+  const [fontStyleId, setFontStyleId] = useState<string>("");
+  const [useImageStyle, setUseImageStyle] = useState(false);
 
   useEffect(() => {
     checkUser();
-    fetchTitles();
+    fetchData();
   }, []);
 
   const checkUser = async () => {
@@ -72,6 +76,11 @@ const Titles = () => {
     if (!session) {
       navigate("/auth");
     }
+  };
+
+  const fetchData = async () => {
+    await Promise.all([fetchTitles(), fetchFontStyles()]);
+    setLoading(false);
   };
 
   const fetchTitles = async () => {
@@ -87,7 +96,21 @@ const Titles = () => {
     }
 
     setTitles(data || []);
-    setLoading(false);
+  };
+
+  const fetchFontStyles = async () => {
+    const { data, error } = await supabase
+      .from("font_styles")
+      .select("*")
+      .order("is_system", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading font styles", error);
+      return;
+    }
+
+    setFontStyles(data || []);
   };
 
   const handleSave = async () => {
@@ -107,9 +130,10 @@ const Titles = () => {
         name,
         title,
         subtitle: subtitle || null,
-        text_style: textStyle,
+        text_style: useImageStyle ? "Image Reference" : textStyle,
         custom_text_style: textStyle === "Custom" ? customTextStyle : null,
         text_position: textPosition,
+        font_style_id: useImageStyle && fontStyleId ? fontStyleId : null,
       });
 
       if (error) throw error;
@@ -119,6 +143,8 @@ const Titles = () => {
       setTitle("");
       setSubtitle("");
       setCustomTextStyle("");
+      setFontStyleId("");
+      setUseImageStyle(false);
       fetchTitles();
     } catch (error) {
       console.error("Error saving title:", error);
@@ -139,6 +165,11 @@ const Titles = () => {
       console.error("Error deleting title:", error);
       toast.error("Failed to delete title");
     }
+  };
+
+  const getFontStyleForTitle = (titleRow: SavedTitle) => {
+    if (!titleRow.font_style_id) return null;
+    return fontStyles.find(fs => fs.id === titleRow.font_style_id);
   };
 
   if (loading) {
@@ -213,30 +244,114 @@ const Titles = () => {
                 />
               </div>
 
+              {/* Style Type Toggle */}
               <div className="space-y-2">
-                <Label>Text style</Label>
-                <Select value={textStyle} onValueChange={setTextStyle}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TEXT_STYLES.map((style) => (
-                      <SelectItem key={style} value={style}>
-                        {style}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Text style source</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={!useImageStyle ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUseImageStyle(false)}
+                    className="flex-1"
+                  >
+                    <TypeIcon className="w-4 h-4 mr-2" />
+                    Preset Style
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={useImageStyle ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUseImageStyle(true)}
+                    className="flex-1"
+                  >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Image Reference
+                  </Button>
+                </div>
               </div>
 
-              {textStyle === "Custom" && (
+              {!useImageStyle ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Text style</Label>
+                    <Select value={textStyle} onValueChange={setTextStyle}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TEXT_STYLES.map((style) => (
+                          <SelectItem key={style} value={style}>
+                            {style}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {textStyle === "Custom" && (
+                    <div className="space-y-2">
+                      <Label>Custom style description</Label>
+                      <Input
+                        value={customTextStyle}
+                        onChange={(e) => setCustomTextStyle(e.target.value)}
+                        placeholder="e.g., neon glow with shadow, brush lettering"
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
                 <div className="space-y-2">
-                  <Label>Custom style description</Label>
-                  <Input
-                    value={customTextStyle}
-                    onChange={(e) => setCustomTextStyle(e.target.value)}
-                    placeholder="e.g., neon glow with shadow, brush lettering"
-                  />
+                  <Label>Font style image</Label>
+                  {fontStyles.length === 0 ? (
+                    <div className="border border-dashed border-border rounded-lg p-4 text-center">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        No font styles available yet.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/font-styles")}
+                      >
+                        Upload Font Styles
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
+                      {fontStyles.map((fs) => (
+                        <button
+                          key={fs.id}
+                          type="button"
+                          onClick={() => setFontStyleId(fs.id)}
+                          className={`relative rounded-lg border-2 overflow-hidden transition-all ${
+                            fontStyleId === fs.id
+                              ? "border-primary ring-2 ring-primary/20"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="aspect-[4/3]">
+                            <img
+                              src={fs.image_url}
+                              alt={fs.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                            <p className="text-[10px] text-white truncate">{fs.name}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-xs"
+                      onClick={() => navigate("/font-styles")}
+                    >
+                      Manage font styles →
+                    </Button>
+                  </p>
                 </div>
               )}
 
@@ -287,47 +402,69 @@ const Titles = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {titles.map((titleRow) => (
-                    <div
-                      key={titleRow.id}
-                      className="rounded-lg border border-border p-3 bg-card/60 space-y-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="flex items-center gap-1">
-                            <TypeIcon className="w-3 h-3" />
-                            {titleRow.text_style}
-                          </Badge>
-                          <p className="font-medium truncate max-w-[180px]">{titleRow.name}</p>
+                  {titles.map((titleRow) => {
+                    const linkedFontStyle = getFontStyleForTitle(titleRow);
+                    return (
+                      <div
+                        key={titleRow.id}
+                        className="rounded-lg border border-border p-3 bg-card/60 space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {linkedFontStyle ? (
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <ImageIcon className="w-3 h-3" />
+                                Image Style
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <TypeIcon className="w-3 h-3" />
+                                {titleRow.text_style}
+                              </Badge>
+                            )}
+                            <p className="font-medium truncate max-w-[180px]">{titleRow.name}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDelete(titleRow)}
+                          >
+                            <Trash2 className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleDelete(titleRow)}
-                        >
-                          <Trash2 className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold">{titleRow.title}</p>
-                        {titleRow.subtitle && (
-                          <p className="text-xs text-muted-foreground">{titleRow.subtitle}</p>
+                        {linkedFontStyle && (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={linkedFontStyle.image_url}
+                              alt={linkedFontStyle.name}
+                              className="w-12 h-9 object-cover rounded border border-border"
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {linkedFontStyle.name}
+                            </span>
+                          </div>
                         )}
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold">{titleRow.title}</p>
+                          {titleRow.subtitle && (
+                            <p className="text-xs text-muted-foreground">{titleRow.subtitle}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{new Date(titleRow.created_at || "").toLocaleDateString()}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate("/create")}
+                            className="h-7 px-3 text-xs"
+                          >
+                            Use in create
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{new Date(titleRow.created_at || "").toLocaleDateString()}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate("/create")}
-                          className="h-7 px-3 text-xs"
-                        >
-                          Use in create
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -339,4 +476,3 @@ const Titles = () => {
 };
 
 export default Titles;
-

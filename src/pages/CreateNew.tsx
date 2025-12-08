@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Sparkles, Download, Upload, Plus } from "lucide-react";
+import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown } from "lucide-react";
 import { toast } from "sonner";
-import { compressAndConvertToJpg } from "@/lib/imageUtils";
+import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   Dialog,
@@ -21,6 +21,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
 
 interface Avatar {
@@ -37,6 +44,7 @@ interface Product {
 
 type SavedBackground = Tables<"backgrounds">;
 type SavedTitle = Tables<"titles">;
+type FontStyle = Tables<"font_styles">;
 
 const POSITIONS = [
   { value: "top-left", label: "Top Left" },
@@ -88,6 +96,7 @@ const CreateNew = () => {
   const [remixPrompt, setRemixPrompt] = useState("");
   const [remixing, setRemixing] = useState(false);
   const [remixDialogOpen, setRemixDialogOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   // Data states
   const [avatars, setAvatars] = useState<Avatar[]>([]);
@@ -95,6 +104,7 @@ const CreateNew = () => {
   // Saved presets
   const [savedBackgrounds, setSavedBackgrounds] = useState<SavedBackground[]>([]);
   const [savedTitles, setSavedTitles] = useState<SavedTitle[]>([]);
+  const [fontStyles, setFontStyles] = useState<FontStyle[]>([]);
 
   // Form states
   const [selectedAvatar, setSelectedAvatar] = useState<string>("");
@@ -116,6 +126,8 @@ const CreateNew = () => {
   const [textPosition, setTextPosition] = useState<string>("top-center");
   const [textStyle, setTextStyle] = useState<string>("Bold & Large");
   const [customTextStyle, setCustomTextStyle] = useState<string>("");
+  const [useImageFontStyle, setUseImageFontStyle] = useState<boolean>(false);
+  const [selectedFontStyleId, setSelectedFontStyleId] = useState<string>("");
 
   const [visualStyle, setVisualStyle] = useState<string>("Modern & Minimalist");
   const [customVisualStyle, setCustomVisualStyle] = useState<string>("");
@@ -141,6 +153,7 @@ const CreateNew = () => {
     fetchProducts();
     fetchSavedBackgrounds();
     fetchSavedTitles();
+    fetchFontStyles();
   }, []);
 
   // Update backgroundValue when colors change
@@ -325,6 +338,21 @@ const CreateNew = () => {
     }
   };
 
+  const fetchFontStyles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("font_styles")
+        .select("*")
+        .order("is_system", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setFontStyles((data as FontStyle[]) || []);
+    } catch (error) {
+      console.error("Error fetching font styles:", error);
+    }
+  };
+
   const applySavedBackground = (background: SavedBackground) => {
     const meta = (background.metadata as Record<string, any>) || {};
 
@@ -371,10 +399,22 @@ const CreateNew = () => {
   const applySavedTitle = (savedTitle: SavedTitle) => {
     setTitle(savedTitle.title);
     setSubtitle(savedTitle.subtitle || "");
-    setTextStyle(savedTitle.text_style);
-    setCustomTextStyle(savedTitle.custom_text_style || "");
     setTextPosition(savedTitle.text_position || "top-center");
     setActiveTab("title");
+    
+    // Check if this title uses an image-based font style
+    if (savedTitle.font_style_id) {
+      setUseImageFontStyle(true);
+      setSelectedFontStyleId(savedTitle.font_style_id);
+      setTextStyle("Bold & Large"); // Reset text style since we're using image
+      setCustomTextStyle("");
+    } else {
+      setUseImageFontStyle(false);
+      setSelectedFontStyleId("");
+      setTextStyle(savedTitle.text_style);
+      setCustomTextStyle(savedTitle.custom_text_style || "");
+    }
+    
     toast.success("Title applied");
   };
 
@@ -466,6 +506,11 @@ const CreateNew = () => {
         return;
       }
 
+      // Get font style image URL if using image-based font style
+      const fontStyleImageUrl = useImageFontStyle && selectedFontStyleId
+        ? fontStyles.find(fs => fs.id === selectedFontStyleId)?.image_url
+        : undefined;
+
       // Call edge function to generate thumbnail
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
@@ -488,7 +533,8 @@ const CreateNew = () => {
               title: title || undefined,
               subtitle: subtitle || undefined,
               textPosition,
-              textStyle: textStyle === "Custom" ? customTextStyle : textStyle,
+              textStyle: useImageFontStyle ? "Image Reference" : (textStyle === "Custom" ? customTextStyle : textStyle),
+              fontStyleImageUrl,
               visualStyle: visualStyle === "Custom" ? customVisualStyle : visualStyle,
               backgroundType,
               backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
@@ -553,17 +599,26 @@ const CreateNew = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async (size: DownloadSizeKey) => {
     const imageToDownload = selectedImage || generatedThumbnails[0];
     if (!imageToDownload) return;
 
-    const link = document.createElement("a");
-    link.href = imageToDownload;
-    link.download = `thumbnail-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Thumbnail downloaded!");
+    const option = DOWNLOAD_SIZES[size];
+
+    try {
+      setDownloading(true);
+      await downloadImageWithSize(imageToDownload, {
+        width: option.width,
+        height: option.height,
+        fileName: `thumbnail-${option.width}x${option.height}.png`,
+      });
+      toast.success(`${option.label} download started`);
+    } catch (error: any) {
+      console.error("Error downloading thumbnail:", error);
+      toast.error(error?.message || "Failed to download thumbnail");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleRemix = async () => {
@@ -596,6 +651,11 @@ const CreateNew = () => {
         return;
       }
 
+      // Get font style image URL for remix if using image-based font style
+      const remixFontStyleImageUrl = useImageFontStyle && selectedFontStyleId
+        ? fontStyles.find(fs => fs.id === selectedFontStyleId)?.image_url
+        : undefined;
+
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
         {
@@ -615,7 +675,8 @@ const CreateNew = () => {
               title: title || undefined,
               subtitle: subtitle || undefined,
               textPosition,
-              textStyle: textStyle === "Custom" ? customTextStyle : textStyle,
+              textStyle: useImageFontStyle ? "Image Reference" : (textStyle === "Custom" ? customTextStyle : textStyle),
+              fontStyleImageUrl: remixFontStyleImageUrl,
               visualStyle: visualStyle === "Custom" ? customVisualStyle : visualStyle,
               backgroundType,
               backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
@@ -709,15 +770,33 @@ const CreateNew = () => {
             <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
               Back to dashboard
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownload}
-              disabled={!hasGeneratedImage}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!hasGeneratedImage || downloading}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {downloading ? "Downloading..." : "Download"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Select size</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleDownload("youtube")}
+                  disabled={downloading}
+                >
+                  {DOWNLOAD_SIZES.youtube.label}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDownload("full")}
+                  disabled={downloading}
+                >
+                  {DOWNLOAD_SIZES.full.label}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
               <DialogTrigger asChild>
@@ -810,10 +889,33 @@ const CreateNew = () => {
 
                 {hasGeneratedImage && (
                   <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleDownload} variant="outline" className="flex-1 min-w-[140px]">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="flex-1 min-w-[140px]"
+                          disabled={downloading}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {downloading ? "Downloading..." : "Download"}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuLabel>Select size</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => handleDownload("youtube")}
+                          disabled={downloading}
+                        >
+                          {DOWNLOAD_SIZES.youtube.label}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDownload("full")}
+                          disabled={downloading}
+                        >
+                          {DOWNLOAD_SIZES.full.label}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button
                       variant="outline"
                       className="flex-1 min-w-[140px]"
@@ -1145,30 +1247,122 @@ const CreateNew = () => {
                       />
                     </div>
 
+                    {/* Font Style Source Toggle */}
                     <div className="space-y-2">
-                      <Label>Text Style</Label>
-                      <Select value={textStyle} onValueChange={setTextStyle}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TEXT_STYLES.map((style) => (
-                            <SelectItem key={style} value={style}>
-                              {style}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Font style source</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={!useImageFontStyle ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setUseImageFontStyle(false)}
+                          className="flex-1"
+                        >
+                          <TypeIcon className="w-4 h-4 mr-2" />
+                          Preset
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={useImageFontStyle ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setUseImageFontStyle(true)}
+                          className="flex-1"
+                        >
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                          Image
+                        </Button>
+                      </div>
                     </div>
 
-                    {textStyle === "Custom" && (
+                    {!useImageFontStyle ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Text Style</Label>
+                          <Select value={textStyle} onValueChange={setTextStyle}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TEXT_STYLES.map((style) => (
+                                <SelectItem key={style} value={style}>
+                                  {style}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {textStyle === "Custom" && (
+                          <div className="space-y-2">
+                            <Label>Custom Text Style</Label>
+                            <Input
+                              placeholder="e.g., graffiti style, neon glow, 3D effect..."
+                              value={customTextStyle}
+                              onChange={(e) => setCustomTextStyle(e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </>
+                    ) : (
                       <div className="space-y-2">
-                        <Label>Custom Text Style</Label>
-                        <Input
-                          placeholder="e.g., graffiti style, neon glow, 3D effect..."
-                          value={customTextStyle}
-                          onChange={(e) => setCustomTextStyle(e.target.value)}
-                        />
+                        <Label>Font style image reference</Label>
+                        {fontStyles.length === 0 ? (
+                          <div className="border border-dashed border-border rounded-lg p-4 text-center">
+                            <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground mb-2">
+                              No font styles available yet.
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate("/font-styles")}
+                            >
+                              Upload Font Styles
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1">
+                              {fontStyles.map((fs) => (
+                                <button
+                                  key={fs.id}
+                                  type="button"
+                                  onClick={() => setSelectedFontStyleId(fs.id)}
+                                  className={`relative rounded-lg border-2 overflow-hidden transition-all ${
+                                    selectedFontStyleId === fs.id
+                                      ? "border-primary ring-2 ring-primary/20"
+                                      : "border-border hover:border-primary/50"
+                                  }`}
+                                >
+                                  <div className="aspect-[4/3]">
+                                    <img
+                                      src={fs.image_url}
+                                      alt={fs.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  {fs.is_system && (
+                                    <div className="absolute top-1 right-1">
+                                      <Crown className="w-3 h-3 text-amber-500" />
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                                    <p className="text-[9px] text-white truncate">{fs.name}</p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              <Button
+                                variant="link"
+                                className="h-auto p-0 text-xs"
+                                onClick={() => navigate("/font-styles")}
+                              >
+                                Manage font styles →
+                              </Button>
+                            </p>
+                          </>
+                        )}
                       </div>
                     )}
 

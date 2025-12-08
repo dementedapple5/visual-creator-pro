@@ -297,7 +297,7 @@ const Index = () => {
                 Ship publish-ready thumbnails
               </span>
               <span
-                className="hero-font-secondary text-gradient text-balance block w-full"
+                className="hero-font-secondary text-gradient text-balance block w-full pb-2"
                 data-animate
                 style={{ ["--delay" as any]: "0.15s" }}
               >

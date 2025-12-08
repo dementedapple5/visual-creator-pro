@@ -77,3 +77,71 @@ export const extractStoragePath = (publicUrl: string, bucketName: string): strin
   const parts = publicUrl.split(`/${bucketName}/`);
   return parts[1] || '';
 };
+
+export const DOWNLOAD_SIZES = {
+  youtube: { width: 1280, height: 720, label: "YouTube ready (1280x720)" },
+  full: { width: 2752, height: 1536, label: "Full size (2752x1536)" },
+} as const;
+
+export type DownloadSizeKey = keyof typeof DOWNLOAD_SIZES;
+
+type DownloadImageOptions = {
+  width: number;
+  height: number;
+  fileName?: string;
+};
+
+/**
+ * Downloads an image resized to the requested dimensions using a canvas to preserve quality.
+ * Uses a cover fit to avoid distortion when aspect ratios differ.
+ */
+export const downloadImageWithSize = async (
+  imageUrl: string,
+  { width, height, fileName }: DownloadImageOptions
+): Promise<void> => {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load image for download"));
+    img.src = imageUrl;
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Failed to prepare download canvas");
+  }
+
+  // Scale image to cover the target size without stretching
+  const scale = Math.max(width / img.width, height / img.height);
+  const targetWidth = img.width * scale;
+  const targetHeight = img.height * scale;
+  const dx = (width - targetWidth) / 2;
+  const dy = (height - targetHeight) / 2;
+
+  ctx.drawImage(img, dx, dy, targetWidth, targetHeight);
+
+  await new Promise<void>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Unable to generate download blob"));
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || `thumbnail-${width}x${height}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      resolve();
+    }, "image/png");
+  });
+};
