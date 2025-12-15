@@ -537,11 +537,10 @@ const ThumbnailDetail = () => {
 
                   {/* Image */}
                   <div
-                    className={`relative rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
-                      selectedVersion?.id === version.id
+                    className={`relative rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${selectedVersion?.id === version.id
                         ? "border-rose-500/50 shadow-lg shadow-rose-500/10"
                         : "border-white/5 hover:border-white/20"
-                    }`}
+                      }`}
                     onClick={() => setSelectedVersion(version)}
                   >
                     <div
@@ -600,7 +599,7 @@ const ThumbnailDetail = () => {
           {/* Input Area - Fixed at bottom */}
           <div className="border-t border-white/5 bg-[#0a0a0a] p-4">
             <div className="max-w-3xl mx-auto">
-              <div className="relative bg-[#1a1a1a] rounded-2xl border border-white/10 focus-within:border-white/20 transition-colors">
+              <div className="relative bg-[#1a1a1a] rounded-2xl border border-white/10 focus-within:border-white/20 transition-colors flex items-center">
                 <textarea
                   ref={inputRef}
                   value={prompt}
@@ -609,7 +608,7 @@ const ThumbnailDetail = () => {
                   placeholder="Describe changes to generate a new version..."
                   rows={1}
                   disabled={iterating}
-                  className="w-full bg-transparent text-white placeholder-white/30 px-4 py-4 pr-14 resize-none focus:outline-none text-sm leading-relaxed min-h-[56px] max-h-[120px]"
+                  className="flex-1 bg-transparent text-white placeholder-white/30 px-4 py-3 pr-14 resize-none focus:outline-none text-sm leading-relaxed min-h-[44px] max-h-[120px]"
                   style={{ height: 'auto' }}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;
@@ -617,18 +616,17 @@ const ThumbnailDetail = () => {
                     target.style.height = Math.min(target.scrollHeight, 120) + 'px';
                   }}
                 />
-                
+
                 {/* Action buttons */}
-                <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                <div className="pr-2 flex items-center gap-1">
                   <Button
                     size="sm"
                     onClick={handleIterate}
                     disabled={!prompt.trim() || iterating}
-                    className={`rounded-full w-10 h-10 p-0 transition-all ${
-                      prompt.trim() && !iterating
+                    className={`rounded-full w-9 h-9 p-0 transition-all ${prompt.trim() && !iterating
                         ? "bg-white text-black hover:bg-white/90"
                         : "bg-white/10 text-white/30"
-                    }`}
+                      }`}
                   >
                     <Send className="w-4 h-4" />
                   </Button>
@@ -647,7 +645,7 @@ const ThumbnailDetail = () => {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-4">
             Selected Version
           </h3>
-          
+
           {selectedVersion && (
             <div className="space-y-4">
               <div
