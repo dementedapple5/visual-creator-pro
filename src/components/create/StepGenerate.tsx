@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Download, Sparkles } from "lucide-react";
+import { Loader2, Download, Sparkles, Grid3X3, Check } from "lucide-react";
 import { CreateData } from "@/pages/Create";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,11 +49,70 @@ interface StepGenerateProps {
   onPrev: () => void;
 }
 
+const GRID_SIZE = 3; // 3x3 grid
+
+/**
+ * Crops a 3x3 grid image into 9 individual thumbnails
+ */
+const cropGridToThumbnails = async (gridImageUrl: string): Promise<string[]> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    img.onload = () => {
+      const thumbnails: string[] = [];
+      const cellWidth = Math.floor(img.width / GRID_SIZE);
+      const cellHeight = Math.floor(img.height / GRID_SIZE);
+      
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          const canvas = document.createElement("canvas");
+          canvas.width = cellWidth;
+          canvas.height = cellHeight;
+          const ctx = canvas.getContext("2d");
+          
+          if (!ctx) {
+            reject(new Error("Failed to get canvas context"));
+            return;
+          }
+          
+          // Crop the cell from the grid image
+          ctx.drawImage(
+            img,
+            col * cellWidth,      // Source X
+            row * cellHeight,     // Source Y
+            cellWidth,            // Source width
+            cellHeight,           // Source height
+            0,                    // Destination X
+            0,                    // Destination Y
+            cellWidth,            // Destination width
+            cellHeight            // Destination height
+          );
+          
+          // Convert to data URL
+          const thumbnailUrl = canvas.toDataURL("image/png");
+          thumbnails.push(thumbnailUrl);
+        }
+      }
+      
+      resolve(thumbnails);
+    };
+    
+    img.onerror = () => {
+      reject(new Error("Failed to load grid image"));
+    };
+    
+    img.src = gridImageUrl;
+  });
+};
+
 export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) => {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
+  const [croppingGrid, setCroppingGrid] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState(data.aspectRatio || "16:9");
   const [avatarData, setAvatarData] = useState<Avatar | null>(null);
   const [productData, setProductData] = useState<Product[]>([]);
@@ -61,6 +120,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   const [remixing, setRemixing] = useState(false);
   const [remixDialogOpen, setRemixDialogOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [gridImageUrl, setGridImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,10 +189,17 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         return;
       }
 
+      // Prepare thumbnail data with grid mode enabled
+      const thumbnailData = { 
+        ...data, 
+        aspectRatio,
+        gridMode: true, // Enable grid mode for 3x3 generation
+      };
+
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
         {
-          body: { thumbnailData: { ...data, aspectRatio } },
+          body: { thumbnailData },
         }
       );
 
@@ -142,9 +209,28 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         throw new Error("No image URL returned");
       }
 
-      setGeneratedImages((prev) => [...prev, functionData.imageUrl]);
-      setSelectedImage(functionData.imageUrl);
-      toast.success("Thumbnail generated successfully!");
+      // Store the original grid image
+      setGridImageUrl(functionData.imageUrl);
+
+      // Now crop the grid into 9 thumbnails
+      setCroppingGrid(true);
+      try {
+        const croppedThumbnails = await cropGridToThumbnails(functionData.imageUrl);
+        setGeneratedImages(croppedThumbnails);
+        // Auto-select the first thumbnail for preview
+        if (croppedThumbnails.length > 0) {
+          setPreviewImage(croppedThumbnails[0]);
+        }
+        toast.success("9 thumbnail variations generated successfully!");
+      } catch (cropError) {
+        console.error("Error cropping grid:", cropError);
+        // Fallback: use the grid image as a single image
+        setGeneratedImages([functionData.imageUrl]);
+        setPreviewImage(functionData.imageUrl);
+        toast.warning("Generated grid image (cropping failed)");
+      } finally {
+        setCroppingGrid(false);
+      }
     } catch (error: any) {
       console.error("Error generating thumbnail:", error);
       toast.error(error.message || "Failed to generate thumbnail");
@@ -154,7 +240,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   };
 
   const handleRemix = async () => {
-    if (!selectedImage) return;
+    if (!previewImage) return;
 
     try {
       setRemixing(true);
@@ -187,8 +273,8 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         "generate-thumbnail",
         {
           body: { 
-            thumbnailData: { ...data, aspectRatio },
-            remixImageUrl: selectedImage,
+            thumbnailData: { ...data, aspectRatio, gridMode: false }, // Single image for remix
+            remixImageUrl: previewImage,
             remixPrompt: remixPrompt
           },
         }
@@ -201,7 +287,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       }
 
       setGeneratedImages((prev) => [...prev, functionData.imageUrl]);
-      setSelectedImage(functionData.imageUrl);
+      setPreviewImage(functionData.imageUrl);
       setRemixDialogOpen(false);
       setRemixPrompt("");
       toast.success("Remix generated successfully!");
@@ -214,13 +300,13 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   };
 
   const handleDownload = async (size: DownloadSizeKey) => {
-    if (!selectedImage) return;
+    if (!previewImage) return;
 
     const option = DOWNLOAD_SIZES[size];
 
     try {
       setDownloading(true);
-      await downloadImageWithSize(selectedImage, {
+      await downloadImageWithSize(previewImage, {
         width: option.width,
         height: option.height,
         fileName: `thumbnail-${option.width}x${option.height}.png`,
@@ -234,37 +320,61 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
     }
   };
 
+  const toggleImageSelection = (imageUrl: string) => {
+    const newSelection = new Set(selectedImages);
+    if (newSelection.has(imageUrl)) {
+      newSelection.delete(imageUrl);
+    } else {
+      newSelection.add(imageUrl);
+    }
+    setSelectedImages(newSelection);
+  };
+
   const handleSave = async () => {
-    if (!selectedImage) return;
+    const imagesToSave = selectedImages.size > 0 
+      ? Array.from(selectedImages) 
+      : previewImage 
+        ? [previewImage] 
+        : [];
+
+    if (imagesToSave.length === 0) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const { error } = await supabase.from("thumbnails").insert({
-        user_id: user.id,
-        title: data.title,
-        subtitle: data.subtitle,
-        avatar_id: data.avatarId,
-        avatar_position: data.avatarPosition,
-        avatar_importance: data.avatarImportance,
-        product_id: data.productIds?.[0],
-        product_position: data.productPosition,
-        product_importance: data.productImportance,
-        text_position: data.textPosition,
-        text_importance: data.textImportance,
-        expression: data.expression,
-        visual_style: data.visualStyle || "",
-        text_style: data.textStyle || "",
-        background_type: data.backgroundType || "",
-        background_value: data.backgroundValue,
-        aspect_ratio: aspectRatio,
-        image_url: selectedImage,
-      });
+      // Save all selected thumbnails
+      const insertPromises = imagesToSave.map((imageUrl) => 
+        supabase.from("thumbnails").insert({
+          user_id: user.id,
+          title: data.titleMode === 'ai' ? 'AI Generated' : data.title,
+          subtitle: data.subtitleMode === 'ai' ? undefined : data.subtitle,
+          avatar_id: data.avatarId,
+          avatar_position: data.avatarPositions?.join(',') || data.avatarPosition,
+          avatar_importance: data.avatarImportance,
+          product_id: data.productIds?.[0],
+          product_position: data.productPositions?.join(',') || data.productPosition,
+          product_importance: data.productImportance,
+          text_position: data.textPositions?.join(',') || data.textPosition,
+          text_importance: data.textImportance,
+          expression: data.expressions?.join(',') || data.expression,
+          visual_style: data.visualStyles?.join(',') || data.visualStyle || "",
+          text_style: data.textStyle || "",
+          background_type: data.backgroundType || "",
+          background_value: data.backgroundValue,
+          aspect_ratio: aspectRatio,
+          image_url: imageUrl,
+        })
+      );
 
-      if (error) throw error;
+      const results = await Promise.all(insertPromises);
+      const errors = results.filter(r => r.error);
+      
+      if (errors.length > 0) {
+        throw errors[0].error;
+      }
 
-      toast.success("Thumbnail saved!");
+      toast.success(`${imagesToSave.length} thumbnail${imagesToSave.length > 1 ? 's' : ''} saved!`);
       navigate("/dashboard");
     } catch (error) {
       console.error("Error saving thumbnail:", error);
@@ -272,12 +382,31 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
     }
   };
 
+  // Format selection info for display
+  const getSelectionSummary = () => {
+    const items = [];
+    
+    if (data.expressions?.length) {
+      items.push(`${data.expressions.includes('ai-decide') ? 'AI' : data.expressions.length} expression${data.expressions.length > 1 ? 's' : ''}`);
+    }
+    if (data.visualStyles?.length) {
+      items.push(`${data.visualStyles.includes('ai-decide') ? 'AI' : data.visualStyles.length} style${data.visualStyles.length > 1 ? 's' : ''}`);
+    }
+    if (data.titleMode === 'ai') {
+      items.push('AI titles');
+    }
+    
+    return items.length > 0 ? items.join(', ') : 'Default settings';
+  };
+
+  const isLoading = generating || croppingGrid;
+
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold mb-2">Generate Your Thumbnail</h2>
+        <h2 className="text-3xl font-bold mb-2">Generate Your Thumbnails</h2>
         <p className="text-muted-foreground">
-          Review your selections and generate your thumbnail
+          We'll generate 9 variations based on your selections
         </p>
       </div>
 
@@ -353,15 +482,43 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-border">
           <div>
             <span className="text-muted-foreground">Title:</span>
-            <span className="ml-2 font-medium">{data.title || "None"}</span>
+            <span className="ml-2 font-medium">
+              {data.titleMode === 'ai' ? (
+                <span className="text-primary flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> AI Generated
+                </span>
+              ) : (
+                data.title || "None"
+              )}
+            </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Expression:</span>
-            <span className="ml-2 font-medium">{data.expression || "Default"}</span>
+            <span className="text-muted-foreground">Expressions:</span>
+            <span className="ml-2 font-medium">
+              {data.expressions?.includes('ai-decide') ? (
+                <span className="text-primary flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> AI Decides
+                </span>
+              ) : data.expressions?.length ? (
+                data.expressions.join(', ')
+              ) : (
+                "Default"
+              )}
+            </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Visual Style:</span>
-            <span className="ml-2 font-medium">{data.visualStyle || "Default"}</span>
+            <span className="text-muted-foreground">Visual Styles:</span>
+            <span className="ml-2 font-medium">
+              {data.visualStyles?.includes('ai-decide') ? (
+                <span className="text-primary flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> AI Decides
+                </span>
+              ) : data.visualStyles?.length ? (
+                data.visualStyles.join(', ')
+              ) : (
+                "Default"
+              )}
+            </span>
           </div>
           <div>
             <span className="text-muted-foreground">Text Style:</span>
@@ -372,16 +529,24 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             <span className="ml-2 font-medium">{data.backgroundValue || "None"}</span>
           </div>
         </div>
+
+        {/* Generation Info */}
+        <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <Grid3X3 className="w-5 h-5 text-primary" />
+          <span className="text-sm">
+            <strong>Grid Generation:</strong> 9 thumbnail variations will be created using {getSelectionSummary()}
+          </span>
+        </div>
       </div>
 
       {/* Large Preview Section */}
-      {selectedImage && (
+      {previewImage && (
         <div className="space-y-4">
           <Label className="text-lg font-semibold">Preview</Label>
           <div className="relative group">
             <div className={`${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16] max-w-md mx-auto"} rounded-lg overflow-hidden border border-border`}>
               <img
-                src={selectedImage}
+                src={previewImage}
                 alt="Selected thumbnail"
                 className="w-full h-full object-cover"
               />
@@ -394,7 +559,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
                   <Button
                     variant="outline"
                     className="flex-1"
-                    disabled={!selectedImage || downloading}
+                    disabled={!previewImage || downloading}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     {downloading ? "Downloading..." : "Download"}
@@ -463,61 +628,122 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         </div>
       )}
 
-      {/* Generated Thumbnails List */}
+      {/* Generated Thumbnails Grid */}
       {generatedImages.length > 0 && (
         <div className="space-y-4">
-          <Label className="text-lg font-semibold">Generated Thumbnails</Label>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {generatedImages.map((imageUrl, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedImage(imageUrl)}
-                className={`${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]"} rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
-                  selectedImage === imageUrl 
-                    ? "border-primary ring-2 ring-primary/20" 
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <img
-                  src={imageUrl}
-                  alt={`Thumbnail ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
+          <div className="flex items-center justify-between">
+            <Label className="text-lg font-semibold">
+              Generated Thumbnails
+              {selectedImages.size > 0 && (
+                <span className="ml-2 text-sm font-normal text-primary">
+                  ({selectedImages.size} selected)
+                </span>
+              )}
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Click to preview, double-click to select for saving
+            </p>
           </div>
+          <div className="grid grid-cols-3 gap-4">
+            {generatedImages.map((imageUrl, index) => {
+              const isSelected = selectedImages.has(imageUrl);
+              const isPreview = previewImage === imageUrl;
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => setPreviewImage(imageUrl)}
+                  onDoubleClick={() => toggleImageSelection(imageUrl)}
+                  className={`relative ${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]"} rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] ${
+                    isPreview
+                      ? "border-primary ring-2 ring-primary/20"
+                      : isSelected
+                        ? "border-green-500 ring-2 ring-green-500/20"
+                        : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <img
+                    src={imageUrl}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                    #{index + 1}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Selection Actions */}
+          {generatedImages.length > 1 && (
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setSelectedImages(new Set(generatedImages))}
+              >
+                Select All
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setSelectedImages(new Set())}
+              >
+                Deselect All
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
       <div className="flex gap-4">
-        <Button variant="outline" onClick={onPrev} disabled={generating || remixing}>
+        <Button variant="outline" onClick={onPrev} disabled={isLoading || remixing}>
           Back
         </Button>
         {generatedImages.length === 0 ? (
-          <Button onClick={handleGenerate} disabled={generating} className="flex-1">
-            {generating ? (
+          <Button onClick={handleGenerate} disabled={isLoading} className="flex-1">
+            {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
+                {croppingGrid ? "Processing variations..." : "Generating 9 variations..."}
               </>
             ) : (
-              "Generate Thumbnail"
+              <>
+                <Grid3X3 className="w-4 h-4 mr-2" />
+                Generate 9 Thumbnails
+              </>
             )}
           </Button>
         ) : (
           <>
-            <Button variant="outline" onClick={handleGenerate} disabled={generating || remixing} className="flex-1">
-              {generating ? (
+            <Button variant="outline" onClick={handleGenerate} disabled={isLoading || remixing} className="flex-1">
+              {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
+                  {croppingGrid ? "Processing..." : "Generating..."}
                 </>
               ) : (
-                "Generate Another"
+                <>
+                  <Grid3X3 className="w-4 h-4 mr-2" />
+                  Generate 9 More
+                </>
               )}
             </Button>
-            <Button onClick={handleSave} disabled={!selectedImage || generating || remixing} className="flex-1">
-              Save & Finish
+            <Button 
+              onClick={handleSave} 
+              disabled={(!previewImage && selectedImages.size === 0) || isLoading || remixing} 
+              className="flex-1"
+            >
+              {selectedImages.size > 0 
+                ? `Save ${selectedImages.size} Selected`
+                : "Save & Finish"
+              }
             </Button>
           </>
         )}

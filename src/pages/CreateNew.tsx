@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown } from "lucide-react";
+import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check } from "lucide-react";
 import { toast } from "sonner";
 import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
+import { MultiSelectChips } from "@/components/MultiSelectChips";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,8 @@ const POSITIONS = [
   { value: "bottom-right", label: "Bottom Right" },
 ];
 
+const POSITION_OPTIONS = POSITIONS.map((p) => ({ value: p.value, label: p.label }));
+
 const VISUAL_STYLES = [
   "Modern & Minimalist",
   "Bold & Dramatic",
@@ -66,6 +69,10 @@ const VISUAL_STYLES = [
   "3D Rendered",
   "Custom",
 ];
+
+const VISUAL_STYLE_OPTIONS = VISUAL_STYLES
+  .filter((s) => s !== "Custom")
+  .map((s) => ({ value: s, label: s }));
 
 const TEXT_STYLES = [
   "Bold & Large",
@@ -77,6 +84,10 @@ const TEXT_STYLES = [
   "Custom",
 ];
 
+const TEXT_STYLE_OPTIONS = TEXT_STYLES
+  .filter((s) => s !== "Custom")
+  .map((s) => ({ value: s, label: s }));
+
 const EXPRESSIONS = [
   { id: "excited", label: "Excited" },
   { id: "surprised", label: "Surprised" },
@@ -84,14 +95,65 @@ const EXPRESSIONS = [
   { id: "serious", label: "Serious" },
   { id: "confident", label: "Confident" },
   { id: "thinking", label: "Thinking" },
-  { id: "custom", label: "Custom" },
 ];
+
+const EXPRESSION_OPTIONS = EXPRESSIONS.map((e) => ({ value: e.id, label: e.label }));
+
+const GRID_SIZE = 3;
+
+const cropGridToThumbnails = async (gridImageUrl: string): Promise<string[]> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      const thumbnails: string[] = [];
+      const cellWidth = Math.floor(img.width / GRID_SIZE);
+      const cellHeight = Math.floor(img.height / GRID_SIZE);
+
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          const canvas = document.createElement("canvas");
+          canvas.width = cellWidth;
+          canvas.height = cellHeight;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Failed to get canvas context"));
+            return;
+          }
+
+          ctx.drawImage(
+            img,
+            col * cellWidth,
+            row * cellHeight,
+            cellWidth,
+            cellHeight,
+            0,
+            0,
+            cellWidth,
+            cellHeight
+          );
+
+          thumbnails.push(canvas.toDataURL("image/png"));
+        }
+      }
+
+      resolve(thumbnails);
+    };
+
+    img.onerror = () => reject(new Error("Failed to load grid image"));
+    img.src = gridImageUrl;
+  });
+};
 
 const CreateNew = () => {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
+  const [croppingGrid, setCroppingGrid] = useState(false);
   const [generatedThumbnails, setGeneratedThumbnails] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [gridImageUrl, setGridImageUrl] = useState<string | null>(null);
   const [remixPrompt, setRemixPrompt] = useState("");
   const [remixing, setRemixing] = useState(false);
   const [remixDialogOpen, setRemixDialogOpen] = useState(false);
@@ -107,29 +169,29 @@ const CreateNew = () => {
 
   // Form states
   const [selectedAvatar, setSelectedAvatar] = useState<string>("");
-  const [avatarPosition, setAvatarPosition] = useState<string>("center");
-  const [expression, setExpression] = useState<string>("happy");
-  const [customExpression, setCustomExpression] = useState<string>("");
+  const [avatarPositions, setAvatarPositions] = useState<string[]>([]);
+  const [expressions, setExpressions] = useState<string[]>([]);
 
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   // Store custom uploaded elements
   const [customElements, setCustomElements] = useState<{ id: string, url: string }[]>([]);
   // Store positions for each element (ID or URL -> Position)
-  const [elementPositions, setElementPositions] = useState<Record<string, string>>({});
+  const [elementPositions, setElementPositions] = useState<Record<string, string[]>>({});
 
   // Custom avatar upload
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
 
+  const [titleMode, setTitleMode] = useState<"custom" | "ai">("custom");
+  const [subtitleMode, setSubtitleMode] = useState<"custom" | "ai">("custom");
   const [title, setTitle] = useState<string>("");
   const [subtitle, setSubtitle] = useState<string>("");
-  const [textPosition, setTextPosition] = useState<string>("top-center");
-  const [textStyle, setTextStyle] = useState<string>("Bold & Large");
+  const [textPositions, setTextPositions] = useState<string[]>([]);
+  const [textStyles, setTextStyles] = useState<string[]>([]);
   const [customTextStyle, setCustomTextStyle] = useState<string>("");
   const [useImageFontStyle, setUseImageFontStyle] = useState<boolean>(false);
   const [selectedFontStyleId, setSelectedFontStyleId] = useState<string>("");
 
-  const [visualStyle, setVisualStyle] = useState<string>("Modern & Minimalist");
-  const [customVisualStyle, setCustomVisualStyle] = useState<string>("");
+  const [visualStyles, setVisualStyles] = useState<string[]>([]);
   const [backgroundType, setBackgroundType] = useState<string>("gradient");
   const [backgroundValue, setBackgroundValue] = useState<string>("#FF6B9D,#C239B3");
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>("");
@@ -145,6 +207,7 @@ const CreateNew = () => {
 
   const hasGeneratedImage = Boolean(selectedImage || generatedThumbnails.length > 0);
   const previewImage = selectedImage || generatedThumbnails[0] || null;
+  const isLoading = generating || croppingGrid;
 
   useEffect(() => {
     checkUser();
@@ -280,7 +343,7 @@ const CreateNew = () => {
       // Auto-select the new custom element if under limit
       if (selectedProducts.length < 3) {
         setSelectedProducts(prev => [...prev, newCustomId]);
-        setElementPositions(prev => ({ ...prev, [newCustomId]: "center-right" }));
+        setElementPositions(prev => ({ ...prev, [newCustomId]: ["center-right"] }));
       }
 
       toast.success("Element uploaded");
@@ -398,19 +461,20 @@ const CreateNew = () => {
   const applySavedTitle = (savedTitle: SavedTitle) => {
     setTitle(savedTitle.title);
     setSubtitle(savedTitle.subtitle || "");
-    setTextPosition(savedTitle.text_position || "top-center");
+    setTextPositions(savedTitle.text_position ? [savedTitle.text_position] : []);
     setActiveTab("title");
     
     // Check if this title uses an image-based font style
     if (savedTitle.font_style_id) {
       setUseImageFontStyle(true);
       setSelectedFontStyleId(savedTitle.font_style_id);
-      setTextStyle("Bold & Large"); // Reset text style since we're using image
+      setTextStyles([]); // Reset text styles since we're using image
       setCustomTextStyle("");
     } else {
       setUseImageFontStyle(false);
       setSelectedFontStyleId("");
-      setTextStyle(savedTitle.text_style);
+      // text_style could be comma-separated if multiple styles were saved
+      setTextStyles(savedTitle.text_style ? savedTitle.text_style.split(",").map(s => s.trim()) : []);
       setCustomTextStyle(savedTitle.custom_text_style || "");
     }
     
@@ -510,6 +574,20 @@ const CreateNew = () => {
         ? fontStyles.find(fs => fs.id === selectedFontStyleId)?.image_url
         : undefined;
 
+      const safeAvatarPositions = avatarPositions.length ? avatarPositions : ["ai-decide"];
+      const safeTextPositions = textPositions.length ? textPositions : ["ai-decide"];
+      const safeExpressions = expressions.length ? expressions : ["ai-decide"];
+      const safeVisualStyles = visualStyles.length ? visualStyles : ["ai-decide"];
+
+      // Collapse element positions into a single list for variation instructions
+      const productPositions = Array.from(
+        new Set(
+          Object.values(elementPositions)
+            .flat()
+            .filter(Boolean)
+        )
+      );
+
       // Call edge function to generate thumbnail
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
@@ -518,26 +596,33 @@ const CreateNew = () => {
             thumbnailData: {
               avatarId: selectedAvatar || undefined,
               customAvatarUrl: customAvatarUrl || undefined,
-              avatarPosition,
-              expression: selectedAvatar ? (expression === "custom" ? customExpression : expression) : undefined,
-              // Map selected products to include their specific positions
+              avatarPositions: selectedAvatar || customAvatarUrl ? safeAvatarPositions : undefined,
+              expressions: selectedAvatar || customAvatarUrl ? safeExpressions : undefined,
+              // Map selected products to include their specific positions, names and brands
               elements: selectedProducts.map(id => {
                 const customEl = customElements.find(el => el.id === id);
+                const product = products.find(p => p.id === id);
                 return {
                   id: customEl ? undefined : id,
                   url: customEl ? customEl.url : undefined,
-                  position: elementPositions[id] || "center-right"
+                  position: (elementPositions[id]?.[0] || "center-right"),
+                  name: product?.title || undefined,
+                  brand: product?.brand || undefined,
                 };
               }),
-              title: title || undefined,
-              subtitle: subtitle || undefined,
-              textPosition,
-              textStyle: useImageFontStyle ? "Image Reference" : (textStyle === "Custom" ? customTextStyle : textStyle),
+              productPositions: productPositions.length ? productPositions : ["ai-decide"],
+              title: titleMode === "custom" ? (title || undefined) : undefined,
+              subtitle: subtitleMode === "custom" ? (subtitle || undefined) : undefined,
+              titleMode,
+              subtitleMode,
+              textPositions: safeTextPositions,
+              textStyles: useImageFontStyle ? ["Image Reference"] : (textStyles.length ? textStyles : ["ai-decide"]),
               fontStyleImageUrl,
-              visualStyle: visualStyle === "Custom" ? customVisualStyle : visualStyle,
+              visualStyles: safeVisualStyles,
               backgroundType,
               backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
               aspectRatio,
+              gridMode: true,
             },
           },
         }
@@ -548,48 +633,28 @@ const CreateNew = () => {
       const imageUrl = functionData.imageUrl;
       const generationId = functionData.generationId as string | undefined;
 
-      // Save to database
-      const { data: thumbnail, error: insertError } = await supabase
-        .from("thumbnails")
-        .insert({
-          user_id: user.id,
-          image_url: imageUrl,
-          avatar_id: selectedAvatar || null,
-          avatar_position: avatarPosition,
-          avatar_importance: null,
-          expression: selectedAvatar ? expression : null,
-          product_id: selectedProducts.find(id => !id.startsWith("custom-")) || null, // Legacy support: save first product ID
-          product_position: Object.values(elementPositions)[0] || "center-right", // Legacy support: save first position
-          title: title || null,
-          subtitle: subtitle || null,
-          text_position: textPosition,
-          text_importance: null,
-          text_style: textStyle,
-          visual_style: visualStyle,
-          background_type: backgroundType,
-          background_value: backgroundValue,
-          aspect_ratio: aspectRatio,
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      if (generationId && thumbnail?.id) {
-        const { error: generationUpdateError } = await supabase
-          .from("generations")
-          .update({ thumbnail_id: thumbnail.id })
-          .eq("id", generationId);
-
-        if (generationUpdateError) {
-          console.warn("Could not attach thumbnail to generation record", generationUpdateError);
-        }
+      // Store grid + crop into 9 thumbnails on client
+      setGridImageUrl(imageUrl);
+      setCroppingGrid(true);
+      try {
+        const cropped = await cropGridToThumbnails(imageUrl);
+        setGeneratedThumbnails(cropped);
+        setSelectedImage(cropped[0] || null);
+        setSelectedImages(new Set());
+        toast.success("9 thumbnail variations generated!");
+      } catch (e) {
+        console.warn("Grid cropping failed, falling back to grid image", e);
+        setGeneratedThumbnails([imageUrl]);
+        setSelectedImage(imageUrl);
+        toast.warning("Generated grid image (cropping failed)");
+      } finally {
+        setCroppingGrid(false);
       }
 
-      // Add to gallery instead of navigating
-      setGeneratedThumbnails(prev => [imageUrl, ...prev]);
-      setSelectedImage(imageUrl); // Set as selected when generated
-      toast.success("Thumbnail generated successfully!");
+      // Keep generationId only for logs for now (we don't attach thumbnail_id until user saves)
+      if (generationId) {
+        console.log("Generation completed:", generationId);
+      }
     } catch (error) {
       console.error("Error generating thumbnail:", error);
       toast.error("Failed to generate thumbnail. Please try again.");
@@ -617,6 +682,57 @@ const CreateNew = () => {
       toast.error(error?.message || "Failed to download thumbnail");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const toggleSelect = (url: string) => {
+    setSelectedImages((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  };
+
+  const saveSelected = async () => {
+    const urls = selectedImages.size > 0 ? Array.from(selectedImages) : selectedImage ? [selectedImage] : [];
+    if (urls.length === 0) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const insertPromises = urls.map((image_url) =>
+        supabase.from("thumbnails").insert({
+          user_id: user.id,
+          image_url,
+          avatar_id: selectedAvatar || null,
+          avatar_position: (avatarPositions.length ? avatarPositions.join(",") : null) as any,
+          avatar_importance: null,
+          expression: (expressions.length ? expressions.join(",") : null) as any,
+          product_id: selectedProducts.find(id => !id.startsWith("custom-")) || null,
+          product_position: (Object.values(elementPositions).flat().join(",") || null) as any,
+          product_importance: null,
+          title: titleMode === "custom" ? (title || null) : null,
+          subtitle: subtitleMode === "custom" ? (subtitle || null) : null,
+          text_position: (textPositions.length ? textPositions.join(",") : null) as any,
+          text_importance: null,
+          text_style: (textStyles.length ? textStyles.join(",") : null) as any,
+          visual_style: (visualStyles.length ? visualStyles.join(",") : null) as any,
+          background_type: backgroundType,
+          background_value: backgroundValue,
+          aspect_ratio: aspectRatio,
+        })
+      );
+
+      const results = await Promise.all(insertPromises);
+      const anyError = results.find((r) => r.error);
+      if (anyError?.error) throw anyError.error;
+
+      toast.success(`Saved ${urls.length} thumbnail${urls.length > 1 ? "s" : ""}!`);
+    } catch (e) {
+      console.error("Error saving thumbnails:", e);
+      toast.error("Failed to save thumbnails");
     }
   };
 
@@ -661,25 +777,29 @@ const CreateNew = () => {
           body: {
             thumbnailData: {
               customAvatarUrl: customAvatarUrl || undefined,
-              avatarPosition,
-              expression: selectedAvatar ? (expression === "custom" ? customExpression : expression) : undefined,
+              // Remix stays single-image for now
               elements: selectedProducts.map(id => {
                 const customEl = customElements.find(el => el.id === id);
+                const product = products.find(p => p.id === id);
                 return {
                   id: customEl ? undefined : id,
                   url: customEl ? customEl.url : undefined,
-                  position: elementPositions[id] || "center-right"
+                  position: (elementPositions[id]?.[0] || "center-right"),
+                  name: product?.title || undefined,
+                  brand: product?.brand || undefined,
                 };
               }),
-              title: title || undefined,
-              subtitle: subtitle || undefined,
-              textPosition,
-              textStyle: useImageFontStyle ? "Image Reference" : (textStyle === "Custom" ? customTextStyle : textStyle),
+              title: titleMode === "custom" ? (title || undefined) : undefined,
+              subtitle: subtitleMode === "custom" ? (subtitle || undefined) : undefined,
+              titleMode,
+              subtitleMode,
+              textStyles: useImageFontStyle ? ["Image Reference"] : (textStyles.length ? textStyles : ["ai-decide"]),
               fontStyleImageUrl: remixFontStyleImageUrl,
-              visualStyle: visualStyle === "Custom" ? customVisualStyle : visualStyle,
+              visualStyles: visualStyles.length ? visualStyles : ["ai-decide"],
               backgroundType,
               backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
               aspectRatio,
+              gridMode: false,
             },
             remixImageUrl: selectedImage,
             remixPrompt: remixPrompt
@@ -700,22 +820,22 @@ const CreateNew = () => {
             user_id: user.id,
             image_url: imageUrl,
             avatar_id: selectedAvatar || null,
-            avatar_position: avatarPosition,
+            avatar_position: avatarPositions.length ? avatarPositions.join(",") : null,
             avatar_importance: null,
-            expression: selectedAvatar ? expression : null,
+            expression: expressions.length ? expressions.join(",") : null,
             product_id: selectedProducts.find(id => !id.startsWith("custom-")) || null,
-            product_position: Object.values(elementPositions)[0] || "center-right",
+            product_position: Object.values(elementPositions).flat().join(",") || null,
             product_importance: null,
-            title: title || null,
-            subtitle: subtitle || null,
-            text_position: textPosition,
+            title: titleMode === "custom" ? (title || null) : null,
+            subtitle: subtitleMode === "custom" ? (subtitle || null) : null,
+            text_position: textPositions.length ? textPositions.join(",") : null,
             text_importance: null,
-            text_style: textStyle,
-            visual_style: visualStyle,
+            text_style: textStyles.length ? textStyles.join(",") : "",
+            visual_style: visualStyles.length ? visualStyles.join(",") : "",
             background_type: backgroundType,
             background_value: backgroundValue,
             aspect_ratio: aspectRatio,
-          });
+          } as any);
       }
 
       if (generationId) {
@@ -742,6 +862,7 @@ const CreateNew = () => {
 
       setGeneratedThumbnails(prev => [imageUrl, ...prev]);
       setSelectedImage(imageUrl);
+      setSelectedImages(new Set());
       setRemixDialogOpen(false);
       setRemixPrompt("");
       toast.success("Remix generated successfully!");
@@ -755,7 +876,7 @@ const CreateNew = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playground</p>
@@ -808,7 +929,7 @@ const CreateNew = () => {
           </DialogContent>
         </Dialog>
 
-        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.75fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-card/60 shadow-sm backdrop-blur">
               <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
@@ -900,24 +1021,47 @@ const CreateNew = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="space-y-0.5">
                     <p className="text-sm font-semibold">Generated thumbnails</p>
-                    <p className="text-xs text-muted-foreground">Tap any to set as active preview</p>
+                    <p className="text-xs text-muted-foreground">Click to preview, double-click to select</p>
                   </div>
                   <span className="text-xs text-muted-foreground">{generatedThumbnails.length} results</span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-3">
                   {generatedThumbnails.map((url, index) => (
                     <button
                       key={index}
-                      className={`aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${previewImage === url ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"}`}
+                      className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                        previewImage === url
+                          ? "border-primary ring-2 ring-primary/20"
+                          : selectedImages.has(url)
+                            ? "border-green-500 ring-2 ring-green-500/20"
+                            : "border-border hover:border-primary/50"
+                      }`}
                       onClick={() => setSelectedImage(url)}
+                      onDoubleClick={() => toggleSelect(url)}
                     >
                       <img
                         src={url}
                         alt={`Generated thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
+                      {selectedImages.has(url) && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      )}
                     </button>
                   ))}
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedImages(new Set(generatedThumbnails))}>
+                    Select all
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedImages(new Set())}>
+                    Deselect all
+                  </Button>
+                  <Button size="sm" onClick={saveSelected} disabled={isLoading}>
+                    Save {selectedImages.size > 0 ? selectedImages.size : 1}
+                  </Button>
                 </div>
               </div>
             )}
@@ -941,7 +1085,7 @@ const CreateNew = () => {
                 </TabsList>
               </div>
 
-              <ScrollArea className="flex-1 px-4 pb-4 pt-3 max-h-[65vh]">
+              <ScrollArea className="flex-1 px-4 pb-4 pt-3 max-h-[75vh]">
                 <div className="pr-2 space-y-2">
                   <TabsContent value="avatar" className="space-y-4">
                     <div className="space-y-1">
@@ -1006,48 +1150,28 @@ const CreateNew = () => {
 
                         {(selectedAvatar || customAvatarUrl) && (
                           <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                            <div className="space-y-2">
-                              <Label>Expression</Label>
-                              <Select value={expression} onValueChange={setExpression}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {EXPRESSIONS.map((exp) => (
-                                    <SelectItem key={exp.id} value={exp.id}>
-                                      {exp.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            <MultiSelectChips
+                              label="Expressions (max 3)"
+                              options={EXPRESSION_OPTIONS}
+                              value={expressions}
+                              onChange={setExpressions}
+                              maxSelected={3}
+                              showAiDecide
+                              aiLabel="Let AI Decide"
+                              aiDescription="AI will vary expressions across the 9 thumbnails"
+                              customPlaceholder="Add custom expression..."
+                            />
 
-                            {expression === "custom" && (
-                              <div className="space-y-2">
-                                <Label>Custom Expression</Label>
-                                <Input
-                                  placeholder="e.g., thoughtful, energetic, mysterious..."
-                                  value={customExpression}
-                                  onChange={(e) => setCustomExpression(e.target.value)}
-                                />
-                              </div>
-                            )}
-
-                            <div className="space-y-2">
-                              <Label>Position</Label>
-                              <Select value={avatarPosition} onValueChange={setAvatarPosition}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {POSITIONS.map((pos) => (
-                                    <SelectItem key={pos.value} value={pos.value}>
-                                      {pos.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            <MultiSelectChips
+                              label="Avatar positions"
+                              options={POSITION_OPTIONS}
+                              value={avatarPositions}
+                              onChange={setAvatarPositions}
+                              showAiDecide
+                              aiLabel="Let AI Decide"
+                              aiDescription="AI will vary avatar positions across the 9 thumbnails"
+                              customPlaceholder="Add custom position..."
+                            />
                           </div>
                         )}
                       </>
@@ -1089,7 +1213,7 @@ const CreateNew = () => {
                             } else {
                               if (selectedProducts.length < 3) {
                                 setSelectedProducts([...selectedProducts, customEl.id]);
-                                setElementPositions(prev => ({ ...prev, [customEl.id]: "center-right" }));
+                                setElementPositions(prev => ({ ...prev, [customEl.id]: ["center-right"] }));
                               } else {
                                 toast.error("Maximum 3 elements allowed");
                               }
@@ -1122,7 +1246,7 @@ const CreateNew = () => {
                             } else {
                               if (selectedProducts.length < 3) {
                                 setSelectedProducts([...selectedProducts, product.id]);
-                                setElementPositions(prev => ({ ...prev, [product.id]: "center-right" }));
+                                setElementPositions(prev => ({ ...prev, [product.id]: ["center-right"] }));
                               } else {
                                 toast.error("Maximum 3 elements allowed");
                               }
@@ -1164,21 +1288,16 @@ const CreateNew = () => {
                           return (
                             <div key={id} className="space-y-2 p-3 rounded-lg bg-secondary/50 border border-border">
                               <span className="text-xs font-medium text-muted-foreground">{name}</span>
-                              <Select
-                                value={elementPositions[id] || "center-right"}
-                                onValueChange={(val) => setElementPositions(prev => ({ ...prev, [id]: val }))}
-                              >
-                                <SelectTrigger className="h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {POSITIONS.map((pos) => (
-                                    <SelectItem key={pos.value} value={pos.value}>
-                                      {pos.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <MultiSelectChips
+                                label="Positions"
+                                options={POSITION_OPTIONS}
+                                value={elementPositions[id] || []}
+                                onChange={(next) => setElementPositions((prev) => ({ ...prev, [id]: next }))}
+                                showAiDecide
+                                aiLabel="Let AI Decide"
+                                aiDescription="AI will vary element positions across the 9 thumbnails"
+                                customPlaceholder="Add custom position..."
+                              />
                             </div>
                           );
                         })}
@@ -1196,21 +1315,75 @@ const CreateNew = () => {
 
                     <div className="space-y-2">
                       <Label>Title</Label>
-                      <Input
-                        placeholder="Enter title..."
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={titleMode === "ai" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setTitleMode("ai")}
+                          className="shrink-0"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          AI Decide
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={titleMode === "custom" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setTitleMode("custom")}
+                          className="shrink-0"
+                        >
+                          Manual
+                        </Button>
+                      </div>
+                      {titleMode === "ai" ? (
+                        <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm text-muted-foreground">
+                          AI will generate different click-worthy titles across the 9 thumbnails.
+                        </div>
+                      ) : (
+                        <Input
+                          placeholder="Enter title..."
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label>Subtitle</Label>
-                      <Textarea
-                        placeholder="Enter subtitle..."
-                        value={subtitle}
-                        onChange={(e) => setSubtitle(e.target.value)}
-                        rows={2}
-                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={subtitleMode === "ai" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSubtitleMode("ai")}
+                          className="shrink-0"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          AI Decide
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={subtitleMode === "custom" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSubtitleMode("custom")}
+                          className="shrink-0"
+                        >
+                          Manual
+                        </Button>
+                      </div>
+                      {subtitleMode === "ai" ? (
+                        <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm text-muted-foreground">
+                          AI will generate different subtitles that complement each title.
+                        </div>
+                      ) : (
+                        <Textarea
+                          placeholder="Enter subtitle..."
+                          value={subtitle}
+                          onChange={(e) => setSubtitle(e.target.value)}
+                          rows={2}
+                        />
+                      )}
                     </div>
 
                     {/* Font Style Source Toggle */}
@@ -1241,34 +1414,16 @@ const CreateNew = () => {
                     </div>
 
                     {!useImageFontStyle ? (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Text Style</Label>
-                          <Select value={textStyle} onValueChange={setTextStyle}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {TEXT_STYLES.map((style) => (
-                                <SelectItem key={style} value={style}>
-                                  {style}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {textStyle === "Custom" && (
-                          <div className="space-y-2">
-                            <Label>Custom Text Style</Label>
-                            <Input
-                              placeholder="e.g., graffiti style, neon glow, 3D effect..."
-                              value={customTextStyle}
-                              onChange={(e) => setCustomTextStyle(e.target.value)}
-                            />
-                          </div>
-                        )}
-                      </>
+                      <MultiSelectChips
+                        label="Text styles"
+                        options={TEXT_STYLE_OPTIONS}
+                        value={textStyles}
+                        onChange={setTextStyles}
+                        showAiDecide
+                        aiLabel="Let AI Decide"
+                        aiDescription="AI will vary text styles across the 9 thumbnails"
+                        customPlaceholder="Add custom text style..."
+                      />
                     ) : (
                       <div className="space-y-2">
                         <Label>Font style image reference</Label>
@@ -1332,21 +1487,18 @@ const CreateNew = () => {
                       </div>
                     )}
 
-                    {(title || subtitle) && (
+                    {(titleMode === "ai" || subtitleMode === "ai" || title || subtitle) && (
                       <div className="space-y-2 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                        <Label>Position</Label>
-                        <Select value={textPosition} onValueChange={setTextPosition}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {POSITIONS.map((pos) => (
-                              <SelectItem key={pos.value} value={pos.value}>
-                                {pos.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <MultiSelectChips
+                          label="Text positions"
+                          options={POSITION_OPTIONS}
+                          value={textPositions}
+                          onChange={setTextPositions}
+                          showAiDecide
+                          aiLabel="Let AI Decide"
+                          aiDescription="AI will vary text positions across the 9 thumbnails"
+                          customPlaceholder="Add custom position..."
+                        />
                       </div>
                     )}
 
@@ -1418,30 +1570,17 @@ const CreateNew = () => {
 
                     <div className="space-y-2">
                       <Label>Visual Style</Label>
-                      <Select value={visualStyle} onValueChange={setVisualStyle}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VISUAL_STYLES.map((style) => (
-                            <SelectItem key={style} value={style}>
-                              {style}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <MultiSelectChips
+                        label="Visual styles"
+                        options={VISUAL_STYLE_OPTIONS}
+                        value={visualStyles}
+                        onChange={setVisualStyles}
+                        showAiDecide
+                        aiLabel="Let AI Decide"
+                        aiDescription="AI will vary visual styles across the 9 thumbnails"
+                        customPlaceholder="Add custom visual style..."
+                      />
                     </div>
-
-                    {visualStyle === "Custom" && (
-                      <div className="space-y-2">
-                        <Label>Custom Visual Style</Label>
-                        <Input
-                          placeholder="e.g., cyberpunk aesthetic, watercolor painting, retro 80s..."
-                          value={customVisualStyle}
-                          onChange={(e) => setCustomVisualStyle(e.target.value)}
-                        />
-                      </div>
-                    )}
 
                     <div className="space-y-2">
                       <Label>Background</Label>
@@ -1645,23 +1784,23 @@ const CreateNew = () => {
                 </div>
               </ScrollArea>
 
-              <div className="border-t border-border/60 p-4">
+              <div className="border-t border-border/60 p-4 space-y-2">
                 <Button
                   onClick={handleGenerate}
-                  disabled={generating}
+                  disabled={isLoading}
                   variant="default"
                   className="w-full"
                   size="lg"
                 >
-                  {generating ? (
+                  {isLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Generating...
+                      {croppingGrid ? "Processing variations..." : "Generating 9 variations..."}
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-5 h-5 mr-2" />
-                      Generate Thumbnail
+                      <Grid3X3 className="w-5 h-5 mr-2" />
+                      Generate 9 Thumbnails
                     </>
                   )}
                 </Button>

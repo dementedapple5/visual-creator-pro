@@ -15,21 +15,29 @@ import { StepGenerate } from "@/components/create/StepGenerate";
 export interface CreateData {
   avatarId?: string;
   capturedFrameUrl?: string;
-  avatarPosition?: string;
+  avatarPosition?: string;        // Legacy single value
+  avatarPositions?: string[];     // New: multiple positions for grid variations
   avatarImportance?: number;
   productIds?: string[];
-  productPosition?: string;
+  productPosition?: string;       // Legacy single value
+  productPositions?: string[];    // New: multiple positions for grid variations
   productImportance?: number;
   title?: string;
   subtitle?: string;
-  textPosition?: string;
+  textPosition?: string;          // Legacy single value
+  textPositions?: string[];       // New: multiple positions for grid variations
   textImportance?: number;
-  expression?: string;
-  visualStyle?: string;
+  expression?: string;            // Legacy single value
+  expressions?: string[];         // New: multiple expressions (max 3) for grid variations
+  visualStyle?: string;           // Legacy single value
+  visualStyles?: string[];        // New: multiple styles for grid variations
   textStyle?: string;
   backgroundType?: string;
   backgroundValue?: string;
   aspectRatio?: string;
+  // AI decide modes
+  titleMode?: 'custom' | 'ai';
+  subtitleMode?: 'custom' | 'ai';
 }
 
 const Create = () => {

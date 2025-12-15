@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreateData } from "@/pages/Create";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Sparkles, X, Check, Plus } from "lucide-react";
 
 interface StepTextProps {
   data: CreateData;
@@ -12,74 +14,262 @@ interface StepTextProps {
   onPrev: () => void;
 }
 
+const POSITIONS = [
+  { id: "top-left", label: "Top Left" },
+  { id: "top-center", label: "Top Center" },
+  { id: "top-right", label: "Top Right" },
+  { id: "center-left", label: "Center Left" },
+  { id: "center", label: "Center" },
+  { id: "center-right", label: "Center Right" },
+  { id: "bottom-left", label: "Bottom Left" },
+  { id: "bottom-center", label: "Bottom Center" },
+  { id: "bottom-right", label: "Bottom Right" },
+];
+
 export const StepText = ({ data, updateData, onNext, onPrev }: StepTextProps) => {
+  const [customPosition, setCustomPosition] = useState("");
+  const isAiTitleMode = data.titleMode === 'ai';
+  const isAiSubtitleMode = data.subtitleMode === 'ai';
+  const selectedPositions = data.textPositions || [];
+  const isAiPositionMode = selectedPositions.includes("ai-decide");
+
   const handleSkip = () => {
     updateData({ 
       title: undefined, 
       subtitle: undefined,
       textPosition: undefined,
-      textImportance: undefined
+      textPositions: undefined,
+      textImportance: undefined,
+      titleMode: undefined,
+      subtitleMode: undefined
     });
     onNext();
   };
+
+  const handlePositionToggle = (positionId: string) => {
+    if (positionId === "ai-decide") {
+      // Toggle AI mode - clears other selections
+      if (isAiPositionMode) {
+        updateData({ textPositions: [] });
+      } else {
+        updateData({ textPositions: ["ai-decide"] });
+      }
+      return;
+    }
+
+    // If AI mode is active, switch to manual selection
+    if (isAiPositionMode) {
+      updateData({ textPositions: [positionId] });
+      return;
+    }
+
+    const isSelected = selectedPositions.includes(positionId);
+    
+    if (isSelected) {
+      updateData({ textPositions: selectedPositions.filter(p => p !== positionId) });
+    } else {
+      updateData({ textPositions: [...selectedPositions, positionId] });
+    }
+  };
+
+  const addCustomPosition = () => {
+    if (customPosition.trim() && !selectedPositions.includes(customPosition.trim())) {
+      if (isAiPositionMode) {
+        updateData({ textPositions: [customPosition.trim()] });
+      } else {
+        updateData({ textPositions: [...selectedPositions, customPosition.trim()] });
+      }
+      setCustomPosition("");
+    }
+  };
+
+  const removePosition = (positionId: string) => {
+    updateData({ textPositions: selectedPositions.filter(p => p !== positionId) });
+  };
+
+  const hasTextContent = data.title || data.subtitle || isAiTitleMode || isAiSubtitleMode;
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold mb-2">Add Title & Subtitle</h2>
         <p className="text-muted-foreground">
-          Add text to your thumbnail (optional)
+          Add text to your thumbnail or let AI generate compelling titles
         </p>
       </div>
 
       <div className="space-y-6">
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            placeholder="Enter title..."
-            value={data.title || ""}
-            onChange={(e) => updateData({ title: e.target.value })}
-            className="text-lg"
-          />
+        {/* Title Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="title" className="text-base">Title</Label>
+            <div className="flex items-center gap-2">
+              <Sparkles className={`w-4 h-4 ${isAiTitleMode ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Label htmlFor="ai-title-mode" className="text-sm text-muted-foreground cursor-pointer">
+                Let AI decide
+              </Label>
+              <Switch
+                id="ai-title-mode"
+                checked={isAiTitleMode}
+                onCheckedChange={(checked) => {
+                  updateData({ 
+                    titleMode: checked ? 'ai' : 'custom',
+                    title: checked ? undefined : data.title
+                  });
+                }}
+              />
+            </div>
+          </div>
+          
+          {isAiTitleMode ? (
+            <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+              <div className="flex items-center gap-2 text-primary">
+                <Sparkles className="w-5 h-5" />
+                <span className="font-medium">AI will generate unique titles for each variation</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Each thumbnail in the grid will have a different compelling title generated by AI
+              </p>
+            </div>
+          ) : (
+            <Input
+              id="title"
+              placeholder="Enter title..."
+              value={data.title || ""}
+              onChange={(e) => updateData({ title: e.target.value })}
+              className="text-lg"
+            />
+          )}
         </div>
 
-        <div>
-          <Label htmlFor="subtitle">Subtitle</Label>
-          <Input
-            id="subtitle"
-            placeholder="Enter subtitle..."
-            value={data.subtitle || ""}
-            onChange={(e) => updateData({ subtitle: e.target.value })}
-          />
+        {/* Subtitle Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="subtitle" className="text-base">Subtitle</Label>
+            <div className="flex items-center gap-2">
+              <Sparkles className={`w-4 h-4 ${isAiSubtitleMode ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Label htmlFor="ai-subtitle-mode" className="text-sm text-muted-foreground cursor-pointer">
+                Let AI decide
+              </Label>
+              <Switch
+                id="ai-subtitle-mode"
+                checked={isAiSubtitleMode}
+                onCheckedChange={(checked) => {
+                  updateData({ 
+                    subtitleMode: checked ? 'ai' : 'custom',
+                    subtitle: checked ? undefined : data.subtitle
+                  });
+                }}
+              />
+            </div>
+          </div>
+          
+          {isAiSubtitleMode ? (
+            <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+              <div className="flex items-center gap-2 text-primary">
+                <Sparkles className="w-5 h-5" />
+                <span className="font-medium">AI will generate unique subtitles for each variation</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Each thumbnail will have a complementary subtitle generated by AI
+              </p>
+            </div>
+          ) : (
+            <Input
+              id="subtitle"
+              placeholder="Enter subtitle..."
+              value={data.subtitle || ""}
+              onChange={(e) => updateData({ subtitle: e.target.value })}
+            />
+          )}
         </div>
       </div>
 
-      {(data.title || data.subtitle) && (
+      {hasTextContent && (
         <div className="space-y-6 p-6 bg-card border border-border rounded-lg transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
           <h3 className="text-lg font-semibold">Text Customization</h3>
           
-          <div>
-            <Label htmlFor="text-position">Position</Label>
-            <Select 
-              value={data.textPosition || "center"} 
-              onValueChange={(value) => updateData({ textPosition: value })}
+          <div className="space-y-3">
+            <Label>Positions (select multiple for variations)</Label>
+            
+            {/* AI Decide Option */}
+            <button
+              onClick={() => handlePositionToggle("ai-decide")}
+              className={`w-full p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                isAiPositionMode
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/50"
+              }`}
             >
-              <SelectTrigger id="text-position">
-                <SelectValue placeholder="Select position" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="top-left">Top Left</SelectItem>
-                <SelectItem value="top-center">Top Center</SelectItem>
-                <SelectItem value="top-right">Top Right</SelectItem>
-                <SelectItem value="center-left">Center Left</SelectItem>
-                <SelectItem value="center">Center</SelectItem>
-                <SelectItem value="center-right">Center Right</SelectItem>
-                <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                <SelectItem value="bottom-center">Bottom Center</SelectItem>
-                <SelectItem value="bottom-right">Bottom Right</SelectItem>
-              </SelectContent>
-            </Select>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                isAiPositionMode ? "bg-primary" : "bg-gradient-to-br from-violet-500 to-fuchsia-500"
+              }`}>
+                {isAiPositionMode ? <Check className="w-4 h-4 text-primary-foreground" /> : <Sparkles className="w-4 h-4 text-white" />}
+              </div>
+              <div className="text-left">
+                <div className="font-medium text-sm">Let AI Decide</div>
+                <div className="text-xs text-muted-foreground">AI will choose optimal text positions</div>
+              </div>
+            </button>
+
+            {/* Position Chips */}
+            <div className={`flex flex-wrap gap-2 ${isAiPositionMode ? "opacity-50 pointer-events-none" : ""}`}>
+              {POSITIONS.map((position) => {
+                const isSelected = selectedPositions.includes(position.id);
+                return (
+                  <button
+                    key={position.id}
+                    onClick={() => handlePositionToggle(position.id)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80 text-foreground"
+                    }`}
+                  >
+                    {isSelected && <Check className="w-3 h-3 inline mr-1" />}
+                    {position.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Position Input */}
+            <div className={`flex gap-2 ${isAiPositionMode ? "opacity-50 pointer-events-none" : ""}`}>
+              <Input
+                placeholder="Add custom position..."
+                value={customPosition}
+                onChange={(e) => setCustomPosition(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCustomPosition()}
+                className="flex-1"
+              />
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={addCustomPosition}
+                disabled={!customPosition.trim()}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Selected Custom Positions */}
+            {selectedPositions.filter(p => p !== "ai-decide" && !POSITIONS.find(pos => pos.id === p)).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedPositions
+                  .filter(p => p !== "ai-decide" && !POSITIONS.find(pos => pos.id === p))
+                  .map((posId) => (
+                    <span
+                      key={posId}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-sm"
+                    >
+                      {posId}
+                      <button onClick={() => removePosition(posId)} className="hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
           </div>
 
           <div>

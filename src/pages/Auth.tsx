@@ -49,9 +49,9 @@ const Auth = () => {
             />
           ))}
         </div>
-        <div className="absolute top-[-18%] left-[-10%] w-[50%] h-[50%] bg-purple-500/12 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[-18%] right-[-6%] w-[52%] h-[52%] bg-blue-500/12 rounded-full blur-[140px]" />
-        <div className="absolute top-1/3 right-[12%] w-48 h-48 rounded-full bg-white/5 blur-[80px] opacity-30 animate-glow" />
+        <div className="absolute top-[-18%] left-[-10%] w-[50%] h-[50%] bg-rose-500/12 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-18%] right-[-6%] w-[52%] h-[52%] bg-rose-400/10 rounded-full blur-[140px]" />
+        <div className="absolute top-1/3 right-[12%] w-48 h-48 rounded-full bg-primary/5 blur-[80px] opacity-30 animate-glow" />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8 py-12 lg:py-20 space-y-10">
@@ -61,7 +61,7 @@ const Auth = () => {
               <img
                 src="/favicon.png"
                 alt="Vizion logo"
-                className="w-full h-full rounded-xl object-contain shadow-lg shadow-purple-500/30 bg-white/80"
+                className="w-full h-full rounded-xl object-contain shadow-lg shadow-primary/30 bg-white/80"
               />
             </div>
             <div>
@@ -104,7 +104,7 @@ const Auth = () => {
                 <span className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 blur-[1px] flex items-center justify-center text-sm font-semibold text-black shadow-lg shadow-emerald-500/30">
                   V
                 </span>
-                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 blur-[1px] flex items-center justify-center text-sm font-semibold text-black shadow-lg shadow-purple-500/30">
+                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 blur-[1px] flex items-center justify-center text-sm font-semibold text-black shadow-lg shadow-rose-400/30">
                   Z
                 </span>
                 <span className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 blur-[1px] flex items-center justify-center text-sm font-semibold text-black shadow-lg shadow-amber-400/30">
@@ -120,7 +120,7 @@ const Auth = () => {
             style={{ animationDelay: "0.1s" }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/0 to-white/5 pointer-events-none" />
-            <div className="absolute -top-10 -right-10 w-36 h-36 bg-purple-500/20 rounded-full blur-3xl" />
+            <div className="absolute -top-10 -right-10 w-36 h-36 bg-primary/20 rounded-full blur-3xl" />
             <div className="relative space-y-6">
               <div className="flex items-start justify-between gap-4">
                 <div>

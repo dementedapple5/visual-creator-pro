@@ -10,25 +10,38 @@ const corsHeaders = {
 interface ThumbnailData {
   avatarId?: string;
   customAvatarUrl?: string;
-  avatarPosition?: string;
+  avatarPosition?: string;         // Legacy single value
+  avatarPositions?: string[];      // New: multiple positions for grid variations
   productIds?: string[]; // Legacy support
   productPosition?: string; // Legacy support
+  productPositions?: string[];     // New: multiple positions for grid variations
   elements?: {
     id?: string;
     url?: string;
     position: string;
+    name?: string;
+    brand?: string;
   }[];
   title?: string;
   subtitle?: string;
-  textPosition?: string;
-  expression?: string;
-  visualStyle?: string;
-  textStyle?: string;
+  textPosition?: string;           // Legacy single value
+  textPositions?: string[];        // New: multiple positions for grid variations
+  expression?: string;             // Legacy single value
+  expressions?: string[];          // New: multiple expressions for grid variations
+  visualStyle?: string;            // Legacy single value
+  visualStyles?: string[];         // New: multiple styles for grid variations
+  textStyle?: string;              // Legacy single value
+  textStyles?: string[];           // New: multiple styles for grid variations
   fontStyleImageUrl?: string; // Image reference for font/text styling
   backgroundType?: string;
   backgroundValue?: string;
   aspectRatio?: string;
   iterationPrompt?: string;
+  // AI decide modes
+  titleMode?: 'custom' | 'ai';
+  subtitleMode?: 'custom' | 'ai';
+  // Grid generation mode
+  gridMode?: boolean;
 }
 
 serve(async (req) => {
@@ -109,6 +122,7 @@ serve(async (req) => {
     // Build the prompt
     const platformType = thumbnailData?.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
     const aspectRatio = thumbnailData?.aspectRatio || "16:9";
+    const isGridMode = thumbnailData?.gridMode !== false; // Default to grid mode
 
     let prompt = "";
 
@@ -128,7 +142,90 @@ CRITICAL INSTRUCTIONS:
       prompt = `You are remixing an existing thumbnail. Apply the following changes to the image: ${remixPrompt}
 
 CRITICAL: Maintain the overall composition and style of the original thumbnail while applying the requested changes.`;
-    } else {
+    } 
+    // Grid mode - generate 3x3 grid of variations
+    else if (isGridMode) {
+      prompt = `Generate a 3x3 GRID IMAGE containing 9 DISTINCT ${platformType} thumbnail variations.
+
+CRITICAL LAYOUT INSTRUCTIONS:
+- Create a single image divided into a 3x3 grid (3 columns, 3 rows)
+- Each cell contains ONE complete thumbnail
+- ALL 9 cells must be filled with unique thumbnail variations
+- Cells should have thin white borders/gaps between them for clear separation
+- Each thumbnail must be a complete, standalone design
+
+VARIATION INSTRUCTIONS FOR THE 9 THUMBNAILS:`;
+
+      // Add variation instructions based on selected options
+      const expressions = thumbnailData.expressions || (thumbnailData.expression ? [thumbnailData.expression] : []);
+      const visualStyles = thumbnailData.visualStyles || (thumbnailData.visualStyle ? [thumbnailData.visualStyle] : []);
+      const textStyles = thumbnailData.textStyles || (thumbnailData.textStyle ? [thumbnailData.textStyle] : []);
+      const avatarPositions = thumbnailData.avatarPositions || (thumbnailData.avatarPosition ? [thumbnailData.avatarPosition] : []);
+      const textPositions = thumbnailData.textPositions || (thumbnailData.textPosition ? [thumbnailData.textPosition] : []);
+      const productPositions = thumbnailData.productPositions || (thumbnailData.productPosition ? [thumbnailData.productPosition] : []);
+
+      // Expressions
+      if (expressions.includes("ai-decide")) {
+        prompt += `\n- Vary FACIAL EXPRESSIONS across thumbnails (excited, surprised, happy, serious, confident, thinking)`;
+      } else if (expressions.length > 0) {
+        prompt += `\n- Use these FACIAL EXPRESSIONS across thumbnails: ${expressions.join(", ")}`;
+      }
+
+      // Visual styles
+      if (visualStyles.includes("ai-decide")) {
+        prompt += `\n- Vary VISUAL STYLES across thumbnails (epic, dramatic, vibrant, professional, creative, minimalist)`;
+      } else if (visualStyles.length > 0) {
+        prompt += `\n- Use these VISUAL STYLES across thumbnails: ${visualStyles.join(", ")}`;
+      }
+
+      // Text styles
+      if (textStyles.includes("ai-decide")) {
+        prompt += `\n- Vary TEXT STYLES across thumbnails (bold & large, elegant script, modern sans, handwritten, futuristic, classic serif)`;
+      } else if (textStyles.length > 0 && !textStyles.includes("Image Reference")) {
+        prompt += `\n- Use these TEXT STYLES across thumbnails: ${textStyles.join(", ")}`;
+      }
+
+      // Avatar positions
+      if (avatarPositions.includes("ai-decide")) {
+        prompt += `\n- Vary AVATAR/PERSON POSITIONS across thumbnails (top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right)`;
+      } else if (avatarPositions.length > 0) {
+        prompt += `\n- Position the AVATAR/PERSON in these locations across thumbnails: ${avatarPositions.join(", ")}`;
+      }
+
+      // Text positions
+      if (textPositions.includes("ai-decide")) {
+        prompt += `\n- Vary TEXT POSITIONS across thumbnails (top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right)`;
+      } else if (textPositions.length > 0) {
+        prompt += `\n- Position the TEXT in these locations across thumbnails: ${textPositions.join(", ")}`;
+      }
+
+      // Element/product positions
+      if (productPositions.includes("ai-decide")) {
+        prompt += `\n- Vary ELEMENT/PRODUCT POSITIONS across thumbnails (top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right)`;
+      } else if (productPositions.length > 0) {
+        prompt += `\n- Position the ELEMENTS/PRODUCTS in these locations across thumbnails: ${productPositions.join(", ")}`;
+      }
+
+      // Handle AI-generated titles
+      if (thumbnailData.titleMode === 'ai') {
+        prompt += `\n- Generate UNIQUE, COMPELLING TITLES for each thumbnail - make them click-worthy and varied`;
+      }
+
+      // Handle AI-generated subtitles
+      if (thumbnailData.subtitleMode === 'ai') {
+        prompt += `\n- Generate UNIQUE SUBTITLES for each thumbnail that complement the titles`;
+      }
+
+      prompt += `
+
+PRESERVE INSTRUCTIONS:
+- PRESERVE the exact appearance, face, outfit, and styling of any people shown in the provided images
+- Do NOT modify facial features, clothing, or accessories of the people
+- Keep them looking EXACTLY as they appear in the source images
+- Ensure each of the 9 thumbnails is high-quality and could work as a standalone thumbnail`;
+    }
+    // Single thumbnail mode (legacy)
+    else {
       prompt = `Generate a high-impact ${platformType} thumbnail with ${aspectRatio} aspect ratio. 
 
 CRITICAL INSTRUCTIONS:
@@ -139,8 +236,11 @@ CRITICAL INSTRUCTIONS:
 
     // Only add detailed styling instructions for new creations (not for iterations or remixes)
     if (!iterationImageUrl && !remixImageUrl && thumbnailData) {
-      // Visual style
-      if (thumbnailData.visualStyle) {
+      // For grid mode, most styling is handled in the variation instructions above
+      // Only add non-variant specific instructions here
+      
+      // Visual style (only for single mode, grid mode handles this in variations)
+      if (!isGridMode && thumbnailData.visualStyle) {
         const styles: Record<string, string> = {
           epic: "Epic and bold with dramatic lighting and strong contrast",
           dramatic: "Cinematic and dramatic with high contrast",
@@ -152,26 +252,66 @@ CRITICAL INSTRUCTIONS:
         prompt += `Style: ${styles[thumbnailData.visualStyle] || thumbnailData.visualStyle}. `;
       }
 
-      // Background
+      // Background (applies to all thumbnails in grid)
       if (thumbnailData.backgroundType && thumbnailData.backgroundValue) {
         if (thumbnailData.backgroundType === "preset") {
-          prompt += `\n\nBackground: ${thumbnailData.backgroundValue} setting. `;
+          prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue} setting. `;
         } else if (thumbnailData.backgroundType === "color") {
-          prompt += `\n\nBackground: solid ${thumbnailData.backgroundValue} color. `;
+          prompt += `\n\nBackground for all thumbnails: solid ${thumbnailData.backgroundValue} color. `;
         } else if (thumbnailData.backgroundType === "prompt" || thumbnailData.backgroundType === "custom-prompt") {
-          prompt += `\n\nBackground: ${thumbnailData.backgroundValue}. `;
+          prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue}. `;
         } else if (thumbnailData.backgroundType === "avatar" || thumbnailData.backgroundType === "avatar-bg") {
-          prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
+          prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image in all thumbnails. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
         }
       }
 
-      // Text styling
-      if (thumbnailData.title) {
+      // Elements/Products context (name and brand for better AI understanding)
+      if (thumbnailData.elements && thumbnailData.elements.length > 0) {
+        const elementsWithInfo = thumbnailData.elements.filter(el => el.name || el.brand);
+        if (elementsWithInfo.length > 0) {
+          prompt += `\n\nELEMENTS/PRODUCTS IN THE THUMBNAIL:`;
+          elementsWithInfo.forEach((element, index) => {
+            const elementInfo: string[] = [];
+            if (element.name) elementInfo.push(element.name);
+            if (element.brand) elementInfo.push(`by ${element.brand}`);
+            if (elementInfo.length > 0) {
+              prompt += `\n- Element ${index + 1}: ${elementInfo.join(' ')}`;
+            }
+          });
+          prompt += `\n\nMake sure these products/elements are prominently featured and recognizable in the thumbnail. `;
+        }
+      } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
+        // Legacy support: fetch product details for context
+        const { data: productDetails } = await supabase
+          .from("products")
+          .select("id, title, brand")
+          .in("id", thumbnailData.productIds);
+
+        if (productDetails && productDetails.length > 0) {
+          const productsWithInfo = productDetails.filter(p => p.title || p.brand);
+          if (productsWithInfo.length > 0) {
+            prompt += `\n\nELEMENTS/PRODUCTS IN THE THUMBNAIL:`;
+            productsWithInfo.forEach((product, index) => {
+              const productInfo: string[] = [];
+              if (product.title) productInfo.push(product.title);
+              if (product.brand) productInfo.push(`by ${product.brand}`);
+              if (productInfo.length > 0) {
+                prompt += `\n- Element ${index + 1}: ${productInfo.join(' ')}`;
+              }
+            });
+            prompt += `\n\nMake sure these products/elements are prominently featured and recognizable in the thumbnail. `;
+          }
+        }
+      }
+
+      // Text styling (applies to all thumbnails)
+      if (thumbnailData.title && thumbnailData.titleMode !== 'ai') {
         // Check if using image-based font style reference
         if (thumbnailData.fontStyleImageUrl) {
           prompt += `Include the text "${thumbnailData.title}" styled EXACTLY like the font/text style shown in the provided font reference image. Match the font style, weight, effects, colors, and overall aesthetic from the reference image. `;
-        } else {
-          const textStyles: Record<string, string> = {
+        } else if (!textStyles.includes("ai-decide") && textStyles.length > 0) {
+          // Use specific text styles if not in AI decide mode
+          const textStyleDescriptions: Record<string, string> = {
             "Bold & Large": "large, bold, and impactful",
             "Elegant Script": "elegant script style",
             "Modern Sans": "modern, clean sans-serif",
@@ -179,41 +319,55 @@ CRITICAL INSTRUCTIONS:
             "Futuristic": "futuristic style with modern effects",
             "Classic Serif": "classic serif typography"
           };
-          const textStyle = thumbnailData.textStyle && textStyles[thumbnailData.textStyle]
-            ? textStyles[thumbnailData.textStyle]
-            : "bold and large";
-          prompt += `Include the text "${thumbnailData.title}" in ${textStyle} typography. `;
+          // Use the first style for the base description when multiple are selected
+          const primaryStyle = textStyles[0];
+          const textStyleDesc = textStyleDescriptions[primaryStyle] || primaryStyle;
+          prompt += `Include the text "${thumbnailData.title}" in ${textStyleDesc} typography in all thumbnails. `;
+        } else {
+          // AI will decide or no specific style - just include the title
+          prompt += `Include the text "${thumbnailData.title}" with varied typography styles across thumbnails. `;
         }
+      }
 
-        if (thumbnailData.subtitle) {
-          prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title. `;
-        }
+      if (thumbnailData.subtitle && thumbnailData.subtitleMode !== 'ai') {
+        prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title. `;
+      }
 
+      // Single mode specific positioning (grid mode handles positions in variations)
+      if (!isGridMode) {
         // Add text positioning
         if (thumbnailData.textPosition) {
           prompt += `Position the text at ${thumbnailData.textPosition.replace('-', ' ')}. `;
         }
-      }
 
-      // Expression for avatar
-      if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.expression) {
-        prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
-      }
+        // Expression for avatar
+        if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.expression) {
+          prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
+        }
 
-      // Avatar positioning
-      if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.avatarPosition) {
-        prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
-      }
+        // Avatar positioning
+        if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.avatarPosition) {
+          prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
+        }
 
-      // Elements positioning
-      if (thumbnailData.elements && thumbnailData.elements.length > 0) {
-        thumbnailData.elements.forEach((element, index) => {
-          const position = element.position.replace('-', ' ');
-          prompt += `Position element ${index + 1} at ${position}. `;
-        });
-      } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
-        // Legacy support
-        prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
+        // Elements positioning
+        if (thumbnailData.elements && thumbnailData.elements.length > 0) {
+          thumbnailData.elements.forEach((element, index) => {
+            const position = element.position.replace('-', ' ');
+            // Build element description with name and brand if available
+            let elementDesc = `element ${index + 1}`;
+            if (element.name || element.brand) {
+              const parts: string[] = [];
+              if (element.name) parts.push(element.name);
+              if (element.brand) parts.push(`(${element.brand})`);
+              elementDesc = parts.join(' ');
+            }
+            prompt += `Position ${elementDesc} at ${position}. `;
+          });
+        } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
+          // Legacy support
+          prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
+        }
       }
     }
 
@@ -399,7 +553,7 @@ CRITICAL INSTRUCTIONS:
                 responseModalities: ["TEXT", "IMAGE"],
                 imageConfig: {
                   aspectRatio: aspectRatio,
-                  imageSize: "2K",
+                  imageSize: isGridMode ? "4K" : "2K", // Use 4K for grid mode to maintain quality when cropping
                 },
               },
             }),

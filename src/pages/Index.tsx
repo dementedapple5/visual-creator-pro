@@ -238,8 +238,8 @@ const Index = () => {
             />
           ))}
         </div>
-        <div className="absolute top-[-18%] left-[-8%] w-[48%] h-[48%] bg-purple-500/12 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[-18%] right-[-4%] w-[50%] h-[50%] bg-blue-500/12 rounded-full blur-[140px]" />
+        <div className="absolute top-[-18%] left-[-8%] w-[48%] h-[48%] bg-rose-500/12 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-18%] right-[-4%] w-[50%] h-[50%] bg-rose-400/10 rounded-full blur-[140px]" />
       </div>
 
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/60 backdrop-blur-xl transition-all duration-300">
@@ -249,7 +249,7 @@ const Index = () => {
               <img
                 src="/favicon.png"
                 alt="Vizion logo"
-                className="w-full h-full rounded-xl  object-contain shadow-lg shadow-purple-500/20 bg-white/80"
+                className="w-full h-full rounded-xl  object-contain shadow-lg shadow-primary/20 bg-white/80"
               />
             </div>
             <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
@@ -462,7 +462,7 @@ const Index = () => {
       <section className="py-28 bg-white/[0.02] border-y border-white/5 backdrop-blur-sm relative overflow-hidden">
         <div className="absolute inset-0 bg-fine-grid opacity-100" />
         <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background pointer-events-none" />
-        
+
         <div className="relative z-10">
           <div className="text-center mb-16 px-6">
             <h2 className="text-3xl md:text-5xl font-bold mb-6" data-animate>
@@ -476,7 +476,7 @@ const Index = () => {
           <div className="relative">
             <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
-            
+
             <div className="overflow-hidden" data-animate style={{ ["--delay" as any]: "0.2s" }}>
               <div className="flex gap-6 animate-scroll-left" style={{ width: 'max-content' }}>
                 {[
@@ -518,10 +518,10 @@ const Index = () => {
                   }
                 ].map((testimonial, i) => (
                   <div key={`first-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] cursor-default group">
-                    <Quote className="w-8 h-8 text-purple-500 mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <Quote className="w-8 h-8 text-primary mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
                     <p className="text-lg text-white/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
                         {testimonial.avatar}
                       </div>
                       <div>
@@ -570,10 +570,10 @@ const Index = () => {
                   }
                 ].map((testimonial, i) => (
                   <div key={`second-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] cursor-default group">
-                    <Quote className="w-8 h-8 text-purple-500 mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <Quote className="w-8 h-8 text-primary mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
                     <p className="text-lg text-white/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
                         {testimonial.avatar}
                       </div>
                       <div>
@@ -598,28 +598,26 @@ const Index = () => {
             <p className="text-muted-foreground text-lg mb-8" data-animate style={{ ["--delay" as any]: "0.1s" }}>
               Start for free, upgrade when you grow.
             </p>
-            
+
             <div className="flex items-center justify-center gap-4" data-animate style={{ ["--delay" as any]: "0.2s" }}>
               <span className={`text-sm font-medium transition-colors ${billingInterval === "monthly" ? "text-white" : "text-muted-foreground"}`}>
                 Monthly
               </span>
               <button
                 onClick={() => setBillingInterval(billingInterval === "monthly" ? "yearly" : "monthly")}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
-                  billingInterval === "yearly" ? "bg-purple-500" : "bg-white/20"
-                }`}
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${billingInterval === "yearly" ? "bg-primary" : "bg-white/20"
+                  }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
-                    billingInterval === "yearly" ? "translate-x-8" : "translate-x-1"
-                  }`}
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${billingInterval === "yearly" ? "translate-x-8" : "translate-x-1"
+                    }`}
                 />
               </button>
               <span className={`text-sm font-medium transition-colors ${billingInterval === "yearly" ? "text-white" : "text-muted-foreground"}`}>
                 Yearly
               </span>
               {billingInterval === "yearly" && (
-                <span className="text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full animate-pulse">
+                <span className="text-xs font-bold bg-gradient-to-r from-rose-500 to-pink-500 text-white px-3 py-1 rounded-full animate-pulse">
                   Save 20%
                 </span>
               )}
@@ -631,20 +629,19 @@ const Index = () => {
               const isFree = !plan.priceId;
               const monthlyPrice = parseFloat(plan.monthlyPrice.replace("$", ""));
               const discountedMonthlyPrice = monthlyPrice * 0.8;
-              
+
               return (
-                <div 
-                  key={plan.name} 
-                  className={`relative p-6 rounded-3xl border backdrop-blur-sm flex flex-col transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
-                    plan.popular 
-                      ? 'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20' 
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
+                <div
+                  key={plan.name}
+                  className={`relative p-6 rounded-3xl border backdrop-blur-sm flex flex-col transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${plan.popular
+                    ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
+                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                    }`}
                   data-animate
                   style={{ ["--delay" as any]: `${0.08 * idx}s` }}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-bold shadow-lg">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-bold shadow-lg">
                       Most Popular
                     </div>
                   )}
@@ -692,11 +689,10 @@ const Index = () => {
                     ))}
                   </ul>
                   <Button
-                    className={`w-full h-12 rounded-xl font-bold text-base transition-all beam-button ${
-                      plan.popular 
-                        ? 'bg-white text-black hover:bg-white/90 hover:shadow-lg' 
-                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
-                    }`}
+                    className={`w-full h-12 rounded-xl font-bold text-base transition-all beam-button ${plan.popular
+                      ? 'bg-white text-black hover:bg-white/90 hover:shadow-lg'
+                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+                      }`}
                     onClick={() => navigate("/auth")}
                   >
                     {isFree ? "Get Started" : "Start Now"}
@@ -715,7 +711,7 @@ const Index = () => {
               <img
                 src="/favicon.png"
                 alt="Vizion logo"
-                className="w-full h-full rounded-lg object-contain shadow-md shadow-purple-500/20"
+                className="w-full h-full rounded-lg object-contain shadow-md shadow-primary/20"
               />
             </div>
             <span className="font-bold text-lg">Vizion</span>
