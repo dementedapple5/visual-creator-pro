@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Download, Trash2, Wand2, Palette, Type, Image as ImageIcon, Smile, Monitor } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Download, Trash2, Wand2, Palette, Type, Image as ImageIcon, Smile, Monitor, CalendarDays, Plus, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, extractStoragePath } from "@/lib/imageUtils";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
@@ -18,20 +18,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from "@/components/ui/carousel";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface Thumbnail {
   id: string;
@@ -74,8 +71,6 @@ const ThumbnailDetail = () => {
   const { id } = useParams();
   const [thumbnail, setThumbnail] = useState<Thumbnail | null>(null);
   const [versions, setVersions] = useState<ThumbnailVersion[]>([]);
-  const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [avatar, setAvatar] = useState<Avatar | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +78,10 @@ const ThumbnailDetail = () => {
   const [prompt, setPrompt] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<ThumbnailVersion | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     checkUser();
@@ -90,31 +89,11 @@ const ThumbnailDetail = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!carouselApi) {
-      return;
+    // Scroll to bottom when new versions are added
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-
-    const onSelect = () => {
-      setCurrentVersionIndex(carouselApi.selectedScrollSnap());
-      const currentVersion = versions[carouselApi.selectedScrollSnap()];
-      if (currentVersion && thumbnail) {
-         // Update the displayed image url in thumbnail state so download works for the visible version
-         setThumbnail(prev => prev ? ({ ...prev, image_url: currentVersion.image_url }) : null);
-      }
-    };
-
-    carouselApi.on("select", onSelect);
-    
-    // Set initial selection to last item
-    if (versions.length > 0) {
-       carouselApi.scrollTo(versions.length - 1);
-    }
-    
-    return () => {
-        carouselApi.off("select", onSelect);
-    };
-
-  }, [carouselApi, versions.length]); // removed thumbnail dependency to avoid loop, handled inside
+  }, [versions.length]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -143,38 +122,39 @@ const ThumbnailDetail = () => {
           .order("created_at", { ascending: true });
 
         // Always include the original thumbnail image as the first version
-        const originalVersion: ThumbnailVersion = { 
-          id: "original", 
-          image_url: data.image_url, 
-          created_at: data.created_at 
+        const originalVersion: ThumbnailVersion = {
+          id: "original",
+          image_url: data.image_url,
+          created_at: data.created_at,
+          prompt: "Original generation"
         };
 
         if (!versionsError && versionsData && versionsData.length > 0) {
-          // Check if the original image is already in the versions (to avoid duplicates)
           const originalAlreadyExists = versionsData.some(
             (v) => v.image_url === data.image_url
           );
 
           if (originalAlreadyExists) {
-            // Just use the versions from the table
             setVersions(versionsData);
+            setSelectedVersion(versionsData[versionsData.length - 1]);
           } else {
-            // Prepend the original image as the first version
             setVersions([originalVersion, ...versionsData]);
+            setSelectedVersion(versionsData[versionsData.length - 1]);
           }
-          setCurrentVersionIndex(versionsData.length - (originalAlreadyExists ? 1 : 0));
         } else {
-          // No versions in table, use just the original thumbnail image
           setVersions([originalVersion]);
-          setCurrentVersionIndex(0);
+          setSelectedVersion(originalVersion);
         }
       } catch (vError) {
-         console.warn("Could not fetch versions, defaulting to single image", vError);
-         setVersions([{ 
-            id: "original", 
-            image_url: data.image_url, 
-            created_at: data.created_at 
-         }]);
+        console.warn("Could not fetch versions, defaulting to single image", vError);
+        const originalVersion = {
+          id: "original",
+          image_url: data.image_url,
+          created_at: data.created_at,
+          prompt: "Original generation"
+        };
+        setVersions([originalVersion]);
+        setSelectedVersion(originalVersion);
       }
 
       // Fetch avatar if exists
@@ -255,13 +235,12 @@ const ThumbnailDetail = () => {
       }
 
       // Get the currently selected version's image URL to use as reference
-      const currentVersionImageUrl = versions[currentVersionIndex]?.image_url || thumbnail.image_url;
+      const currentVersionImageUrl = selectedVersion?.image_url || thumbnail.image_url;
 
       // Generate a new version based on the current image and the prompt
       const { data: result, error } = await supabase.functions.invoke("generate-thumbnail", {
         body: {
-          thumbnailId: id, // Pass the thumbnail ID to link the generation for dashboard loading state
-          // Send the current version's image as the base for iteration
+          thumbnailId: id,
           iterationImageUrl: currentVersionImageUrl,
           iterationPrompt: prompt,
           thumbnailData: {
@@ -272,7 +251,7 @@ const ThumbnailDetail = () => {
 
       if (error) throw error;
 
-      // Insert new version to thumbnail_versions (don't update thumbnail.image_url)
+      // Insert new version to thumbnail_versions
       const { data: newVersion, error: versionError } = await supabase
         .from("thumbnail_versions")
         .insert({
@@ -285,7 +264,6 @@ const ThumbnailDetail = () => {
 
       if (versionError) {
         console.error("Error saving version:", versionError);
-        // Fallback to just updating state without version ID if save failed
         const tempVersion: ThumbnailVersion = {
           id: `temp-${Date.now()}`,
           image_url: result.imageUrl,
@@ -293,41 +271,35 @@ const ThumbnailDetail = () => {
           prompt: prompt
         };
         setVersions(prev => [...prev, tempVersion]);
+        setSelectedVersion(tempVersion);
       } else {
         setVersions(prev => [...prev, newVersion]);
+        setSelectedVersion(newVersion);
       }
 
-      // Update local state to show the new version (for immediate UI feedback)
       setThumbnail({ ...thumbnail, image_url: result.imageUrl });
       setPrompt("");
-      
-      // Scroll to new version
-      setTimeout(() => {
-        if (carouselApi) {
-           carouselApi.scrollTo(versions.length + 1); // +1 because we just added one
-        }
-      }, 100);
 
-      toast.success("Thumbnail updated successfully!");
+      toast.success("New version generated!");
     } catch (error) {
       console.error("Error iterating thumbnail:", error);
-      toast.error("Failed to update thumbnail");
+      toast.error("Failed to generate new version");
     } finally {
       setIterating(false);
     }
   };
 
   const handleDownload = async (size: DownloadSizeKey) => {
-    if (!thumbnail) return;
+    if (!selectedVersion) return;
 
     const option = DOWNLOAD_SIZES[size];
 
     try {
       setDownloading(true);
-      await downloadImageWithSize(thumbnail.image_url, {
+      await downloadImageWithSize(selectedVersion.image_url, {
         width: option.width,
         height: option.height,
-        fileName: `${thumbnail.title || "thumbnail"}-${option.width}x${option.height}.png`,
+        fileName: `${thumbnail?.title || "thumbnail"}-${option.width}x${option.height}.png`,
       });
       toast.success(`${option.label} download started`);
     } catch (error) {
@@ -342,7 +314,6 @@ const ThumbnailDetail = () => {
     if (!thumbnail) return;
 
     try {
-      // Delete from database first
       const { error: dbError } = await supabase
         .from("thumbnails")
         .delete()
@@ -350,7 +321,6 @@ const ThumbnailDetail = () => {
 
       if (dbError) throw dbError;
 
-      // Extract storage path and delete from storage
       const storagePath = extractStoragePath(thumbnail.image_url, "thumbnails");
       if (storagePath) {
         const { error: storageError } = await supabase.storage
@@ -370,6 +340,17 @@ const ThumbnailDetail = () => {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleIterate();
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -383,241 +364,367 @@ const ThumbnailDetail = () => {
   }
 
   return (
-    <div className="min-h-screen relative">
-      {/* Decorative Background */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px] animate-float" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] animate-float-delayed" />
-      </div>
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/5">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+              className="text-white/60 hover:text-white hover:bg-white/5"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <div className="hidden sm:block">
+              <h1 className="text-sm font-medium text-white/90 truncate max-w-[200px]">
+                {thumbnail.title || "Untitled"}
+              </h1>
+              <p className="text-xs text-white/40">
+                {versions.length} version{versions.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
 
-      <main className="container mx-auto px-6 py-12 pl-20 relative z-10">
-        <div className="mb-8 flex justify-between items-center">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/dashboard")}
-            className="glass-button rounded-full px-4 py-2 hover:bg-white/20 transition-all"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  className="glass-button rounded-full px-5 py-2 hover:bg-white/20 transition-all text-white"
+                <Button
+                  size="sm"
+                  className="bg-white text-black hover:bg-white/90 rounded-full px-4"
                   disabled={downloading}
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  {downloading ? "Downloading..." : "Download"}
+                  {downloading ? "..." : "Download"}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Select size</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10">
+                <DropdownMenuLabel className="text-white/60">Select size</DropdownMenuLabel>
                 <DropdownMenuItem
                   onClick={() => handleDownload("youtube")}
                   disabled={downloading}
+                  className="text-white hover:bg-white/10"
                 >
                   {DOWNLOAD_SIZES.youtube.label}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleDownload("full")}
                   disabled={downloading}
+                  className="text-white hover:bg-white/10"
                 >
                   {DOWNLOAD_SIZES.full.label}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowDeleteDialog(true)}
-              className="rounded-full px-5 py-2 hover:bg-destructive/90 transition-all"
+              className="text-white/60 hover:text-red-400 hover:bg-red-500/10"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
+      </header>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Image Preview */}
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80">
-                {thumbnail.title || "Untitled"}
-              </h1>
-              <p className="text-muted-foreground text-lg">
-                {thumbnail.subtitle || "No description"}
-              </p>
-              <p className="text-sm text-muted-foreground mt-3">
-                Created: {new Date(thumbnail.created_at).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="glass-panel rounded-3xl p-6">
-              <div 
-                className={`rounded-2xl overflow-hidden border border-white/10 bg-black/20 relative group ${
-                  thumbnail.aspect_ratio === "9:16" ? "max-w-md mx-auto" : ""
-                }`}
-                style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
-              >
-                <Carousel setApi={setCarouselApi} className="w-full h-full">
-                  <CarouselContent className="h-full -ml-0">
-                    {versions.length > 0 ? (
-                      versions.map((version) => (
-                        <CarouselItem key={version.id} className="pl-0 h-full">
-                          <img
-                            src={version.image_url}
-                            alt={thumbnail.title || "Thumbnail"}
-                            className="w-full h-full object-cover"
-                          />
-                        </CarouselItem>
-                      ))
+      {/* Main Content - Chat Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Scrollable Chat */}
+          <div className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="max-w-3xl mx-auto space-y-6">
+              {/* Settings Collapsible */}
+              <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1a1a] rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                        <Wand2 className="w-4 h-4 text-purple-400" />
+                      </div>
+                      <span className="text-sm font-medium text-white/80">Generation Settings</span>
+                    </div>
+                    {settingsOpen ? (
+                      <ChevronUp className="w-4 h-4 text-white/40 group-hover:text-white/60" />
                     ) : (
-                      <CarouselItem className="pl-0 h-full">
-                         <img
-                            src={thumbnail.image_url}
-                            alt={thumbnail.title || "Thumbnail"}
-                            className="w-full h-full object-cover"
-                          />
-                      </CarouselItem>
+                      <ChevronDown className="w-4 h-4 text-white/40 group-hover:text-white/60" />
                     )}
-                  </CarouselContent>
-                  {versions.length > 1 && (
-                    <>
-                      <CarouselPrevious className="left-4 bg-black/50 border-white/20 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <CarouselNext className="right-4 bg-black/50 border-white/20 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </>
-                  )}
-                </Carousel>
-              </div>
-              {versions.length > 1 && (
-                <div className="mt-4 flex justify-center">
-                   <span className="text-sm text-muted-foreground bg-black/20 px-3 py-1 rounded-full border border-white/10">
-                    Version {currentVersionIndex + 1} of {versions.length}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-3 p-4 bg-[#141414] rounded-xl border border-white/5 space-y-4">
+                    {/* Badges */}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="bg-white/5 text-white/70 border-white/10 px-3 py-1.5">
+                        <Palette className="w-3 h-3 mr-2 text-purple-400" />
+                        {thumbnail.visual_style}
+                      </Badge>
+                      <Badge variant="secondary" className="bg-white/5 text-white/70 border-white/10 px-3 py-1.5">
+                        <Type className="w-3 h-3 mr-2 text-blue-400" />
+                        {thumbnail.text_style}
+                      </Badge>
+                      <Badge variant="secondary" className="bg-white/5 text-white/70 border-white/10 px-3 py-1.5">
+                        <ImageIcon className="w-3 h-3 mr-2 text-pink-400" />
+                        {thumbnail.background_type}
+                      </Badge>
+                      {thumbnail.expression && (
+                        <Badge variant="secondary" className="bg-white/5 text-white/70 border-white/10 px-3 py-1.5">
+                          <Smile className="w-3 h-3 mr-2 text-green-400" />
+                          {thumbnail.expression}
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="bg-white/5 text-white/70 border-white/10 px-3 py-1.5">
+                        <Monitor className="w-3 h-3 mr-2 text-orange-400" />
+                        {thumbnail.aspect_ratio}
+                      </Badge>
+                    </div>
 
-          {/* Iteration Panel */}
-          <div className="space-y-6">
-            <div className="glass-panel rounded-3xl p-6 space-y-4">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Iterate & Improve</h2>
-                <p className="text-muted-foreground">
-                  Describe what changes you'd like to make to this thumbnail
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <Textarea
-                  placeholder="E.g., Make the background more vibrant, add a gradient effect, change the text color to blue..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={6}
-                  className="resize-none bg-white/5 border-white/10 backdrop-blur-sm focus:bg-white/10 focus:border-white/20 transition-all"
-                />
-                <Button
-                  onClick={handleIterate}
-                  disabled={!prompt.trim() || iterating}
-                  className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 border-0 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  size="lg"
-                >
-                  <Wand2 className="w-5 h-5 mr-2" />
-                  {iterating ? "Generating..." : "Generate New Version"}
-                </Button>
-              </div>
-            </div>
-
-            <div className="glass-panel rounded-3xl p-6 space-y-6">
-              <h3 className="font-semibold text-lg">Current Settings</h3>
-              <div className="flex flex-wrap gap-3">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 border border-purple-500/30 text-sm backdrop-blur-sm">
-                  <Palette className="w-4 h-4 text-purple-400" />
-                  <span className="font-medium text-white">{thumbnail.visual_style}</span>
-                </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/20 border border-blue-500/30 text-sm backdrop-blur-sm">
-                  <Type className="w-4 h-4 text-blue-400" />
-                  <span className="font-medium text-white">{thumbnail.text_style}</span>
-                </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-pink-500/20 border border-pink-500/30 text-sm backdrop-blur-sm">
-                  <ImageIcon className="w-4 h-4 text-pink-400" />
-                  <span className="font-medium text-white">{thumbnail.background_type}</span>
-                </div>
-                {thumbnail.expression && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 border border-green-500/30 text-sm backdrop-blur-sm">
-                    <Smile className="w-4 h-4 text-green-400" />
-                    <span className="font-medium text-white">{thumbnail.expression}</span>
-                  </div>
-                )}
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/20 border border-orange-500/30 text-sm backdrop-blur-sm">
-                  <Monitor className="w-4 h-4 text-orange-400" />
-                  <span className="font-medium text-white">{thumbnail.aspect_ratio}</span>
-                </div>
-              </div>
-
-              {/* Avatar Section */}
-              {avatar && (
-                <div className="pt-6 border-t border-white/10">
-                  <h4 className="font-medium mb-4 text-sm text-muted-foreground uppercase tracking-wide">Avatar Used</h4>
-                  <div className="w-24 h-24 rounded-full overflow-hidden border border-white/10">
-                    <img
-                      src={avatar.image_url}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Element Section */}
-              {products.length > 0 && (
-                <div className="pt-6 border-t border-white/10">
-                  <h4 className="font-medium mb-4 text-sm text-muted-foreground uppercase tracking-wide">Elements Used</h4>
-                  <div className="flex justify-start">
-                    <div className="flex -space-x-6">
-                      {products.map((product, index) => (
+                    {/* Avatar & Products */}
+                    <div className="flex flex-wrap gap-4">
+                      {avatar && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10">
+                            <img src={avatar.image_url} alt="Avatar" className="w-full h-full object-cover" />
+                          </div>
+                          <span className="text-xs text-white/50">Avatar</span>
+                        </div>
+                      )}
+                      {products.map((product) => (
                         product.images?.[0] && (
-                          <button
+                          <div
                             key={product.id}
+                            className="flex items-center gap-2 cursor-pointer hover:opacity-80"
                             onClick={() => navigate(`/products/${product.id}`)}
-                            className="group relative"
-                            style={{ zIndex: products.length - index }}
                           >
-                            <div className="w-24 h-24 rounded-full overflow-hidden border border-white/10 flex-shrink-0 group-hover:border-white/20 transition-colors shadow-lg">
-                              <img
-                                src={product.images[0].image_url}
-                                alt={product.title}
-                                className="w-full h-full object-cover"
-                              />
+                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/10">
+                              <img src={product.images[0].image_url} alt={product.title} className="w-full h-full object-cover" />
                             </div>
-                          </button>
+                            <span className="text-xs text-white/50">Element</span>
+                          </div>
                         )
                       ))}
                     </div>
                   </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Versions as Chat Messages */}
+              {versions.map((version, index) => (
+                <div
+                  key={version.id}
+                  className={`group animate-in fade-in slide-in-from-bottom-2 duration-300`}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Prompt/Label */}
+                  {version.prompt && (
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+                        <Wand2 className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white/80 leading-relaxed">
+                          {version.prompt}
+                        </p>
+                        <span className="text-xs text-white/30 mt-1 block">
+                          {formatTime(version.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Image */}
+                  <div
+                    className={`relative rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
+                      selectedVersion?.id === version.id
+                        ? "border-rose-500/50 shadow-lg shadow-rose-500/10"
+                        : "border-white/5 hover:border-white/20"
+                    }`}
+                    onClick={() => setSelectedVersion(version)}
+                  >
+                    <div
+                      className="bg-[#0d0d0d]"
+                      style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
+                    >
+                      <img
+                        src={version.image_url}
+                        alt={`Version ${index + 1}`}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+
+                    {/* Selection indicator */}
+                    {selectedVersion?.id === version.id && (
+                      <div className="absolute top-3 right-3 px-2 py-1 bg-rose-500 rounded-full text-xs font-medium text-white">
+                        Selected
+                      </div>
+                    )}
+
+                    {/* Version number */}
+                    <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg text-xs text-white/70">
+                      v{index + 1}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Loading indicator for new generation */}
+              {iterating && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 animate-pulse">
+                      <Wand2 className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-white/80">{prompt}</p>
+                    </div>
+                  </div>
+                  <div
+                    className="rounded-2xl overflow-hidden border-2 border-white/5 bg-[#0d0d0d] flex items-center justify-center"
+                    style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-10 h-10 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-white/50">Generating...</span>
+                    </div>
+                  </div>
                 </div>
               )}
+
+              <div ref={chatEndRef} />
+            </div>
+          </div>
+
+          {/* Input Area - Fixed at bottom */}
+          <div className="border-t border-white/5 bg-[#0a0a0a] p-4">
+            <div className="max-w-3xl mx-auto">
+              <div className="relative bg-[#1a1a1a] rounded-2xl border border-white/10 focus-within:border-white/20 transition-colors">
+                <textarea
+                  ref={inputRef}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Describe changes to generate a new version..."
+                  rows={1}
+                  disabled={iterating}
+                  className="w-full bg-transparent text-white placeholder-white/30 px-4 py-4 pr-14 resize-none focus:outline-none text-sm leading-relaxed min-h-[56px] max-h-[120px]"
+                  style={{ height: 'auto' }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                  }}
+                />
+                
+                {/* Action buttons */}
+                <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    onClick={handleIterate}
+                    disabled={!prompt.trim() || iterating}
+                    className={`rounded-full w-10 h-10 p-0 transition-all ${
+                      prompt.trim() && !iterating
+                        ? "bg-white text-black hover:bg-white/90"
+                        : "bg-white/10 text-white/30"
+                    }`}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-center text-xs text-white/30 mt-2">
+                Press Enter to send, Shift+Enter for new line
+              </p>
             </div>
           </div>
         </div>
-      </main>
+
+        {/* Preview Panel - Desktop only */}
+        <div className="hidden lg:block w-80 border-l border-white/5 bg-[#0d0d0d] p-4 overflow-y-auto">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-4">
+            Selected Version
+          </h3>
+          
+          {selectedVersion && (
+            <div className="space-y-4">
+              <div
+                className="rounded-xl overflow-hidden border border-white/10"
+                style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
+              >
+                <img
+                  src={selectedVersion.image_url}
+                  alt="Selected version"
+                  className="w-full h-full object-contain bg-black/40"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40">Created</span>
+                  <span className="text-white/70">
+                    {new Date(selectedVersion.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                {selectedVersion.prompt && (
+                  <div className="pt-2 border-t border-white/5">
+                    <span className="text-xs text-white/40 block mb-1">Prompt</span>
+                    <p className="text-xs text-white/70 leading-relaxed">
+                      {selectedVersion.prompt}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Info */}
+          <div className="mt-6 pt-4 border-t border-white/5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">
+              Details
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-white/40">Title</span>
+                <span className="text-white/70 truncate ml-2 max-w-[150px]">
+                  {thumbnail.title || "Untitled"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/40">Ratio</span>
+                <span className="text-white/70">{thumbnail.aspect_ratio}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/40">Style</span>
+                <span className="text-white/70">{thumbnail.visual_style}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/40">Versions</span>
+                <span className="text-white/70">{versions.length}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="glass-panel border-white/20">
+        <AlertDialogContent className="bg-[#1a1a1a] border-white/10">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              This action cannot be undone. This will permanently delete your thumbnail.
+            <AlertDialogTitle className="text-white">Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/60">
+              This action cannot be undone. This will permanently delete your thumbnail and all versions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="glass-button rounded-full">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full"
+            <AlertDialogCancel className="bg-white/5 text-white border-white/10 hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-500 text-white hover:bg-red-600"
             >
               Delete
             </AlertDialogAction>

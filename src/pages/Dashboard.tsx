@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -64,20 +65,38 @@ const initialFilters: FiltersState = {
 };
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
+  // const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]); // Replaced by useQuery
   const [avatars, setAvatars] = useState<AvatarOption[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true); // Replaced by useQuery
   const [pendingGenerations, setPendingGenerations] = useState<Generation[]>([]);
   const previousPendingCountRef = useRef(0);
 
+  const { data: thumbnails = [], isLoading: loading } = useQuery({
+    queryKey: ["thumbnails"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("thumbnails")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast.error("Failed to load thumbnails");
+        throw error;
+      }
+      return data as Thumbnail[];
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   useEffect(() => {
     checkUser();
-    fetchThumbnails();
+    // fetchThumbnails(); // Handled by useQuery
     fetchFilterOptions();
     fetchPendingGenerations();
 
@@ -96,23 +115,7 @@ const Dashboard = () => {
     }
   };
 
-  const fetchThumbnails = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("thumbnails")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setThumbnails(data || []);
-    } catch (error) {
-      console.error("Error fetching thumbnails:", error);
-      toast.error("Failed to load thumbnails");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // fetchThumbnails removed as it is now handled by useQuery
 
   const fetchFilterOptions = async () => {
     try {
@@ -158,7 +161,7 @@ const Dashboard = () => {
       // Check if any generation just completed (was pending before, now isn't in the list)
       if (previousCount > 0 && newCount < previousCount) {
         // Refresh thumbnails to get the newly created ones
-        fetchThumbnails();
+        queryClient.invalidateQueries({ queryKey: ["thumbnails"] });
       }
 
       previousPendingCountRef.current = newCount;
@@ -234,7 +237,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/90">
-      <div className="container mx-auto px-6 py-8 space-y-6">
+      <div className="w-full px-6 pb-8 pt-20 space-y-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-primary/80">Gallery</p>
@@ -392,16 +395,23 @@ const Dashboard = () => {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 p-4 shadow-lg"
+                className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-lg"
               >
-                <Skeleton className="aspect-video w-full rounded-xl" />
-                <div className="mt-4 space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="aspect-video w-full" />
+                <div className="p-5 space-y-3">
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                  <div className="pt-4 flex items-center justify-between">
+                    <Skeleton className="h-9 w-24 rounded-full" />
+                    <Skeleton className="h-5 w-16" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -429,12 +439,12 @@ const Dashboard = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {/* Placeholder cards for new generations in progress */}
             {newGenerations.map((generation) => (
               <div
                 key={generation.id}
-                className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl"
+                className="relative overflow-hidden rounded-3xl border border-border/60 bg-card shadow-xl"
               >
                 <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent">
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -450,12 +460,17 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-                <div className="relative space-y-2 p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="h-5 w-3/4 rounded bg-muted animate-pulse" />
-                    <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <div className="relative space-y-4 p-5">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="h-6 w-3/4 rounded bg-muted animate-pulse" />
+                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                    </div>
+                    <div className="h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
                   </div>
-                  <div className="h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
+                  <div className="pt-2">
+                    <div className="h-9 w-28 rounded-full bg-muted/40 animate-pulse" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -466,54 +481,71 @@ const Dashboard = () => {
               return (
                 <div
                   key={thumbnail.id}
-                  className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
-                  onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
+                  className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-card shadow-lg"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="relative aspect-video overflow-hidden">
+                  <div
+                    className="relative aspect-video w-full overflow-hidden bg-muted/20 cursor-pointer"
+                    onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                     <img
                       src={thumbnail.image_url}
                       alt={thumbnail.title || "Thumbnail"}
                       className={cn(
-                        "h-full w-full object-cover transition duration-500 group-hover:scale-105",
-                        isIterating && "opacity-50"
+                        "h-full w-full object-cover",
+                        isIterating && "opacity-50 grayscale-[0.5]"
                       )}
                     />
+
                     {/* Loading overlay for iterations in progress */}
                     {isIterating && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-                        <div className="flex flex-col items-center gap-2">
-                          <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                          <span className="text-xs text-muted-foreground">Creating new version...</span>
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="rounded-full bg-background/80 p-3 backdrop-blur-md shadow-lg">
+                            <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                          </div>
+                          <span className="rounded-full bg-background/80 px-3 py-1 text-xs font-medium backdrop-blur-md shadow-sm">
+                            Iterating...
+                          </span>
                         </div>
                       </div>
                     )}
-                    <div className="absolute left-3 top-3 flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="bg-background/80 text-xs font-medium backdrop-blur-sm border-border/60"
-                      >
-                        <CalendarDays className="mr-1 h-3.5 w-3.5" />
-                        {formatDate(thumbnail.created_at)}
-                      </Badge>
-                    </div>
                   </div>
-                  <div className="relative space-y-2 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-base font-semibold leading-tight truncate">
-                        {thumbnail.title || "Untitled thumbnail"}
-                      </h3>
-                      <span className={cn(
-                        "h-2 w-2 rounded-full",
-                        isIterating ? "bg-amber-500 animate-pulse" : "bg-primary/70"
-                      )} />
+
+                  <div className="flex flex-1 flex-col justify-between p-5 space-y-4">
+                    <div className="space-y-1.5 cursor-pointer" onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="line-clamp-1 text-lg font-semibold leading-tight text-card-foreground">
+                          {thumbnail.title || "Untitled Project"}
+                        </h3>
+                        {isIterating && (
+                          <span className="relative flex h-2.5 w-2.5 flex-none translate-y-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                          </span>
+                        )}
+                      </div>
+                      <p className="line-clamp-2 text-sm text-muted-foreground/80 leading-relaxed h-11">
+                        {thumbnail.subtitle || "No description provided"}
+                      </p>
                     </div>
-                    {thumbnail.subtitle && (
-                      <p className="text-sm text-muted-foreground truncate">{thumbnail.subtitle}</p>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {thumbnail.avatar_id && <Badge variant="outline">Avatar</Badge>}
-                      {thumbnail.product_id && <Badge variant="outline">Element</Badge>}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/40 mt-auto">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/thumbnail/${thumbnail.id}`);
+                        }}
+                        variant="secondary"
+                        size="sm"
+                        className="h-9 px-4 rounded-full bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                      >
+                        View Details
+                      </Button>
+
+                      <span className="text-xs font-medium text-muted-foreground/60">
+                        {formatDate(thumbnail.created_at)}
+                      </span>
                     </div>
                   </div>
                 </div>

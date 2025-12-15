@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
+import { GeneratingMessages } from "@/components/ui/GeneratingMessages";
 
 interface Avatar {
   id: string;
@@ -466,7 +467,7 @@ const CreateNew = () => {
     setSubtitle(savedTitle.subtitle || "");
     setTextPositions(savedTitle.text_position ? [savedTitle.text_position] : []);
     setActiveTab("title");
-    
+
     // Check if this title uses an image-based font style
     if (savedTitle.font_style_id) {
       setUseImageFontStyle(true);
@@ -480,7 +481,7 @@ const CreateNew = () => {
       setTextStyles(savedTitle.text_style ? savedTitle.text_style.split(",").map(s => s.trim()) : []);
       setCustomTextStyle(savedTitle.custom_text_style || "");
     }
-    
+
     toast.success("Title applied");
   };
 
@@ -962,7 +963,7 @@ const CreateNew = () => {
                               <span className="absolute h-24 w-24 rounded-full bg-primary/15 animate-ping [animation-delay:150ms]" />
                               <Sparkles className="relative w-8 h-8 text-primary" />
                             </div>
-                            <p className="text-sm text-muted-foreground">Generating thumbnail...</p>
+                            <GeneratingMessages />
                           </div>
                         </div>
                       )}
@@ -970,9 +971,13 @@ const CreateNew = () => {
                   ) : (
                     <div className="text-center">
                       <Sparkles className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        {generating ? "Generating thumbnail..." : "Preview will appear here"}
-                      </p>
+                      {generating ? (
+                        <GeneratingMessages />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Preview will appear here
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1032,13 +1037,12 @@ const CreateNew = () => {
                   {generatedThumbnails.map((url, index) => (
                     <button
                       key={index}
-                      className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
-                        previewImage === url
-                          ? "border-primary ring-2 ring-primary/20"
-                          : selectedImages.has(url)
-                            ? "border-green-500 ring-2 ring-green-500/20"
-                            : "border-border hover:border-primary/50"
-                      }`}
+                      className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${previewImage === url
+                        ? "border-primary ring-2 ring-primary/20"
+                        : selectedImages.has(url)
+                          ? "border-green-500 ring-2 ring-green-500/20"
+                          : "border-border hover:border-primary/50"
+                        }`}
                       onClick={() => setSelectedImage(url)}
                       onDoubleClick={() => toggleSelect(url)}
                     >
@@ -1415,11 +1419,10 @@ const CreateNew = () => {
                                       key={fs.id}
                                       type="button"
                                       onClick={() => setSelectedFontStyleId(fs.id)}
-                                      className={`relative rounded-lg border-2 overflow-hidden transition-all ${
-                                        selectedFontStyleId === fs.id
-                                          ? "border-primary ring-2 ring-primary/20"
-                                          : "border-border hover:border-primary/50"
-                                      }`}
+                                      className={`relative rounded-lg border-2 overflow-hidden transition-all ${selectedFontStyleId === fs.id
+                                        ? "border-primary ring-2 ring-primary/20"
+                                        : "border-border hover:border-primary/50"
+                                        }`}
                                     >
                                       <div className="aspect-[4/3]">
                                         <img
@@ -1550,11 +1553,10 @@ const CreateNew = () => {
                         <button
                           type="button"
                           onClick={() => setBackgroundAiDecide(!backgroundAiDecide)}
-                          className={`w-full px-4 py-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${
-                            backgroundAiDecide 
-                              ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]" 
-                              : "border-border/60 bg-card/50 hover:border-muted-foreground/50"
-                          }`}
+                          className={`w-full px-4 py-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${backgroundAiDecide
+                            ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]"
+                            : "border-border/60 bg-card/50 hover:border-muted-foreground/50"
+                            }`}
                         >
                           <div className="text-left space-y-0.5">
                             <div className="font-semibold text-sm">Let AI Decide</div>
@@ -1563,11 +1565,10 @@ const CreateNew = () => {
                             </div>
                           </div>
                           <div
-                            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                              backgroundAiDecide 
-                                ? "border-primary bg-primary" 
-                                : "border-muted-foreground/40"
-                            }`}
+                            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${backgroundAiDecide
+                              ? "border-primary bg-primary"
+                              : "border-muted-foreground/40"
+                              }`}
                           >
                             {backgroundAiDecide && (
                               <div className="w-2 h-2 rounded-full bg-primary-foreground" />
