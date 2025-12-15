@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Plus, Sparkles, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 
 export type ChipOption = { value: string; label: string };
 
@@ -98,37 +98,41 @@ export function MultiSelectChips({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <Label className="text-sm font-medium">{label}</Label>
-        {typeof remaining === "number" && (
-          <span className="text-xs text-muted-foreground">
-            {isAiMode ? "AI mode" : `${selected.length}/${maxSelected}`}
-          </span>
-        )}
-      </div>
+      {(label || typeof remaining === "number") && (
+        <div className="flex items-center justify-between gap-3">
+          {label && <Label className="text-sm font-medium">{label}</Label>}
+          {typeof remaining === "number" && (
+            <span className={`text-xs text-muted-foreground ${!label ? "ml-auto" : ""}`}>
+              {isAiMode ? "AI mode" : `${selected.length}/${maxSelected}`}
+            </span>
+          )}
+        </div>
+      )}
 
       {showAiDecide && (
         <button
           type="button"
           onClick={() => toggle(aiValue)}
-          className={`w-full p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-            isAiMode ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+          className={`w-full px-4 py-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${
+            isAiMode 
+              ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]" 
+              : "border-border/60 bg-card/50 hover:border-muted-foreground/50"
           }`}
         >
+          <div className="text-left space-y-0.5">
+            <div className="font-semibold text-sm">{aiLabel}</div>
+            <div className="text-xs text-muted-foreground leading-relaxed">{aiDescription}</div>
+          </div>
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              isAiMode ? "bg-primary" : "bg-gradient-to-br from-violet-500 to-fuchsia-500"
+            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+              isAiMode 
+                ? "border-primary bg-primary" 
+                : "border-muted-foreground/40"
             }`}
           >
-            {isAiMode ? (
-              <Check className="w-4 h-4 text-primary-foreground" />
-            ) : (
-              <Sparkles className="w-4 h-4 text-white" />
+            {isAiMode && (
+              <div className="w-2 h-2 rounded-full bg-primary-foreground" />
             )}
-          </div>
-          <div className="text-left">
-            <div className="font-medium text-sm">{aiLabel}</div>
-            <div className="text-xs text-muted-foreground">{aiDescription}</div>
           </div>
         </button>
       )}

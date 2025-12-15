@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
 import { MultiSelectChips } from "@/components/MultiSelectChips";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { RadioCardSelector } from "@/components/RadioCardSelector";
 import {
   Dialog,
   DialogContent,
@@ -192,6 +194,7 @@ const CreateNew = () => {
   const [selectedFontStyleId, setSelectedFontStyleId] = useState<string>("");
 
   const [visualStyles, setVisualStyles] = useState<string[]>([]);
+  const [backgroundAiDecide, setBackgroundAiDecide] = useState<boolean>(false);
   const [backgroundType, setBackgroundType] = useState<string>("gradient");
   const [backgroundValue, setBackgroundValue] = useState<string>("#FF6B9D,#C239B3");
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>("");
@@ -619,8 +622,8 @@ const CreateNew = () => {
               textStyles: useImageFontStyle ? ["Image Reference"] : (textStyles.length ? textStyles : ["ai-decide"]),
               fontStyleImageUrl,
               visualStyles: safeVisualStyles,
-              backgroundType,
-              backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
+              backgroundType: backgroundAiDecide ? "ai-decide" : backgroundType,
+              backgroundValue: backgroundAiDecide ? undefined : (backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue),
               aspectRatio,
               gridMode: true,
             },
@@ -796,8 +799,8 @@ const CreateNew = () => {
               textStyles: useImageFontStyle ? ["Image Reference"] : (textStyles.length ? textStyles : ["ai-decide"]),
               fontStyleImageUrl: remixFontStyleImageUrl,
               visualStyles: visualStyles.length ? visualStyles : ["ai-decide"],
-              backgroundType,
-              backgroundValue: backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue,
+              backgroundType: backgroundAiDecide ? "ai-decide" : backgroundType,
+              backgroundValue: backgroundAiDecide ? undefined : (backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue),
               aspectRatio,
               gridMode: false,
             },
@@ -1086,17 +1089,14 @@ const CreateNew = () => {
               </div>
 
               <ScrollArea className="flex-1 px-4 pb-4 pt-3 max-h-[75vh]">
-                <div className="pr-2 space-y-2">
-                  <TabsContent value="avatar" className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold">Avatar</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Choose or upload an avatar, set expression and position.
-                      </p>
-                    </div>
-
-                    {avatars.length > 0 ? (
-                      <>
+                <div className="pr-2 space-y-4">
+                  <TabsContent value="avatar" className="space-y-6 mt-0">
+                    <CollapsibleSection
+                      title="Avatar Selection"
+                      subtitle="Choose or upload an avatar image to feature in your thumbnail"
+                      defaultOpen={true}
+                    >
+                      {avatars.length > 0 ? (
                         <div className="grid grid-cols-3 gap-2">
                           <div className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-all flex flex-col items-center justify-center cursor-pointer relative group">
                             <input
@@ -1147,350 +1147,321 @@ const CreateNew = () => {
                             </button>
                           ))}
                         </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No avatars available. Upload one in your Profile.
+                        </p>
+                      )}
+                    </CollapsibleSection>
 
-                        {(selectedAvatar || customAvatarUrl) && (
-                          <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
-                            <MultiSelectChips
-                              label="Expressions (max 3)"
-                              options={EXPRESSION_OPTIONS}
-                              value={expressions}
-                              onChange={setExpressions}
-                              maxSelected={3}
-                              showAiDecide
-                              aiLabel="Let AI Decide"
-                              aiDescription="AI will vary expressions across the 9 thumbnails"
-                              customPlaceholder="Add custom expression..."
-                            />
+                    {(selectedAvatar || customAvatarUrl) && (
+                      <>
+                        <CollapsibleSection
+                          title="Expressions"
+                          subtitle="Select facial expressions for your avatar (max 3)"
+                        >
+                          <MultiSelectChips
+                            label=""
+                            options={EXPRESSION_OPTIONS}
+                            value={expressions}
+                            onChange={setExpressions}
+                            maxSelected={3}
+                            showAiDecide
+                            aiLabel="Let AI Decide"
+                            aiDescription="AI will vary expressions across the 9 thumbnails"
+                            customPlaceholder="Add custom expression..."
+                          />
+                        </CollapsibleSection>
 
-                            <MultiSelectChips
-                              label="Avatar positions"
-                              options={POSITION_OPTIONS}
-                              value={avatarPositions}
-                              onChange={setAvatarPositions}
-                              showAiDecide
-                              aiLabel="Let AI Decide"
-                              aiDescription="AI will vary avatar positions across the 9 thumbnails"
-                              customPlaceholder="Add custom position..."
-                            />
-                          </div>
-                        )}
+                        <CollapsibleSection
+                          title="Avatar Position"
+                          subtitle="Control where your avatar appears on the canvas"
+                        >
+                          <MultiSelectChips
+                            label=""
+                            options={POSITION_OPTIONS}
+                            value={avatarPositions}
+                            onChange={setAvatarPositions}
+                            showAiDecide
+                            aiLabel="Let AI Decide"
+                            aiDescription="AI will vary avatar positions across the 9 thumbnails"
+                            customPlaceholder="Add custom position..."
+                          />
+                        </CollapsibleSection>
                       </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No avatars available. Upload one in your Profile.
-                      </p>
                     )}
                   </TabsContent>
 
-                  <TabsContent value="elements" className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold">Elements</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Bring in up to 3 elements and place them where you need.
-                      </p>
-                    </div>
+                  <TabsContent value="elements" className="space-y-6 mt-0">
+                    <CollapsibleSection
+                      title="Element Library"
+                      subtitle="Select up to 3 elements like products, props, or custom images"
+                      defaultOpen={true}
+                    >
+                      <div className="grid grid-cols-3 gap-2">
+                        {selectedProducts.length < 3 && (
+                          <div className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center cursor-pointer relative group">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleElementUpload}
+                              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                            />
+                            <Plus className="w-8 h-8 text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground font-medium">Upload</span>
+                          </div>
+                        )}
 
-                    <div className="grid grid-cols-3 gap-2">
-                      {selectedProducts.length < 3 && (
-                        <div className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center cursor-pointer relative group">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleElementUpload}
-                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                          />
-                          <Plus className="w-8 h-8 text-muted-foreground mb-1" />
-                          <span className="text-xs text-muted-foreground font-medium">Upload</span>
-                        </div>
-                      )}
-
-                      {customElements.map((customEl) => (
-                        <button
-                          key={customEl.id}
-                          onClick={() => {
-                            if (selectedProducts.includes(customEl.id)) {
-                              setSelectedProducts(selectedProducts.filter(id => id !== customEl.id));
-                            } else {
-                              if (selectedProducts.length < 3) {
-                                setSelectedProducts([...selectedProducts, customEl.id]);
-                                setElementPositions(prev => ({ ...prev, [customEl.id]: ["center-right"] }));
+                        {customElements.map((customEl) => (
+                          <button
+                            key={customEl.id}
+                            onClick={() => {
+                              if (selectedProducts.includes(customEl.id)) {
+                                setSelectedProducts(selectedProducts.filter(id => id !== customEl.id));
                               } else {
-                                toast.error("Maximum 3 elements allowed");
+                                if (selectedProducts.length < 3) {
+                                  setSelectedProducts([...selectedProducts, customEl.id]);
+                                  setElementPositions(prev => ({ ...prev, [customEl.id]: ["center-right"] }));
+                                } else {
+                                  toast.error("Maximum 3 elements allowed");
+                                }
                               }
-                            }
-                          }}
-                          className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(customEl.id)
-                            ? "border-accent ring-2 ring-accent/50"
-                            : "border-border hover:border-muted-foreground"
-                            }`}
-                        >
-                          <img
-                            src={customEl.url}
-                            alt="Custom Element"
-                            className="w-full h-full object-cover"
-                          />
-                          {selectedProducts.includes(customEl.id) && (
-                            <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                              {selectedProducts.indexOf(customEl.id) + 1}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-
-                      {products.slice(0, 6).map((product) => (
-                        <button
-                          key={product.id}
-                          onClick={() => {
-                            if (selectedProducts.includes(product.id)) {
-                              setSelectedProducts(selectedProducts.filter(id => id !== product.id));
-                            } else {
-                              if (selectedProducts.length < 3) {
-                                setSelectedProducts([...selectedProducts, product.id]);
-                                setElementPositions(prev => ({ ...prev, [product.id]: ["center-right"] }));
-                              } else {
-                                toast.error("Maximum 3 elements allowed");
-                              }
-                            }
-                          }}
-                          className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(product.id)
-                            ? "border-accent ring-2 ring-accent/50"
-                            : "border-border hover:border-muted-foreground"
-                            }`}
-                        >
-                          {product.images?.[0] ? (
+                            }}
+                            className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(customEl.id)
+                              ? "border-accent ring-2 ring-accent/50"
+                              : "border-border hover:border-muted-foreground"
+                              }`}
+                          >
                             <img
-                              src={product.images[0].image_url}
-                              alt={product.title}
+                              src={customEl.url}
+                              alt="Custom Element"
                               className="w-full h-full object-cover"
                             />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <span className="text-xs">No image</span>
-                            </div>
-                          )}
-                          {selectedProducts.includes(product.id) && (
-                            <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                              {selectedProducts.indexOf(product.id) + 1}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                            {selectedProducts.includes(customEl.id) && (
+                              <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                {selectedProducts.indexOf(customEl.id) + 1}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+
+                        {products.slice(0, 6).map((product) => (
+                          <button
+                            key={product.id}
+                            onClick={() => {
+                              if (selectedProducts.includes(product.id)) {
+                                setSelectedProducts(selectedProducts.filter(id => id !== product.id));
+                              } else {
+                                if (selectedProducts.length < 3) {
+                                  setSelectedProducts([...selectedProducts, product.id]);
+                                  setElementPositions(prev => ({ ...prev, [product.id]: ["center-right"] }));
+                                } else {
+                                  toast.error("Maximum 3 elements allowed");
+                                }
+                              }
+                            }}
+                            className={`aspect-square rounded-lg border-2 overflow-hidden transition-all relative ${selectedProducts.includes(product.id)
+                              ? "border-accent ring-2 ring-accent/50"
+                              : "border-border hover:border-muted-foreground"
+                              }`}
+                          >
+                            {product.images?.[0] ? (
+                              <img
+                                src={product.images[0].image_url}
+                                alt={product.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-muted flex items-center justify-center">
+                                <span className="text-xs">No image</span>
+                              </div>
+                            )}
+                            {selectedProducts.includes(product.id) && (
+                              <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                {selectedProducts.indexOf(product.id) + 1}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </CollapsibleSection>
 
                     {selectedProducts.length > 0 && (
-                      <div className="space-y-3">
-                        <Label>Positions</Label>
-                        {selectedProducts.map(id => {
-                          const customEl = customElements.find(el => el.id === id);
-                          const product = products.find(p => p.id === id);
-                          const name = customEl ? "Custom Element" : (product?.title || "Element");
+                      <CollapsibleSection
+                        title="Element Positions"
+                        subtitle="Define placement for each selected element"
+                      >
+                        <div className="space-y-4">
+                          {selectedProducts.map(id => {
+                            const customEl = customElements.find(el => el.id === id);
+                            const product = products.find(p => p.id === id);
+                            const name = customEl ? "Custom Element" : (product?.title || "Element");
 
-                          return (
-                            <div key={id} className="space-y-2 p-3 rounded-lg bg-secondary/50 border border-border">
-                              <span className="text-xs font-medium text-muted-foreground">{name}</span>
-                              <MultiSelectChips
-                                label="Positions"
-                                options={POSITION_OPTIONS}
-                                value={elementPositions[id] || []}
-                                onChange={(next) => setElementPositions((prev) => ({ ...prev, [id]: next }))}
-                                showAiDecide
-                                aiLabel="Let AI Decide"
-                                aiDescription="AI will vary element positions across the 9 thumbnails"
-                                customPlaceholder="Add custom position..."
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
+                            return (
+                              <div key={id} className="space-y-3 p-4 rounded-lg bg-secondary/50 border border-border">
+                                <span className="text-sm font-medium text-foreground">{name}</span>
+                                <MultiSelectChips
+                                  label=""
+                                  options={POSITION_OPTIONS}
+                                  value={elementPositions[id] || []}
+                                  onChange={(next) => setElementPositions((prev) => ({ ...prev, [id]: next }))}
+                                  showAiDecide
+                                  aiLabel="Let AI Decide"
+                                  aiDescription="AI will vary element positions across the 9 thumbnails"
+                                  customPlaceholder="Add custom position..."
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CollapsibleSection>
                     )}
                   </TabsContent>
 
-                  <TabsContent value="title" className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold">Title & text</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Control the copy, font style, and placement on the canvas.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Title</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant={titleMode === "ai" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setTitleMode("ai")}
-                          className="shrink-0"
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          AI Decide
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={titleMode === "custom" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setTitleMode("custom")}
-                          className="shrink-0"
-                        >
-                          Manual
-                        </Button>
-                      </div>
-                      {titleMode === "ai" ? (
-                        <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm text-muted-foreground">
-                          AI will generate different click-worthy titles across the 9 thumbnails.
+                  <TabsContent value="title" className="space-y-6 mt-0">
+                    <CollapsibleSection
+                      title="Title Content"
+                      subtitle="Write your own title or let AI generate click-worthy variations"
+                      defaultOpen={true}
+                    >
+                      <div className="space-y-5">
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Title</Label>
+                          <RadioCardSelector
+                            options={[
+                              { value: "ai", label: "AI Generate", description: "Click-worthy titles" },
+                              { value: "custom", label: "Manual", description: "Write your own" },
+                            ]}
+                            value={titleMode}
+                            onChange={(v) => setTitleMode(v as "ai" | "custom")}
+                          />
+                          {titleMode === "custom" && (
+                            <Input
+                              placeholder="Enter title..."
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                            />
+                          )}
                         </div>
-                      ) : (
-                        <Input
-                          placeholder="Enter title..."
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                        />
-                      )}
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label>Subtitle</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant={subtitleMode === "ai" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSubtitleMode("ai")}
-                          className="shrink-0"
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          AI Decide
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={subtitleMode === "custom" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSubtitleMode("custom")}
-                          className="shrink-0"
-                        >
-                          Manual
-                        </Button>
-                      </div>
-                      {subtitleMode === "ai" ? (
-                        <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm text-muted-foreground">
-                          AI will generate different subtitles that complement each title.
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Subtitle</Label>
+                          <RadioCardSelector
+                            options={[
+                              { value: "ai", label: "AI Generate", description: "Complement titles" },
+                              { value: "custom", label: "Manual", description: "Write your own" },
+                            ]}
+                            value={subtitleMode}
+                            onChange={(v) => setSubtitleMode(v as "ai" | "custom")}
+                          />
+                          {subtitleMode === "custom" && (
+                            <Textarea
+                              placeholder="Enter subtitle..."
+                              value={subtitle}
+                              onChange={(e) => setSubtitle(e.target.value)}
+                              rows={2}
+                            />
+                          )}
                         </div>
-                      ) : (
-                        <Textarea
-                          placeholder="Enter subtitle..."
-                          value={subtitle}
-                          onChange={(e) => setSubtitle(e.target.value)}
-                          rows={2}
-                        />
-                      )}
-                    </div>
-
-                    {/* Font Style Source Toggle */}
-                    <div className="space-y-2">
-                      <Label>Font style source</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant={!useImageFontStyle ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setUseImageFontStyle(false)}
-                          className="flex-1"
-                        >
-                          <TypeIcon className="w-4 h-4 mr-2" />
-                          Preset
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={useImageFontStyle ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setUseImageFontStyle(true)}
-                          className="flex-1"
-                        >
-                          <ImageIcon className="w-4 h-4 mr-2" />
-                          Image
-                        </Button>
                       </div>
-                    </div>
+                    </CollapsibleSection>
 
-                    {!useImageFontStyle ? (
-                      <MultiSelectChips
-                        label="Text styles"
-                        options={TEXT_STYLE_OPTIONS}
-                        value={textStyles}
-                        onChange={setTextStyles}
-                        showAiDecide
-                        aiLabel="Let AI Decide"
-                        aiDescription="AI will vary text styles across the 9 thumbnails"
-                        customPlaceholder="Add custom text style..."
-                      />
-                    ) : (
-                      <div className="space-y-2">
-                        <Label>Font style image reference</Label>
-                        {fontStyles.length === 0 ? (
-                          <div className="border border-dashed border-border rounded-lg p-4 text-center">
-                            <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                            <p className="text-sm text-muted-foreground mb-2">
-                              No font styles available yet.
-                            </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate("/font-styles")}
-                            >
-                              Upload Font Styles
-                            </Button>
-                          </div>
+                    <CollapsibleSection
+                      title="Font Style"
+                      subtitle="Choose from presets or use an image reference for typography"
+                    >
+                      <div className="space-y-4">
+                        <RadioCardSelector
+                          options={[
+                            { value: "preset", label: "Preset Styles", description: "Select from presets" },
+                            { value: "image", label: "Image Reference", description: "Upload a sample" },
+                          ]}
+                          value={useImageFontStyle ? "image" : "preset"}
+                          onChange={(v) => setUseImageFontStyle(v === "image")}
+                        />
+
+                        {!useImageFontStyle ? (
+                          <MultiSelectChips
+                            label=""
+                            options={TEXT_STYLE_OPTIONS}
+                            value={textStyles}
+                            onChange={setTextStyles}
+                            showAiDecide
+                            aiLabel="Let AI Decide"
+                            aiDescription="AI will vary text styles across the 9 thumbnails"
+                            customPlaceholder="Add custom text style..."
+                          />
                         ) : (
-                          <>
-                            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1">
-                              {fontStyles.map((fs) => (
-                                <button
-                                  key={fs.id}
-                                  type="button"
-                                  onClick={() => setSelectedFontStyleId(fs.id)}
-                                  className={`relative rounded-lg border-2 overflow-hidden transition-all ${
-                                    selectedFontStyleId === fs.id
-                                      ? "border-primary ring-2 ring-primary/20"
-                                      : "border-border hover:border-primary/50"
-                                  }`}
+                          <div className="space-y-3">
+                            {fontStyles.length === 0 ? (
+                              <div className="border border-dashed border-border rounded-lg p-4 text-center">
+                                <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  No font styles available yet.
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/font-styles")}
                                 >
-                                  <div className="aspect-[4/3]">
-                                    <img
-                                      src={fs.image_url}
-                                      alt={fs.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  {fs.is_system && (
-                                    <div className="absolute top-1 right-1">
-                                      <Crown className="w-3 h-3 text-amber-500" />
-                                    </div>
-                                  )}
-                                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-                                    <p className="text-[9px] text-white truncate">{fs.name}</p>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              <Button
-                                variant="link"
-                                className="h-auto p-0 text-xs"
-                                onClick={() => navigate("/font-styles")}
-                              >
-                                Manage font styles →
-                              </Button>
-                            </p>
-                          </>
+                                  Upload Font Styles
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1">
+                                  {fontStyles.map((fs) => (
+                                    <button
+                                      key={fs.id}
+                                      type="button"
+                                      onClick={() => setSelectedFontStyleId(fs.id)}
+                                      className={`relative rounded-lg border-2 overflow-hidden transition-all ${
+                                        selectedFontStyleId === fs.id
+                                          ? "border-primary ring-2 ring-primary/20"
+                                          : "border-border hover:border-primary/50"
+                                      }`}
+                                    >
+                                      <div className="aspect-[4/3]">
+                                        <img
+                                          src={fs.image_url}
+                                          alt={fs.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      {fs.is_system && (
+                                        <div className="absolute top-1 right-1">
+                                          <Crown className="w-3 h-3 text-amber-500" />
+                                        </div>
+                                      )}
+                                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                                        <p className="text-[9px] text-white truncate">{fs.name}</p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  <Button
+                                    variant="link"
+                                    className="h-auto p-0 text-xs"
+                                    onClick={() => navigate("/font-styles")}
+                                  >
+                                    Manage font styles →
+                                  </Button>
+                                </p>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
+                    </CollapsibleSection>
 
                     {(titleMode === "ai" || subtitleMode === "ai" || title || subtitle) && (
-                      <div className="space-y-2 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
+                      <CollapsibleSection
+                        title="Text Position"
+                        subtitle="Control where your text appears on the canvas"
+                      >
                         <MultiSelectChips
-                          label="Text positions"
+                          label=""
                           options={POSITION_OPTIONS}
                           value={textPositions}
                           onChange={setTextPositions}
@@ -1499,79 +1470,67 @@ const CreateNew = () => {
                           aiDescription="AI will vary text positions across the 9 thumbnails"
                           customPlaceholder="Add custom position..."
                         />
-                      </div>
+                      </CollapsibleSection>
                     )}
 
                     {savedTitles.length > 0 && (
-                      <div className="space-y-3 pt-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Saved titles
-                          </Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-3"
-                            onClick={() => navigate("/titles")}
-                          >
-                            Manage
-                          </Button>
-                        </div>
-                        <div className="space-y-2">
-                          {savedTitles.slice(0, 4).map((saved) => (
-                            <div
-                              key={saved.id}
-                              className="rounded-lg border border-border p-3 bg-secondary/40 space-y-1"
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="font-medium text-sm truncate">{saved.name}</p>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-3 text-xs"
-                                  onClick={() => applySavedTitle(saved)}
-                                >
-                                  Use
-                                </Button>
-                              </div>
-                              <p className="text-sm font-semibold truncate">{saved.title}</p>
-                              {saved.subtitle && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {saved.subtitle}
+                      <CollapsibleSection
+                        title="Saved Titles"
+                        subtitle="Quick access to your saved title presets"
+                      >
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            {savedTitles.slice(0, 4).map((saved) => (
+                              <div
+                                key={saved.id}
+                                className="rounded-lg border border-border p-3 bg-secondary/40 space-y-1"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="font-medium text-sm truncate">{saved.name}</p>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 px-3 text-xs"
+                                    onClick={() => applySavedTitle(saved)}
+                                  >
+                                    Use
+                                  </Button>
+                                </div>
+                                <p className="text-sm font-semibold truncate">{saved.title}</p>
+                                {saved.subtitle && (
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {saved.subtitle}
+                                  </p>
+                                )}
+                                <p className="text-[11px] text-muted-foreground">
+                                  Style: {saved.text_style} • Position: {saved.text_position}
                                 </p>
-                              )}
-                              <p className="text-[11px] text-muted-foreground">
-                                Style: {saved.text_style} • Position: {saved.text_position}
-                              </p>
-                            </div>
-                          ))}
+                              </div>
+                            ))}
+                          </div>
+                          {savedTitles.length > 4 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => navigate("/titles")}
+                            >
+                              View all titles
+                            </Button>
+                          )}
                         </div>
-                        {savedTitles.length > 4 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => navigate("/titles")}
-                          >
-                            View all titles
-                          </Button>
-                        )}
-                      </div>
+                      </CollapsibleSection>
                     )}
                   </TabsContent>
 
-                  <TabsContent value="background" className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold">Background & style</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Define the overall mood, background type, and aspect ratio.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Visual Style</Label>
+                  <TabsContent value="background" className="space-y-6 mt-0">
+                    <CollapsibleSection
+                      title="Visual Style"
+                      subtitle="Define the overall mood and aesthetic of your thumbnails"
+                      defaultOpen={true}
+                    >
                       <MultiSelectChips
-                        label="Visual styles"
+                        label=""
                         options={VISUAL_STYLE_OPTIONS}
                         value={visualStyles}
                         onChange={setVisualStyles}
@@ -1580,142 +1539,178 @@ const CreateNew = () => {
                         aiDescription="AI will vary visual styles across the 9 thumbnails"
                         customPlaceholder="Add custom visual style..."
                       />
-                    </div>
+                    </CollapsibleSection>
 
-                    <div className="space-y-2">
-                      <Label>Background</Label>
-                      <Select value={backgroundType} onValueChange={setBackgroundType}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="gradient">Gradient</SelectItem>
-                          <SelectItem value="solid">Solid Color</SelectItem>
-                          <SelectItem value="image">Upload Image</SelectItem>
-                          <SelectItem value="avatar">From Avatar</SelectItem>
-                          <SelectItem value="custom-prompt">Custom Prompt</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {backgroundType === "gradient" && (
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <Label>Color 1</Label>
-                          <div className="flex gap-2">
-                            <input
-                              type="color"
-                              value={gradientColor1}
-                              onChange={(e) => setGradientColor1(e.target.value)}
-                              className="w-12 h-10 rounded border border-border cursor-pointer"
-                            />
-                            <Input
-                              value={gradientColor1}
-                              onChange={(e) => setGradientColor1(e.target.value)}
-                              placeholder="#FF6B9D"
-                            />
+                    <CollapsibleSection
+                      title="Background"
+                      subtitle="Choose a background type: gradient, solid color, image, or custom"
+                    >
+                      <div className="space-y-4">
+                        {/* AI Decide Option for Background */}
+                        <button
+                          type="button"
+                          onClick={() => setBackgroundAiDecide(!backgroundAiDecide)}
+                          className={`w-full px-4 py-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${
+                            backgroundAiDecide 
+                              ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]" 
+                              : "border-border/60 bg-card/50 hover:border-muted-foreground/50"
+                          }`}
+                        >
+                          <div className="text-left space-y-0.5">
+                            <div className="font-semibold text-sm">Let AI Decide</div>
+                            <div className="text-xs text-muted-foreground leading-relaxed">
+                              AI will create varied backgrounds across the 9 thumbnails
+                            </div>
                           </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Color 2</Label>
-                          <div className="flex gap-2">
-                            <input
-                              type="color"
-                              value={gradientColor2}
-                              onChange={(e) => setGradientColor2(e.target.value)}
-                              className="w-12 h-10 rounded border border-border cursor-pointer"
-                            />
-                            <Input
-                              value={gradientColor2}
-                              onChange={(e) => setGradientColor2(e.target.value)}
-                              placeholder="#C239B3"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {backgroundType === "solid" && (
-                      <div className="space-y-2">
-                        <Label>Color</Label>
-                        <div className="flex gap-2">
-                          <input
-                            type="color"
-                            value={solidColor}
-                            onChange={(e) => setSolidColor(e.target.value)}
-                            className="w-12 h-10 rounded border border-border cursor-pointer"
-                          />
-                          <Input
-                            value={solidColor}
-                            onChange={(e) => setSolidColor(e.target.value)}
-                            placeholder="#FF6B9D"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {backgroundType === "image" && (
-                      <div className="space-y-2">
-                        <Label>Upload Background Image</Label>
-                        <label htmlFor="bg-upload" className="block">
-                          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
-                            {backgroundImageUrl ? (
-                              <div className="space-y-2">
-                                <img
-                                  src={backgroundImageUrl}
-                                  alt="Background preview"
-                                  className="w-full h-32 object-cover rounded-lg"
-                                />
-                                <p className="text-sm text-muted-foreground">Click to change</p>
-                              </div>
-                            ) : (
-                              <div>
-                                <p className="text-sm text-muted-foreground">Click to upload</p>
-                                <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
-                              </div>
+                          <div
+                            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                              backgroundAiDecide 
+                                ? "border-primary bg-primary" 
+                                : "border-muted-foreground/40"
+                            }`}
+                          >
+                            {backgroundAiDecide && (
+                              <div className="w-2 h-2 rounded-full bg-primary-foreground" />
                             )}
                           </div>
-                          <input
-                            id="bg-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleBackgroundImageUpload}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    )}
+                        </button>
 
-                    {backgroundType === "avatar" && selectedAvatar && (
-                      <div className="p-3 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          Background will be generated from the selected avatar
-                        </p>
-                      </div>
-                    )}
+                        <div className={`space-y-4 transition-opacity ${backgroundAiDecide ? "opacity-50 pointer-events-none" : ""}`}>
+                          <Select value={backgroundType} onValueChange={setBackgroundType}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gradient">Gradient</SelectItem>
+                              <SelectItem value="solid">Solid Color</SelectItem>
+                              <SelectItem value="image">Upload Image</SelectItem>
+                              <SelectItem value="avatar">From Avatar</SelectItem>
+                              <SelectItem value="custom-prompt">Custom Prompt</SelectItem>
+                            </SelectContent>
+                          </Select>
 
-                    {backgroundType === "avatar" && !selectedAvatar && (
-                      <div className="p-3 bg-destructive/10 rounded-lg">
-                        <p className="text-sm text-destructive">
-                          Please select an avatar first to use this option
-                        </p>
-                      </div>
-                    )}
+                          {backgroundType === "gradient" && (
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm">Color 1</Label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="color"
+                                    value={gradientColor1}
+                                    onChange={(e) => setGradientColor1(e.target.value)}
+                                    className="w-12 h-10 rounded border border-border cursor-pointer"
+                                  />
+                                  <Input
+                                    value={gradientColor1}
+                                    onChange={(e) => setGradientColor1(e.target.value)}
+                                    placeholder="#FF6B9D"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm">Color 2</Label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="color"
+                                    value={gradientColor2}
+                                    onChange={(e) => setGradientColor2(e.target.value)}
+                                    className="w-12 h-10 rounded border border-border cursor-pointer"
+                                  />
+                                  <Input
+                                    value={gradientColor2}
+                                    onChange={(e) => setGradientColor2(e.target.value)}
+                                    placeholder="#C239B3"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
-                    {backgroundType === "custom-prompt" && (
-                      <div className="space-y-2">
-                        <Label>Background Description</Label>
-                        <Textarea
-                          placeholder="Describe the background you want... (e.g., 'Futuristic city skyline at sunset')"
-                          value={customBackgroundPrompt}
-                          onChange={(e) => setCustomBackgroundPrompt(e.target.value)}
-                          rows={3}
-                        />
-                      </div>
-                    )}
+                          {backgroundType === "solid" && (
+                            <div className="space-y-2">
+                              <Label className="text-sm">Color</Label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="color"
+                                  value={solidColor}
+                                  onChange={(e) => setSolidColor(e.target.value)}
+                                  className="w-12 h-10 rounded border border-border cursor-pointer"
+                                />
+                                <Input
+                                  value={solidColor}
+                                  onChange={(e) => setSolidColor(e.target.value)}
+                                  placeholder="#FF6B9D"
+                                />
+                              </div>
+                            </div>
+                          )}
 
-                    <div className="space-y-2">
-                      <Label>Aspect Ratio</Label>
+                          {backgroundType === "image" && (
+                            <div className="space-y-2">
+                              <label htmlFor="bg-upload" className="block">
+                                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
+                                  {backgroundImageUrl ? (
+                                    <div className="space-y-2">
+                                      <img
+                                        src={backgroundImageUrl}
+                                        alt="Background preview"
+                                        className="w-full h-32 object-cover rounded-lg"
+                                      />
+                                      <p className="text-sm text-muted-foreground">Click to change</p>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Click to upload</p>
+                                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                                    </div>
+                                  )}
+                                </div>
+                                <input
+                                  id="bg-upload"
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleBackgroundImageUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          )}
+
+                          {backgroundType === "avatar" && selectedAvatar && (
+                            <div className="p-3 bg-muted/50 rounded-lg">
+                              <p className="text-sm text-muted-foreground">
+                                Background will be generated from the selected avatar
+                              </p>
+                            </div>
+                          )}
+
+                          {backgroundType === "avatar" && !selectedAvatar && (
+                            <div className="p-3 bg-destructive/10 rounded-lg">
+                              <p className="text-sm text-destructive">
+                                Please select an avatar first to use this option
+                              </p>
+                            </div>
+                          )}
+
+                          {backgroundType === "custom-prompt" && (
+                            <div className="space-y-2">
+                              <Label className="text-sm">Background Description</Label>
+                              <Textarea
+                                placeholder="Describe the background you want... (e.g., 'Futuristic city skyline at sunset')"
+                                value={customBackgroundPrompt}
+                                onChange={(e) => setCustomBackgroundPrompt(e.target.value)}
+                                rows={3}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleSection>
+
+                    <CollapsibleSection
+                      title="Aspect Ratio"
+                      subtitle="Select the dimensions for your thumbnail output"
+                    >
                       <Select value={aspectRatio} onValueChange={setAspectRatio}>
                         <SelectTrigger>
                           <SelectValue />
@@ -1727,58 +1722,50 @@ const CreateNew = () => {
                           <SelectItem value="4:3">4:3 (Classic)</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
+                    </CollapsibleSection>
 
                     {savedBackgrounds.length > 0 && (
-                      <div className="space-y-3 pt-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Saved backgrounds
-                          </Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-3"
-                            onClick={() => navigate("/backgrounds")}
-                          >
-                            Manage
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {savedBackgrounds.slice(0, 4).map((bg) => (
-                            <div
-                              key={bg.id}
-                              className="rounded-lg border border-border p-2 space-y-2 bg-secondary/40"
-                            >
-                              <p className="text-sm font-medium truncate">{bg.name}</p>
-                              {renderSavedBackgroundPreview(bg)}
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="capitalize">
-                                  {(bg.type as string).replace("-", " ")}
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-3 text-xs"
-                                  onClick={() => applySavedBackground(bg)}
-                                >
-                                  Use
-                                </Button>
+                      <CollapsibleSection
+                        title="Saved Backgrounds"
+                        subtitle="Quick access to your saved background presets"
+                      >
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {savedBackgrounds.slice(0, 4).map((bg) => (
+                              <div
+                                key={bg.id}
+                                className="rounded-lg border border-border p-2 space-y-2 bg-secondary/40"
+                              >
+                                <p className="text-sm font-medium truncate">{bg.name}</p>
+                                {renderSavedBackgroundPreview(bg)}
+                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                  <span className="capitalize">
+                                    {(bg.type as string).replace("-", " ")}
+                                  </span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 px-3 text-xs"
+                                    onClick={() => applySavedBackground(bg)}
+                                  >
+                                    Use
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                          {savedBackgrounds.length > 4 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => navigate("/backgrounds")}
+                            >
+                              View all backgrounds
+                            </Button>
+                          )}
                         </div>
-                        {savedBackgrounds.length > 4 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => navigate("/backgrounds")}
-                          >
-                            View all backgrounds
-                          </Button>
-                        )}
-                      </div>
+                      </CollapsibleSection>
                     )}
                   </TabsContent>
                 </div>
