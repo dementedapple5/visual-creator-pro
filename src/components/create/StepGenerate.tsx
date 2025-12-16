@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
-import { DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize } from "@/lib/imageUtils";
+import { DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
 
 interface Avatar {
   id: string;
@@ -58,24 +58,24 @@ const cropGridToThumbnails = async (gridImageUrl: string): Promise<string[]> => 
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    
+
     img.onload = () => {
       const thumbnails: string[] = [];
       const cellWidth = Math.floor(img.width / GRID_SIZE);
       const cellHeight = Math.floor(img.height / GRID_SIZE);
-      
+
       for (let row = 0; row < GRID_SIZE; row++) {
         for (let col = 0; col < GRID_SIZE; col++) {
           const canvas = document.createElement("canvas");
           canvas.width = cellWidth;
           canvas.height = cellHeight;
           const ctx = canvas.getContext("2d");
-          
+
           if (!ctx) {
             reject(new Error("Failed to get canvas context"));
             return;
           }
-          
+
           // Crop the cell from the grid image
           ctx.drawImage(
             img,
@@ -88,20 +88,20 @@ const cropGridToThumbnails = async (gridImageUrl: string): Promise<string[]> => 
             cellWidth,            // Destination width
             cellHeight            // Destination height
           );
-          
+
           // Convert to data URL
           const thumbnailUrl = canvas.toDataURL("image/png");
           thumbnails.push(thumbnailUrl);
         }
       }
-      
+
       resolve(thumbnails);
     };
-    
+
     img.onerror = () => {
       reject(new Error("Failed to load grid image"));
     };
-    
+
     img.src = gridImageUrl;
   });
 };
@@ -132,7 +132,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             .select("*")
             .eq("id", data.avatarId)
             .single();
-          
+
           if (!error && avatar) {
             setAvatarData(avatar);
           }
@@ -147,7 +147,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
               images:product_images(id, image_url)
             `)
             .in("id", data.productIds);
-          
+
           if (!error && products) {
             setProductData(products);
           }
@@ -190,8 +190,8 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       }
 
       // Prepare thumbnail data with grid mode enabled
-      const thumbnailData = { 
-        ...data, 
+      const thumbnailData = {
+        ...data,
         aspectRatio,
         gridMode: true, // Enable grid mode for 3x3 generation
       };
@@ -205,17 +205,25 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
 
       if (functionError) throw functionError;
 
-      if (!functionData?.imageUrl) {
-        throw new Error("No image URL returned");
+      // Handle grid mode response (base64) vs single mode (URL)
+      let gridImageSource: string;
+      if (functionData?.imageBase64) {
+        // Grid mode: convert base64 to data URL for display
+        gridImageSource = `data:image/png;base64,${functionData.imageBase64}`;
+      } else if (functionData?.imageUrl) {
+        // Single mode or legacy: use URL directly
+        gridImageSource = functionData.imageUrl;
+      } else {
+        throw new Error("No image data returned");
       }
 
       // Store the original grid image
-      setGridImageUrl(functionData.imageUrl);
+      setGridImageUrl(gridImageSource);
 
       // Now crop the grid into 9 thumbnails
       setCroppingGrid(true);
       try {
-        const croppedThumbnails = await cropGridToThumbnails(functionData.imageUrl);
+        const croppedThumbnails = await cropGridToThumbnails(gridImageSource);
         setGeneratedImages(croppedThumbnails);
         // Auto-select the first thumbnail for preview
         if (croppedThumbnails.length > 0) {
@@ -225,8 +233,8 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       } catch (cropError) {
         console.error("Error cropping grid:", cropError);
         // Fallback: use the grid image as a single image
-        setGeneratedImages([functionData.imageUrl]);
-        setPreviewImage(functionData.imageUrl);
+        setGeneratedImages([gridImageSource]);
+        setPreviewImage(gridImageSource);
         toast.warning("Generated grid image (cropping failed)");
       } finally {
         setCroppingGrid(false);
@@ -272,7 +280,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
         {
-          body: { 
+          body: {
             thumbnailData: { ...data, aspectRatio, gridMode: false }, // Single image for remix
             remixImageUrl: previewImage,
             remixPrompt: remixPrompt
@@ -331,10 +339,10 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   };
 
   const handleSave = async () => {
-    const imagesToSave = selectedImages.size > 0 
-      ? Array.from(selectedImages) 
-      : previewImage 
-        ? [previewImage] 
+    const imagesToSave = selectedImages.size > 0
+      ? Array.from(selectedImages)
+      : previewImage
+        ? [previewImage]
         : [];
 
     if (imagesToSave.length === 0) return;
@@ -343,8 +351,18 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // Save all selected thumbnails
-      const insertPromises = imagesToSave.map((imageUrl) => 
+      // Upload data URLs to storage and get public URLs
+      const uploadedUrls = await Promise.all(
+        imagesToSave.map(async (url) => {
+          if (isDataUrl(url)) {
+            return await uploadDataUrlToStorage(url, supabase, user.id);
+          }
+          return url;
+        })
+      );
+
+      // Save all selected thumbnails with uploaded URLs
+      const insertPromises = uploadedUrls.map((imageUrl) =>
         supabase.from("thumbnails").insert({
           user_id: user.id,
           title: data.titleMode === 'ai' ? 'AI Generated' : data.title,
@@ -369,7 +387,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
 
       const results = await Promise.all(insertPromises);
       const errors = results.filter(r => r.error);
-      
+
       if (errors.length > 0) {
         throw errors[0].error;
       }
@@ -385,7 +403,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   // Format selection info for display
   const getSelectionSummary = () => {
     const items = [];
-    
+
     if (data.expressions?.length) {
       items.push(`${data.expressions.includes('ai-decide') ? 'AI' : data.expressions.length} expression${data.expressions.length > 1 ? 's' : ''}`);
     }
@@ -395,7 +413,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
     if (data.titleMode === 'ai') {
       items.push('AI titles');
     }
-    
+
     return items.length > 0 ? items.join(', ') : 'Default settings';
   };
 
@@ -551,7 +569,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
                 className="w-full h-full object-cover"
               />
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
               <DropdownMenu>
@@ -581,7 +599,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              
+
               <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="flex-1">
@@ -603,8 +621,8 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
                       onChange={(e) => setRemixPrompt(e.target.value)}
                       rows={4}
                     />
-                    <Button 
-                      onClick={handleRemix} 
+                    <Button
+                      onClick={handleRemix}
                       disabled={remixing || !remixPrompt.trim()}
                       className="w-full"
                     >
@@ -641,26 +659,27 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
               )}
             </Label>
             <p className="text-sm text-muted-foreground">
-              Click to preview, double-click to select for saving
+              Click to select
             </p>
           </div>
           <div className="grid grid-cols-3 gap-4">
             {generatedImages.map((imageUrl, index) => {
               const isSelected = selectedImages.has(imageUrl);
               const isPreview = previewImage === imageUrl;
-              
+
               return (
                 <button
                   key={index}
-                  onClick={() => setPreviewImage(imageUrl)}
-                  onDoubleClick={() => toggleImageSelection(imageUrl)}
-                  className={`relative ${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]"} rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] ${
-                    isPreview
-                      ? "border-primary ring-2 ring-primary/20"
-                      : isSelected
-                        ? "border-green-500 ring-2 ring-green-500/20"
-                        : "border-border hover:border-primary/50"
-                  }`}
+                  onClick={() => {
+                    setPreviewImage(imageUrl);
+                    toggleImageSelection(imageUrl);
+                  }}
+                  className={`relative ${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]"} rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] ${isPreview
+                    ? "border-primary ring-2 ring-primary/20"
+                    : isSelected
+                      ? "border-green-500 ring-2 ring-green-500/20"
+                      : "border-border hover:border-primary/50"
+                    }`}
                 >
                   <img
                     src={imageUrl}
@@ -679,19 +698,19 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
               );
             })}
           </div>
-          
+
           {/* Selection Actions */}
           {generatedImages.length > 1 && (
             <div className="flex gap-2 pt-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setSelectedImages(new Set(generatedImages))}
               >
                 Select All
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setSelectedImages(new Set())}
               >
@@ -735,12 +754,12 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
                 </>
               )}
             </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={(!previewImage && selectedImages.size === 0) || isLoading || remixing} 
+            <Button
+              onClick={handleSave}
+              disabled={(!previewImage && selectedImages.size === 0) || isLoading || remixing}
               className="flex-1"
             >
-              {selectedImages.size > 0 
+              {selectedImages.size > 0
                 ? `Save ${selectedImages.size} Selected`
                 : "Save & Finish"
               }

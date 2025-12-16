@@ -260,7 +260,7 @@
   }
 
   .animate-scroll-left {
-    animation: scroll-left 30s linear infinite;
+    animation: scroll-left 80s linear infinite;
   }
 
   .animate-scroll-left:hover {
@@ -317,5 +317,24 @@
       opacity: 0.8;
       filter: blur(0);
     }
+  }
+
+  /* Pulse wave animation for canvas grid */
+  @keyframes pulseWave {
+
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.8);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1.5);
+    }
+  }
+
+  .animate-pulse-wave {
+    animation: pulseWave 2s ease-in-out infinite;
   }
 }

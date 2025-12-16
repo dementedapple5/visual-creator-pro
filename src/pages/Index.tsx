@@ -14,6 +14,8 @@ import {
   LayoutGrid,
   Repeat2
 } from "lucide-react";
+import { InfiniteScrollExamples } from "@/components/landing/InfiniteScrollExamples";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 
 const subscriptionPlans = [
   {
@@ -82,11 +84,11 @@ const subscriptionPlans = [
 ];
 
 const rotatingWords = [
-  "thumbnails",
-  "hooks",
-  "channel art",
-  "podcast covers",
-  "shorts intros"
+  "Thumbnails",
+  "Viral Covers",
+  "Channel Art",
+  "Video Intros",
+  "Hooks"
 ];
 
 const bentoFeatures = [
@@ -294,21 +296,21 @@ const Index = () => {
                 data-animate
                 style={{ ["--delay" as any]: "0.05s" }}
               >
-                Ship publish-ready thumbnails
+                Create Viral YouTube
               </span>
               <span
                 className="hero-font-secondary text-gradient text-balance block w-full pb-2"
                 data-animate
                 style={{ ["--delay" as any]: "0.15s" }}
               >
-                from saved avatars, backgrounds, and titles
+                thumbnails that get clicks
               </span>
               <span
                 className="flex flex-wrap justify-center items-center gap-3 text-lg md:text-xl text-muted-foreground/90 hero-type w-full"
                 data-animate
                 style={{ ["--delay" as any]: "0.25s" }}
               >
-                Written for
+                Fast & Professional
                 <span className="typewriter text-white">{displayedWord}</span>
                 <span className="type-caret" aria-hidden="true" />
               </span>
@@ -320,7 +322,7 @@ const Index = () => {
             data-animate
             style={{ ["--delay" as any]: "0.35s" }}
           >
-            Upload faces, keep reusable backgrounds and text presets, and generate or remix thumbnails in the same canvas. No blank files—just ready-to-publish visuals in seconds.
+            The specialized design tool for YouTubers. Upload your face, drag in elements, and generate high-CTR thumbnails in seconds. No generic templates—just results.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
@@ -347,6 +349,10 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <InfiniteScrollExamples />
+
+      <HowItWorks />
 
       <section className="py-28 px-6 relative z-10">
         <div className="container mx-auto max-w-7xl">

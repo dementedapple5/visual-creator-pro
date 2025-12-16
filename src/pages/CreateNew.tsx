@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check } from "lucide-react";
+import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot } from "lucide-react";
 import { toast } from "sonner";
-import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize } from "@/lib/imageUtils";
+import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
 import { MultiSelectChips } from "@/components/MultiSelectChips";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
@@ -102,20 +102,26 @@ const EXPRESSIONS = [
 
 const EXPRESSION_OPTIONS = EXPRESSIONS.map((e) => ({ value: e.id, label: e.label }));
 
+const GENERATION_MODES = [
+  { value: "1", label: "1 Thumbnail", thumbnailCount: 1, gridSize: 1,  credits: 1 },
+  { value: "4", label: "4 Thumbnails", thumbnailCount: 4, gridSize: 2, credits: 2 },
+  { value: "9", label: "9 Thumbnails", thumbnailCount: 9, gridSize: 3, credits: 4 },
+] as const;
+
 const GRID_SIZE = 3;
 
-const cropGridToThumbnails = async (gridImageUrl: string): Promise<string[]> => {
+const cropGridToThumbnails = async (gridImageUrl: string, gridSize: number = 3): Promise<string[]> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
 
     img.onload = () => {
       const thumbnails: string[] = [];
-      const cellWidth = Math.floor(img.width / GRID_SIZE);
-      const cellHeight = Math.floor(img.height / GRID_SIZE);
+      const cellWidth = Math.floor(img.width / gridSize);
+      const cellHeight = Math.floor(img.height / gridSize);
 
-      for (let row = 0; row < GRID_SIZE; row++) {
-        for (let col = 0; col < GRID_SIZE; col++) {
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
           const canvas = document.createElement("canvas");
           canvas.width = cellWidth;
           canvas.height = cellHeight;
@@ -208,6 +214,7 @@ const CreateNew = () => {
   const [solidColor, setSolidColor] = useState<string>("#FF6B9D");
 
   const [activeTab, setActiveTab] = useState<string>("avatar");
+  const [generationMode, setGenerationMode] = useState<string>("1");
 
   const hasGeneratedImage = Boolean(selectedImage || generatedThumbnails.length > 0);
   const previewImage = selectedImage || generatedThumbnails[0] || null;
@@ -565,8 +572,11 @@ const CreateNew = () => {
         .gte("created_at", countStartDate);
 
       const usedGenerations = count || 0;
+      const selectedMode = GENERATION_MODES.find(m => m.value === generationMode) || GENERATION_MODES[0];
+      const requiredCredits = selectedMode.credits;
+      const isGridMode = selectedMode.thumbnailCount > 1;
 
-      if (usedGenerations >= monthlyLimit) {
+      if (usedGenerations + requiredCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
         setGenerating(false);
@@ -626,7 +636,8 @@ const CreateNew = () => {
               backgroundType: backgroundAiDecide ? "ai-decide" : backgroundType,
               backgroundValue: backgroundAiDecide ? undefined : (backgroundType === "custom-prompt" ? customBackgroundPrompt : backgroundValue),
               aspectRatio,
-              gridMode: true,
+              gridMode: isGridMode,
+              gridCount: selectedMode.thumbnailCount,
             },
           },
         }
@@ -634,25 +645,44 @@ const CreateNew = () => {
 
       if (functionError) throw functionError;
 
-      const imageUrl = functionData.imageUrl;
+      // Handle grid mode response (base64) vs single mode (URL)
+      let gridImageSource: string;
+      if (functionData?.imageBase64) {
+        // Grid mode: convert base64 to data URL for display
+        gridImageSource = `data:image/png;base64,${functionData.imageBase64}`;
+      } else if (functionData?.imageUrl) {
+        // Single mode or legacy: use URL directly
+        gridImageSource = functionData.imageUrl;
+      } else {
+        throw new Error("No image data returned");
+      }
+
       const generationId = functionData.generationId as string | undefined;
 
-      // Store grid + crop into 9 thumbnails on client
-      setGridImageUrl(imageUrl);
-      setCroppingGrid(true);
-      try {
-        const cropped = await cropGridToThumbnails(imageUrl);
-        setGeneratedThumbnails(cropped);
-        setSelectedImage(cropped[0] || null);
+      // Handle single thumbnail mode
+      if (selectedMode.thumbnailCount === 1) {
+        setGeneratedThumbnails([gridImageSource]);
+        setSelectedImage(gridImageSource);
         setSelectedImages(new Set());
-        toast.success("9 thumbnail variations generated!");
-      } catch (e) {
-        console.warn("Grid cropping failed, falling back to grid image", e);
-        setGeneratedThumbnails([imageUrl]);
-        setSelectedImage(imageUrl);
-        toast.warning("Generated grid image (cropping failed)");
-      } finally {
-        setCroppingGrid(false);
+        toast.success("Thumbnail generated!");
+      } else {
+        // Store grid + crop into thumbnails on client
+        setGridImageUrl(gridImageSource);
+        setCroppingGrid(true);
+        try {
+          const cropped = await cropGridToThumbnails(gridImageSource, selectedMode.gridSize);
+          setGeneratedThumbnails(cropped);
+          setSelectedImage(cropped[0] || null);
+          setSelectedImages(new Set());
+          toast.success(`${selectedMode.thumbnailCount} thumbnail variations generated!`);
+        } catch (e) {
+          console.warn("Grid cropping failed, falling back to grid image", e);
+          setGeneratedThumbnails([gridImageSource]);
+          setSelectedImage(gridImageSource);
+          toast.warning("Generated grid image (cropping failed)");
+        } finally {
+          setCroppingGrid(false);
+        }
       }
 
       // Keep generationId only for logs for now (we don't attach thumbnail_id until user saves)
@@ -706,7 +736,17 @@ const CreateNew = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const insertPromises = urls.map((image_url) =>
+      // Upload data URLs to storage and get public URLs
+      const uploadedUrls = await Promise.all(
+        urls.map(async (url) => {
+          if (isDataUrl(url)) {
+            return await uploadDataUrlToStorage(url, supabase, user.id);
+          }
+          return url;
+        })
+      );
+
+      const insertPromises = uploadedUrls.map((image_url) =>
         supabase.from("thumbnails").insert({
           user_id: user.id,
           image_url,
@@ -948,6 +988,52 @@ const CreateNew = () => {
 
               <div className="p-4 space-y-4">
                 <div className="relative w-full aspect-video rounded-lg bg-secondary border border-border flex items-center justify-center overflow-hidden">
+                  {/* Faded grid background pattern */}
+                  <div
+                    className={`absolute inset-0 transition-opacity duration-500 ${previewImage ? 'opacity-0' : 'opacity-100'}`}
+                    style={{
+                      backgroundImage: `
+                        linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px),
+                        linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '40px 40px',
+                    }}
+                  >
+                    {/* Pulse wave animation overlay when generating */}
+                    {generating && (
+                      <>
+                        <div
+                          className="absolute inset-0 bg-gradient-radial from-primary/10 via-transparent to-transparent animate-pulse-wave"
+                          style={{
+                            background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.15) 0%, transparent 60%)',
+                            animation: 'pulseWave 2s ease-in-out infinite',
+                          }}
+                        />
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.1) 0%, transparent 70%)',
+                            animation: 'pulseWave 2s ease-in-out infinite 0.5s',
+                          }}
+                        />
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.05) 0%, transparent 80%)',
+                            animation: 'pulseWave 2s ease-in-out infinite 1s',
+                          }}
+                        />
+                      </>
+                    )}
+                    {/* Fade out gradient at edges */}
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: 'radial-gradient(ellipse at center, transparent 30%, hsl(var(--secondary)) 100%)',
+                      }}
+                    />
+                  </div>
+
                   {previewImage ? (
                     <>
                       <img
@@ -956,21 +1042,48 @@ const CreateNew = () => {
                         className="w-full h-full object-contain"
                       />
                       {generating && (
-                        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center">
-                          <div className="text-center space-y-3">
-                            <div className="relative inline-flex items-center justify-center">
-                              <span className="absolute h-16 w-16 rounded-full bg-primary/25 animate-ping" />
-                              <span className="absolute h-24 w-24 rounded-full bg-primary/15 animate-ping [animation-delay:150ms]" />
-                              <Sparkles className="relative w-8 h-8 text-primary" />
-                            </div>
+                        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+                          {/* Grid overlay for generating state */}
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              backgroundImage: `
+                                linear-gradient(to right, hsl(var(--border) / 0.2) 1px, transparent 1px),
+                                linear-gradient(to bottom, hsl(var(--border) / 0.2) 1px, transparent 1px)
+                              `,
+                              backgroundSize: '40px 40px',
+                            }}
+                          />
+                          {/* Pulse waves */}
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.2) 0%, transparent 50%)',
+                              animation: 'pulseWave 2s ease-in-out infinite',
+                            }}
+                          />
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.15) 0%, transparent 60%)',
+                              animation: 'pulseWave 2s ease-in-out infinite 0.5s',
+                            }}
+                          />
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              background: 'radial-gradient(circle at center, hsl(var(--primary) / 0.1) 0%, transparent 70%)',
+                              animation: 'pulseWave 2s ease-in-out infinite 1s',
+                            }}
+                          />
+                          <div className="text-center space-y-3 relative z-10">
                             <GeneratingMessages />
                           </div>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="text-center">
-                      <Sparkles className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                    <div className="text-center relative z-10">
                       {generating ? (
                         <GeneratingMessages />
                       ) : (
@@ -1029,7 +1142,7 @@ const CreateNew = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="space-y-0.5">
                     <p className="text-sm font-semibold">Generated thumbnails</p>
-                    <p className="text-xs text-muted-foreground">Click to preview, double-click to select</p>
+                    <p className="text-xs text-muted-foreground">Click to select</p>
                   </div>
                   <span className="text-xs text-muted-foreground">{generatedThumbnails.length} results</span>
                 </div>
@@ -1037,14 +1150,16 @@ const CreateNew = () => {
                   {generatedThumbnails.map((url, index) => (
                     <button
                       key={index}
-                      className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${previewImage === url
+                      className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${previewImage === url
                         ? "border-primary ring-2 ring-primary/20"
                         : selectedImages.has(url)
                           ? "border-green-500 ring-2 ring-green-500/20"
                           : "border-border hover:border-primary/50"
                         }`}
-                      onClick={() => setSelectedImage(url)}
-                      onDoubleClick={() => toggleSelect(url)}
+                      onClick={() => {
+                        setSelectedImage(url);
+                        toggleSelect(url);
+                      }}
                     >
                       <img
                         src={url}
@@ -1548,7 +1663,7 @@ const CreateNew = () => {
                       title="Background"
                       subtitle="Choose a background type: gradient, solid color, image, or custom"
                     >
-                      <div className="space-y-4">
+                      <div className="space-y-5">
                         {/* AI Decide Option for Background */}
                         <button
                           type="button"
@@ -1576,7 +1691,7 @@ const CreateNew = () => {
                           </div>
                         </button>
 
-                        <div className={`space-y-4 transition-opacity ${backgroundAiDecide ? "opacity-50 pointer-events-none" : ""}`}>
+                        <div className={`mt-5 space-y-4 transition-opacity ${backgroundAiDecide ? "opacity-50 pointer-events-none" : ""}`}>
                           <Select value={backgroundType} onValueChange={setBackgroundType}>
                             <SelectTrigger>
                               <SelectValue />
@@ -1773,25 +1888,56 @@ const CreateNew = () => {
               </ScrollArea>
 
               <div className="border-t border-border/60 p-4 space-y-2">
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isLoading}
-                  variant="default"
-                  className="w-full"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      {croppingGrid ? "Processing variations..." : "Generating 9 variations..."}
-                    </>
-                  ) : (
-                    <>
-                      <Grid3X3 className="w-5 h-5 mr-2" />
-                      Generate 9 Thumbnails
-                    </>
-                  )}
-                </Button>
+                <div className="flex w-full border border-border rounded-lg overflow-hidden">
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    variant="outline"
+                    className="flex-1 rounded-none border-0 border-r border-r-border/50 hover:text-pink-500 hover:scale-100 [&_svg]:hover:text-pink-500"
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        {croppingGrid ? "Processing variations..." : `Generating ${GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount || 1} ${GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount === 1 ? "thumbnail" : "variations"}...`}
+                      </>
+                    ) : (
+                      <>
+                        <Bot className="w-5 h-5 mr-2" />
+                        Generate {GENERATION_MODES.find(m => m.value === generationMode)?.label || "1 Thumbnail"} ({GENERATION_MODES.find(m => m.value === generationMode)?.credits || 1} credit{GENERATION_MODES.find(m => m.value === generationMode)?.credits !== 1 ? "s" : ""})
+                      </>
+                    )}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="rounded-none border-0 px-3 hover:scale-100"
+                        disabled={isLoading}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Select generation mode</DropdownMenuLabel>
+                      {GENERATION_MODES.map((mode) => (
+                        <DropdownMenuItem
+                          key={mode.value}
+                          onClick={() => setGenerationMode(mode.value)}
+                          className={generationMode === mode.value ? "bg-accent" : ""}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span>{mode.label}</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {mode.credits} credit{mode.credits !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </Tabs>
           </div>

@@ -92,6 +92,92 @@ type DownloadImageOptions = {
 };
 
 /**
+ * Converts a data URL (base64) to a Blob
+ */
+export const dataUrlToBlob = (dataUrl: string): Blob => {
+  const arr = dataUrl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+};
+
+/**
+ * Checks if a string is a data URL
+ */
+export const isDataUrl = (url: string): boolean => {
+  return url.startsWith('data:');
+};
+
+/**
+ * Uploads a data URL image to Supabase storage and returns the public URL
+ * @param dataUrl - The data URL to upload
+ * @param supabase - The Supabase client instance
+ * @param userId - The user ID for the storage path
+ * @param bucket - The storage bucket name (default: "thumbnails")
+ * @returns The public URL of the uploaded image
+ */
+export const uploadDataUrlToStorage = async (
+  dataUrl: string,
+  supabase: any,
+  userId: string,
+  bucket: string = "thumbnails"
+): Promise<string> => {
+  const blob = dataUrlToBlob(dataUrl);
+  const fileName = `${userId}/generated/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+
+  // Convert to JPEG blob for consistent format
+  const jpegBlob = await new Promise<Blob>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (resultBlob) => {
+          if (resultBlob) {
+            resolve(resultBlob);
+          } else {
+            reject(new Error('Failed to convert to JPEG'));
+          }
+        },
+        'image/jpeg',
+        0.92
+      );
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+
+  const { error: uploadError } = await supabase.storage
+    .from(bucket)
+    .upload(fileName, jpegBlob, {
+      contentType: "image/jpeg",
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(fileName);
+
+  return publicUrl;
+};
+
+/**
  * Downloads an image resized to the requested dimensions using a canvas to preserve quality.
  * Uses a cover fit to avoid distortion when aspect ratios differ.
  */

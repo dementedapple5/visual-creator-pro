@@ -42,6 +42,8 @@ interface ThumbnailData {
   subtitleMode?: 'custom' | 'ai';
   // Grid generation mode
   gridMode?: boolean;
+  gridCount?: number; // 1, 4, or 9
+  resolution?: string; // "1K", "2K", or "4K"
 }
 
 serve(async (req) => {
@@ -122,7 +124,14 @@ serve(async (req) => {
     // Build the prompt
     const platformType = thumbnailData?.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
     const aspectRatio = thumbnailData?.aspectRatio || "16:9";
-    const isGridMode = thumbnailData?.gridMode !== false; // Default to grid mode
+    
+    // For iterations and remixes, always use single thumbnail mode with 1K resolution
+    const isIterationOrRemix = !!iterationImageUrl || !!remixImageUrl;
+    const gridCount = isIterationOrRemix ? 1 : (thumbnailData?.gridCount || (thumbnailData?.gridMode !== false ? 9 : 1));
+    const isGridMode = gridCount > 1;
+    const resolution = isIterationOrRemix ? "1K" : (thumbnailData?.resolution || (isGridMode ? "4K" : "1K"));
+    
+    console.log("Grid mode:", isGridMode, "Grid count:", gridCount, "Resolution:", resolution);
 
     let prompt = "";
 
@@ -142,19 +151,22 @@ CRITICAL INSTRUCTIONS:
       prompt = `You are remixing an existing thumbnail. Apply the following changes to the image: ${remixPrompt}
 
 CRITICAL: Maintain the overall composition and style of the original thumbnail while applying the requested changes.`;
-    } 
-    // Grid mode - generate 3x3 grid of variations
+    }
+    // Grid mode - generate grid of variations (2x2 for 4 thumbnails, 3x3 for 9 thumbnails)
     else if (isGridMode) {
-      prompt = `Generate a 3x3 GRID IMAGE containing 9 DISTINCT ${platformType} thumbnail variations.
+      const gridSize = gridCount === 4 ? 2 : 3;
+      const gridDescription = gridCount === 4 ? "2x2 grid (2 columns, 2 rows)" : "3x3 grid (3 columns, 3 rows)";
+      
+      prompt = `Generate a ${gridDescription.toUpperCase()} GRID IMAGE containing ${gridCount} DISTINCT ${platformType} thumbnail variations.
 
 CRITICAL LAYOUT INSTRUCTIONS:
-- Create a single image divided into a 3x3 grid (3 columns, 3 rows)
+- Create a single image divided into a ${gridDescription}
 - Each cell contains ONE complete thumbnail
-- ALL 9 cells must be filled with unique thumbnail variations
-- Cells should have thin white borders/gaps between them for clear separation
+- ALL ${gridCount} cells must be filled with unique thumbnail variations
+- Cells should not have borders or gaps between them
 - Each thumbnail must be a complete, standalone design
 
-VARIATION INSTRUCTIONS FOR THE 9 THUMBNAILS:`;
+VARIATION INSTRUCTIONS FOR THE ${gridCount} THUMBNAILS:`;
 
       // Add variation instructions based on selected options
       const expressions = thumbnailData.expressions || (thumbnailData.expression ? [thumbnailData.expression] : []);
@@ -222,7 +234,7 @@ PRESERVE INSTRUCTIONS:
 - PRESERVE the exact appearance, face, outfit, and styling of any people shown in the provided images
 - Do NOT modify facial features, clothing, or accessories of the people
 - Keep them looking EXACTLY as they appear in the source images
-- Ensure each of the 9 thumbnails is high-quality and could work as a standalone thumbnail`;
+- Ensure each of the ${gridCount} thumbnails is high-quality and could work as a standalone thumbnail`;
     }
     // Single thumbnail mode (legacy)
     else {
@@ -238,7 +250,10 @@ CRITICAL INSTRUCTIONS:
     if (!iterationImageUrl && !remixImageUrl && thumbnailData) {
       // For grid mode, most styling is handled in the variation instructions above
       // Only add non-variant specific instructions here
-      
+
+      // Define textStyles in the outer scope so it's available for both grid and single mode sections
+      const textStyles = thumbnailData.textStyles || (thumbnailData.textStyle ? [thumbnailData.textStyle] : []);
+
       // Visual style (only for single mode, grid mode handles this in variations)
       if (!isGridMode && thumbnailData.visualStyle) {
         const styles: Record<string, string> = {
@@ -553,7 +568,7 @@ CRITICAL INSTRUCTIONS:
                 responseModalities: ["TEXT", "IMAGE"],
                 imageConfig: {
                   aspectRatio: aspectRatio,
-                  imageSize: isGridMode ? "4K" : "2K", // Use 4K for grid mode to maintain quality when cropping
+                  imageSize: resolution as "1K" | "2K" | "4K", // Use resolution from request
                 },
               },
             }),
@@ -570,6 +585,18 @@ CRITICAL INSTRUCTIONS:
 
         // Handle specific error codes
         if (response.status === 429) {
+          // Update generation status to failed before returning
+          if (generationId && supabase) {
+            await supabase
+              .from("generations")
+              .update({
+                status: "failed",
+                error_message: "Rate limit exceeded",
+                completed_at: new Date().toISOString(),
+                duration_ms: Date.now() - startedAt,
+              })
+              .eq("id", generationId);
+          }
           return new Response(
             JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -577,6 +604,18 @@ CRITICAL INSTRUCTIONS:
         }
 
         if (response.status === 403) {
+          // Update generation status to failed before returning
+          if (generationId && supabase) {
+            await supabase
+              .from("generations")
+              .update({
+                status: "failed",
+                error_message: "API key invalid or quota exceeded",
+                completed_at: new Date().toISOString(),
+                duration_ms: Date.now() - startedAt,
+              })
+              .eq("id", generationId);
+          }
           return new Response(
             JSON.stringify({ error: "API key invalid or quota exceeded. Please check your Gemini API configuration." }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -613,6 +652,20 @@ CRITICAL INSTRUCTIONS:
     if (!response || !response.ok) {
       const errorMessage = lastError?.message || "Failed to generate thumbnail after multiple attempts";
       console.error("All retry attempts failed:", errorMessage);
+
+      // Update generation status to failed before returning
+      if (generationId && supabase) {
+        await supabase
+          .from("generations")
+          .update({
+            status: "failed",
+            error_message: errorMessage,
+            completed_at: new Date().toISOString(),
+            duration_ms: Date.now() - startedAt,
+          })
+          .eq("id", generationId);
+      }
+
       return new Response(
         JSON.stringify({
           error: "The AI service is temporarily unavailable. Please try again in a few moments.",
@@ -643,8 +696,39 @@ CRITICAL INSTRUCTIONS:
       throw new Error("No image returned from AI");
     }
 
-    console.log("Image data received, preparing to upload to storage");
+    console.log("Image data received, length:", imageData.length);
 
+    // For grid mode (2K or 4K images), skip storage upload to avoid memory issues
+    // Return base64 directly - frontend will handle displaying and letting user select thumbnails
+    if (isGridMode) {
+      console.log(`Grid mode: returning base64 directly to avoid memory issues with ${resolution} images`);
+
+      if (generationId) {
+        await supabase
+          .from("generations")
+          .update({
+            status: "completed",
+            // No image_url for grid mode - the individual thumbnails will be saved separately
+            completed_at: new Date().toISOString(),
+            duration_ms: Date.now() - startedAt,
+          })
+          .eq("id", generationId);
+      }
+
+      return new Response(
+        JSON.stringify({
+          imageBase64: imageData,
+          generationId,
+          isGridMode: true
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // For single thumbnail mode, upload to storage as before
+    console.log("Single mode: uploading to storage");
     const fileName = `${userId}/${Date.now()}.png`;
 
     // Convert base64 to binary (imageData is already without the data URI prefix)
