@@ -219,14 +219,14 @@ const ThumbnailDetail = () => {
       const monthlyLimit = subscriptionData?.monthly_limit || 1;
       const countStartDate = getGenerationWindowStart(subscriptionData || {});
 
-      const { count } = await supabase
+      const { data: usageData } = await supabase
         .from("generations")
-        .select("*", { count: "exact", head: true })
+        .select("credits_used")
         .eq("user_id", user.id)
         .eq("status", "completed")
         .gte("created_at", countStartDate);
 
-      const usedGenerations = count || 0;
+      const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
       if (usedGenerations >= monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
@@ -246,6 +246,7 @@ const ThumbnailDetail = () => {
           thumbnailData: {
             aspectRatio: thumbnail.aspect_ratio,
           },
+          creditsUsed: 1 // Iteration uses 1 credit
         },
       });
 
@@ -440,7 +441,7 @@ const ThumbnailDetail = () => {
               {/* Settings Collapsible */}
               <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1a1a] rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
+                  <button className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1a1a] rounded-lg border border-white/5 hover:border-white/10 transition-colors group">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                         <Wand2 className="w-4 h-4 text-purple-400" />
@@ -455,7 +456,7 @@ const ThumbnailDetail = () => {
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="mt-3 p-4 bg-[#141414] rounded-xl border border-white/5 space-y-4">
+                  <div className="mt-3 p-4 bg-[#141414] rounded-lg border border-white/5 space-y-4">
                     {/* Badges */}
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="secondary" className="bg-white/5 text-white/70 border-white/10 px-3 py-1.5">
@@ -537,9 +538,9 @@ const ThumbnailDetail = () => {
 
                   {/* Image */}
                   <div
-                    className={`relative rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${selectedVersion?.id === version.id
-                        ? "border-rose-500/50 shadow-lg shadow-rose-500/10"
-                        : "border-white/5 hover:border-white/20"
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${selectedVersion?.id === version.id
+                      ? "border-rose-500/50 shadow-lg shadow-rose-500/10"
+                      : "border-white/5 hover:border-white/20"
                       }`}
                     onClick={() => setSelectedVersion(version)}
                   >
@@ -581,7 +582,7 @@ const ThumbnailDetail = () => {
                     </div>
                   </div>
                   <div
-                    className="rounded-2xl overflow-hidden border-2 border-white/5 bg-[#0d0d0d] flex items-center justify-center"
+                    className="rounded-xl overflow-hidden border-2 border-white/5 bg-[#0d0d0d] flex items-center justify-center"
                     style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
                   >
                     <div className="flex flex-col items-center gap-3">
@@ -599,7 +600,7 @@ const ThumbnailDetail = () => {
           {/* Input Area - Fixed at bottom */}
           <div className="border-t border-white/5 bg-[#0a0a0a] p-4">
             <div className="max-w-3xl mx-auto">
-              <div className="relative bg-[#1a1a1a] rounded-2xl border border-white/10 focus-within:border-white/20 transition-colors flex items-center">
+              <div className="relative bg-[#1a1a1a] rounded-xl border border-white/10 focus-within:border-white/20 transition-colors flex items-center">
                 <textarea
                   ref={inputRef}
                   value={prompt}
@@ -624,8 +625,8 @@ const ThumbnailDetail = () => {
                     onClick={handleIterate}
                     disabled={!prompt.trim() || iterating}
                     className={`rounded-full w-9 h-9 p-0 transition-all ${prompt.trim() && !iterating
-                        ? "bg-white text-black hover:bg-white/90"
-                        : "bg-white/10 text-white/30"
+                      ? "bg-white text-black hover:bg-white/90"
+                      : "bg-white/10 text-white/30"
                       }`}
                   >
                     <Send className="w-4 h-4" />

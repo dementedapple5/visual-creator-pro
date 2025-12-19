@@ -22,6 +22,7 @@ type GenerationRecord = {
   error_message: string | null;
   remix_prompt?: string | null;
   prompt?: string | null;
+  credits_used?: number;
 };
 
 type SubscriptionData = SubscriptionInfo & {
@@ -91,16 +92,16 @@ const Generations = () => {
 
       const windowStart = getGenerationWindowStart(activeSubscription || {});
 
-      const [{ data, error: generationsError }, { count: completedCount, error: countError }] =
+      const [{ data, error: generationsError }, { data: usageData, error: countError }] =
         await Promise.all([
           supabase
             .from("generations")
-            .select("id, status, mode, created_at, completed_at, image_url, title, subtitle, aspect_ratio, thumbnail_id, error_message, remix_prompt, prompt")
+            .select("id, status, mode, created_at, completed_at, image_url, title, subtitle, aspect_ratio, thumbnail_id, error_message, remix_prompt, prompt, credits_used")
             .eq("user_id", session.user.id)
             .order("created_at", { ascending: false }),
           supabase
             .from("generations")
-            .select("*", { count: "exact", head: true })
+            .select("credits_used")
             .eq("user_id", session.user.id)
             .eq("status", "completed")
             .gte("created_at", windowStart),
@@ -111,13 +112,11 @@ const Generations = () => {
       }
 
       if (countError) {
-        console.warn("Error counting completed generations", countError);
+        console.warn("Error fetching usage data", countError);
       }
 
       const records = data || [];
-      const completed = typeof completedCount === "number"
-        ? completedCount
-        : records.filter((item) => item.status === "completed").length;
+      const completed = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
 
       setGenerations(records as GenerationRecord[]);
       setUsedCount(completed);
@@ -325,6 +324,11 @@ const Generations = () => {
                             </Badge>
                             {item.aspect_ratio && (
                               <Badge variant="outline">{item.aspect_ratio}</Badge>
+                            )}
+                            {item.credits_used && (
+                              <Badge variant="outline" className="bg-primary/5">
+                                {item.credits_used} credit{item.credits_used > 1 ? "s" : ""}
+                              </Badge>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">

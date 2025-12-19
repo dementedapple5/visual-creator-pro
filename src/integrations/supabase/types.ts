@@ -120,6 +120,7 @@ export type Database = {
         Row: {
           aspect_ratio: string | null
           completed_at: string | null
+          credits_used: number
           created_at: string | null
           duration_ms: number | null
           error_message: string | null
@@ -138,6 +139,7 @@ export type Database = {
         Insert: {
           aspect_ratio?: string | null
           completed_at?: string | null
+          credits_used?: number
           created_at?: string | null
           duration_ms?: number | null
           error_message?: string | null
@@ -156,6 +158,7 @@ export type Database = {
         Update: {
           aspect_ratio?: string | null
           completed_at?: string | null
+          credits_used?: number
           created_at?: string | null
           duration_ms?: number | null
           error_message?: string | null

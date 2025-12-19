@@ -223,14 +223,14 @@ export const AppDrawer = () => {
     const activeSubscription = subscriptionData && !subscriptionData.error ? subscriptionData : subscription;
     const countStartDate = getGenerationWindowStart(activeSubscription || {});
 
-    const { count } = await supabase
+    const { data: usageData } = await supabase
       .from("generations")
-      .select("*", { count: "exact", head: true })
+      .select("credits_used")
       .eq("user_id", user.id)
       .eq("status", "completed")
       .gte("created_at", countStartDate);
 
-    const usedGenerations = count || 0;
+    const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
     setGenerationsCount(usedGenerations);
     setRemainingGenerations(calculateRemainingGenerations(activeSubscription || {}, usedGenerations));
   };

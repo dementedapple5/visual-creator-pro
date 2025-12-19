@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot } from "lucide-react";
+import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot, X } from "lucide-react";
 import { toast } from "sonner";
 import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
@@ -103,7 +103,7 @@ const EXPRESSIONS = [
 const EXPRESSION_OPTIONS = EXPRESSIONS.map((e) => ({ value: e.id, label: e.label }));
 
 const GENERATION_MODES = [
-  { value: "1", label: "1 Thumbnail", thumbnailCount: 1, gridSize: 1,  credits: 1 },
+  { value: "1", label: "1 Thumbnail", thumbnailCount: 1, gridSize: 1, credits: 1 },
   { value: "4", label: "4 Thumbnails", thumbnailCount: 4, gridSize: 2, credits: 2 },
   { value: "9", label: "9 Thumbnails", thumbnailCount: 9, gridSize: 3, credits: 4 },
 ] as const;
@@ -186,6 +186,10 @@ const CreateNew = () => {
   const [customElements, setCustomElements] = useState<{ id: string, url: string }[]>([]);
   // Store positions for each element (ID or URL -> Position)
   const [elementPositions, setElementPositions] = useState<Record<string, string[]>>({});
+
+  // Custom text elements
+  const [textElements, setTextElements] = useState<string[]>([]);
+  const [currentTextElement, setCurrentTextElement] = useState("");
 
   // Custom avatar upload
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
@@ -362,6 +366,27 @@ const CreateNew = () => {
       console.error("Error uploading element:", error);
       toast.error("Failed to upload element");
     }
+  };
+
+  const handleAddTextElement = () => {
+    if (!currentTextElement.trim()) return;
+
+    if (textElements.includes(currentTextElement.trim())) {
+      toast.error("Element already added");
+      return;
+    }
+
+    if (textElements.length >= 10) {
+      toast.error("Maximum 10 text elements allowed");
+      return;
+    }
+
+    setTextElements([...textElements, currentTextElement.trim()]);
+    setCurrentTextElement("");
+  };
+
+  const handleRemoveTextElement = (element: string) => {
+    setTextElements(textElements.filter(e => e !== element));
   };
 
   const fetchProducts = async () => {
@@ -564,14 +589,14 @@ const CreateNew = () => {
       const monthlyLimit = subscriptionData?.monthly_limit || 1;
       const countStartDate = getGenerationWindowStart(subscriptionData || {});
 
-      const { count } = await supabase
+      const { data: usageData } = await supabase
         .from("generations")
-        .select("*", { count: "exact", head: true })
+        .select("*")
         .eq("user_id", user.id)
         .eq("status", "completed")
         .gte("created_at", countStartDate);
 
-      const usedGenerations = count || 0;
+      const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
       const selectedMode = GENERATION_MODES.find(m => m.value === generationMode) || GENERATION_MODES[0];
       const requiredCredits = selectedMode.credits;
       const isGridMode = selectedMode.thumbnailCount > 1;
@@ -624,6 +649,7 @@ const CreateNew = () => {
                   brand: product?.brand || undefined,
                 };
               }),
+              userElements: textElements.length > 0 ? textElements.join(",") : undefined,
               productPositions: productPositions.length ? productPositions : ["ai-decide"],
               title: titleMode === "custom" ? (title || undefined) : undefined,
               subtitle: subtitleMode === "custom" ? (subtitle || undefined) : undefined,
@@ -639,6 +665,7 @@ const CreateNew = () => {
               gridMode: isGridMode,
               gridCount: selectedMode.thumbnailCount,
             },
+            creditsUsed: requiredCredits,
           },
         }
       );
@@ -1312,6 +1339,51 @@ const CreateNew = () => {
                   </TabsContent>
 
                   <TabsContent value="elements" className="space-y-6 mt-0">
+                    <CollapsibleSection
+                      title="Text Elements"
+                      subtitle="Add specific objects to include (e.g. 'red car', 'sunflowers')"
+                      defaultOpen={true}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex gap-2 pt-1">
+                          <Input
+                            placeholder="Add specific element (e.g. red car, neon sign)..."
+                            value={currentTextElement}
+                            onChange={(e) => setCurrentTextElement(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddTextElement();
+                              }
+                            }}
+                          />
+                          <Button
+                            onClick={handleAddTextElement}
+                            size="icon"
+                            variant="outline"
+                            disabled={!currentTextElement.trim()}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {textElements.length > 0 && (
+                          <div className="flex flex-wrap gap-x-2 gap-y-3">
+                            {textElements.map((element, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/50 px-3.5 py-1.5 text-sm shadow-sm"
+                              >
+                                {element}
+                                <button type="button" onClick={() => handleRemoveTextElement(element)} className="hover:text-destructive">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleSection>
                     <CollapsibleSection
                       title="Element Library"
                       subtitle="Select up to 3 elements like products, props, or custom images"

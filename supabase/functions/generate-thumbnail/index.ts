@@ -22,6 +22,7 @@ interface ThumbnailData {
     name?: string;
     brand?: string;
   }[];
+  userElements?: string; // Comma-separated list of text elements
   title?: string;
   subtitle?: string;
   textPosition?: string;           // Legacy single value
@@ -63,13 +64,14 @@ serve(async (req) => {
 
     supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { thumbnailData, remixImageUrl, remixPrompt, thumbnailId, iterationImageUrl, iterationPrompt } = await req.json() as {
+    const { thumbnailData, remixImageUrl, remixPrompt, thumbnailId, iterationImageUrl, iterationPrompt, creditsUsed } = await req.json() as {
       thumbnailData: ThumbnailData;
       remixImageUrl?: string;
       remixPrompt?: string;
       thumbnailId?: string; // For iterations, pass the thumbnail ID to link the generation
       iterationImageUrl?: string; // The current version's image URL to iterate on
       iterationPrompt?: string; // What changes to apply to the iteration
+      creditsUsed?: number;
     };
 
     const authHeader = req.headers.get("Authorization");
@@ -100,6 +102,7 @@ serve(async (req) => {
         user_id: userId,
         status: "processing",
         mode: generationMode,
+        credits_used: creditsUsed || 1,
         request: { thumbnailData, remixPrompt, remixImageUrl, iterationImageUrl, iterationPrompt },
         prompt: iterationPrompt || null,
         remix_prompt: remixPrompt || null,
@@ -124,13 +127,13 @@ serve(async (req) => {
     // Build the prompt
     const platformType = thumbnailData?.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
     const aspectRatio = thumbnailData?.aspectRatio || "16:9";
-    
+
     // For iterations and remixes, always use single thumbnail mode with 1K resolution
     const isIterationOrRemix = !!iterationImageUrl || !!remixImageUrl;
     const gridCount = isIterationOrRemix ? 1 : (thumbnailData?.gridCount || (thumbnailData?.gridMode !== false ? 9 : 1));
     const isGridMode = gridCount > 1;
     const resolution = isIterationOrRemix ? "1K" : (thumbnailData?.resolution || (isGridMode ? "4K" : "1K"));
-    
+
     console.log("Grid mode:", isGridMode, "Grid count:", gridCount, "Resolution:", resolution);
 
     let prompt = "";
@@ -156,7 +159,7 @@ CRITICAL: Maintain the overall composition and style of the original thumbnail w
     else if (isGridMode) {
       const gridSize = gridCount === 4 ? 2 : 3;
       const gridDescription = gridCount === 4 ? "2x2 grid (2 columns, 2 rows)" : "3x3 grid (3 columns, 3 rows)";
-      
+
       prompt = `Generate a ${gridDescription.toUpperCase()} GRID IMAGE containing ${gridCount} DISTINCT ${platformType} thumbnail variations.
 
 CRITICAL LAYOUT INSTRUCTIONS:
@@ -317,6 +320,11 @@ CRITICAL INSTRUCTIONS:
             prompt += `\n\nMake sure these products/elements are prominently featured and recognizable in the thumbnail. `;
           }
         }
+      }
+
+      // Add user-defined text elements
+      if (thumbnailData.userElements) {
+        prompt += `\n\nINCLUDE THESE SPECIFIC ELEMENTS: ${thumbnailData.userElements}. Make sure they are visible and integrated into the scene. `;
       }
 
       // Text styling (applies to all thumbnails)

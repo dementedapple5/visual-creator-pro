@@ -173,14 +173,14 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       const monthlyLimit = subscriptionData?.monthly_limit || 1;
       const countStartDate = getGenerationWindowStart(subscriptionData || {});
 
-      const { count } = await supabase
+      const { data: usageData } = await supabase
         .from("generations")
-        .select("*", { count: "exact", head: true })
+        .select("credits_used")
         .eq("user_id", user.id)
         .eq("status", "completed")
         .gte("created_at", countStartDate);
 
-      const usedGenerations = count || 0;
+      const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
 
       if (usedGenerations >= monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
@@ -199,7 +199,10 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
         {
-          body: { thumbnailData },
+          body: { 
+            thumbnailData,
+            creditsUsed: 4 // 3x3 grid uses 4 credits
+          },
         }
       );
 
@@ -261,14 +264,14 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       const monthlyLimit = subscriptionData?.monthly_limit || 1;
       const countStartDate = getGenerationWindowStart(subscriptionData || {});
 
-      const { count } = await supabase
+      const { data: usageData } = await supabase
         .from("generations")
-        .select("*", { count: "exact", head: true })
+        .select("credits_used")
         .eq("user_id", user.id)
         .eq("status", "completed")
         .gte("created_at", countStartDate);
 
-      const usedGenerations = count || 0;
+      const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
 
       if (usedGenerations >= monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
@@ -283,7 +286,8 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
           body: {
             thumbnailData: { ...data, aspectRatio, gridMode: false }, // Single image for remix
             remixImageUrl: previewImage,
-            remixPrompt: remixPrompt
+            remixPrompt: remixPrompt,
+            creditsUsed: 1 // Remix uses 1 credit
           },
         }
       );
