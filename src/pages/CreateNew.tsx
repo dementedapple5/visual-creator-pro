@@ -680,7 +680,9 @@ const CreateNew = () => {
       const requiredCredits = selectedMode.credits;
       const isGridMode = selectedMode.thumbnailCount > 1;
 
-      if (usedGenerations + requiredCredits > monthlyLimit) {
+      const isSuperAdmin = subscriptionData?.is_super_admin === true;
+
+      if (!isSuperAdmin && usedGenerations + requiredCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
         setGenerating(false);
@@ -946,7 +948,9 @@ const CreateNew = () => {
       const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
       const remixCredits = 1; // Remix uses 1 credit
 
-      if (usedGenerations + remixCredits > monthlyLimit) {
+      const isSuperAdmin = subscriptionData?.is_super_admin === true;
+
+      if (!isSuperAdmin && usedGenerations + remixCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
         setRemixing(false);

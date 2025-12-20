@@ -27,6 +27,7 @@ type GenerationRecord = {
 
 type SubscriptionData = SubscriptionInfo & {
   subscribed: boolean;
+  is_super_admin?: boolean;
   product_id: string | null;
   plan_name: string;
   plan_tier: "free" | "starter" | "pro" | "enterprise";
@@ -268,9 +269,15 @@ const Generations = () => {
               <CardTitle className="text-sm text-muted-foreground">Used {remainingLabel}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-2xl font-bold">{usedCount}/{subscription.monthly_limit}</p>
+              <p className="text-2xl font-bold">
+                {subscription.is_super_admin 
+                  ? usedCount 
+                  : `${usedCount}/${subscription.monthly_limit}`}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Status: {limitLabel} limit • Resets on {formatShortDate(resetDate)}
+                {subscription.is_super_admin 
+                  ? "Status: Super Admin • Unlimited credits"
+                  : `Status: ${limitLabel} limit • Resets on ${formatShortDate(resetDate)}`}
               </p>
             </CardContent>
           </Card>
@@ -280,9 +287,11 @@ const Generations = () => {
               <CardTitle className="text-sm text-muted-foreground">Plan</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 space-y-1">
-              <p className="text-lg font-semibold">{planTitleWithBilling}</p>
+              <p className="text-lg font-semibold">
+                {subscription.is_super_admin ? "Super Admin" : planTitleWithBilling}
+              </p>
               <p className="text-sm text-muted-foreground">
-                {subscriptionPeriodLabel}
+                {subscription.is_super_admin ? "Full access to all features" : subscriptionPeriodLabel}
               </p>
             </CardContent>
           </Card>

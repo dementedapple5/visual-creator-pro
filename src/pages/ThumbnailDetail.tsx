@@ -214,7 +214,10 @@ const ThumbnailDetail = () => {
         .gte("created_at", countStartDate);
 
       const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
-      if (usedGenerations >= monthlyLimit) {
+      
+      const isSuperAdmin = subscriptionData?.is_super_admin === true;
+
+      if (!isSuperAdmin && usedGenerations >= monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
         setIterating(false);

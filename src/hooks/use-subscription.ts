@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SubscriptionData {
   subscribed: boolean;
+  is_super_admin?: boolean;
   product_id: string | null;
   subscription_end: string | null;
   plan_name: string;
@@ -15,6 +16,7 @@ export interface SubscriptionData {
 
 const DEFAULT_SUBSCRIPTION: SubscriptionData = {
   subscribed: false,
+  is_super_admin: false,
   product_id: null,
   subscription_end: null,
   plan_name: "Free",
@@ -69,7 +71,8 @@ export const useSubscription = () => {
     subscription,
     loading,
     error,
-    isFree: subscription.plan_tier === "free",
+    isFree: subscription.plan_tier === "free" && !subscription.is_super_admin,
+    isSuperAdmin: !!subscription.is_super_admin,
     refetch: fetchSubscription,
   };
 };

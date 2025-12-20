@@ -148,6 +148,7 @@ const subscriptionPlansData = isLocalhost ? testPlansData : productionPlansData;
 // Type for subscription response from check-subscription function
 interface SubscriptionData {
   subscribed: boolean;
+  is_super_admin?: boolean;
   product_id: string | null;
   subscription_end: string | null;
   plan_name: string;
@@ -318,20 +319,26 @@ export const AppDrawer = () => {
                   <p className="text-sm font-medium truncate text-foreground">
                     {profile?.username || profile?.email || "User"}
                   </p>
-                  {subscription.subscribed ? (
-                    <Badge variant={planBadgeVariants[subscription.plan_tier] || "default"} className="text-[10px] py-0 px-1.5 h-5">
+                  {subscription.is_super_admin ? (
+                    <Badge variant="default" className="text-[10px] py-0 px-1.5 h-5 bg-gradient-to-r from-purple-500 to-blue-600 border-0 whitespace-nowrap shrink-0">
+                      SA
+                    </Badge>
+                  ) : subscription.subscribed ? (
+                    <Badge variant={planBadgeVariants[subscription.plan_tier] || "default"} className="text-[10px] py-0 px-1.5 h-5 whitespace-nowrap shrink-0">
                       {subscription.plan_name}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-border text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-border text-muted-foreground whitespace-nowrap shrink-0">
                       Free
                     </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {`${generationsCount}/${subscription.monthly_limit} used`}
+                  {subscription.is_super_admin 
+                    ? `${generationsCount} generated`
+                    : `${generationsCount}/${subscription.monthly_limit} used`}
                 </p>
-                {!subscription.subscribed && (
+                {!subscription.subscribed && !subscription.is_super_admin && (
                   <Button
                     onClick={() => setUpgradeDialogOpen(true)}
                     variant="default"
@@ -386,7 +393,7 @@ export const AppDrawer = () => {
                 {contentMenuItems.map((item) => {
                   const isActive = location.pathname === item.path;
                   const Icon = item.icon;
-                  const isRestricted = !subscription.subscribed && 
+                  const isRestricted = !subscription.subscribed && !subscription.is_super_admin &&
                     ["/products", "/backgrounds", "/titles", "/font-styles"].includes(item.path);
                   
                   return (

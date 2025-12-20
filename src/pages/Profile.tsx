@@ -172,6 +172,7 @@ const Profile = () => {
   const [updatingUsername, setUpdatingUsername] = useState(false);
   const [subscription, setSubscription] = useState<{
     subscribed: boolean;
+    is_super_admin?: boolean;
     product_id: string | null;
     subscription_end: string | null;
     plan_name: string;
@@ -182,6 +183,7 @@ const Profile = () => {
     billing_period_end: string | null;
   }>({ 
     subscribed: false, 
+    is_super_admin: false,
     product_id: null, 
     subscription_end: null,
     plan_name: "Free",
@@ -546,7 +548,21 @@ const Profile = () => {
               )}
             </div>
 
-            {subscription.subscribed && (
+            {subscription.is_super_admin && (
+              <Card className="mb-6 bg-gradient-to-r from-purple-500/10 to-blue-600/10 border-purple-500/50 shadow-lg shadow-purple-500/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Check className="w-5 h-5 text-purple-500" />
+                    <span className="font-semibold text-purple-600 dark:text-purple-400">Super Admin Active</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    You have full access to all features and unlimited generations.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {subscription.subscribed && !subscription.is_super_admin && (
               <Card className="mb-6 bg-primary/5 border-primary">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2 mb-2">
@@ -568,7 +584,7 @@ const Profile = () => {
               </Card>
             )}
 
-            {!subscription.subscribed && (
+            {!subscription.subscribed && !subscription.is_super_admin && (
               <Card className="mb-6 bg-muted/50 border-border">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2 mb-2">

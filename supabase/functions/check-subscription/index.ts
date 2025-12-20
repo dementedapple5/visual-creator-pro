@@ -90,6 +90,42 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Check if user is super admin
+    let isSuperAdmin = false;
+    if (supabaseServiceClient) {
+      const { data: profile, error: profileError } = await supabaseServiceClient
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user.id)
+        .single();
+      
+      if (!profileError && profile) {
+        isSuperAdmin = !!profile.is_super_admin;
+        logStep("Super admin status checked", { isSuperAdmin });
+      } else if (profileError) {
+        logStep("Warning: could not fetch profile to check super admin status", { error: profileError.message });
+      }
+    }
+
+    if (isSuperAdmin) {
+      logStep("User is super admin, returning unlimited plan");
+      return new Response(JSON.stringify({
+        subscribed: true,
+        is_super_admin: true,
+        plan_name: "Super Admin",
+        plan_tier: "enterprise",
+        monthly_limit: 999999,
+        is_daily_limit: false,
+        billing_period_start: new Date().toISOString(),
+        billing_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        billing_interval: "year",
+        next_charge_at: null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
@@ -97,6 +133,7 @@ serve(async (req) => {
       logStep("No customer found, returning unsubscribed state");
       return new Response(JSON.stringify({ 
         subscribed: false,
+        is_super_admin: false,
         plan_name: "Free",
         plan_tier: "free",
         monthly_limit: 1,
@@ -293,6 +330,7 @@ serve(async (req) => {
       subscribed: hasActiveSub,
       product_id: productId,
       subscription_end: subscriptionEnd,
+      is_super_admin: false,
       // New fields for better plan handling
       plan_name: planName,
       plan_tier: planTier,
