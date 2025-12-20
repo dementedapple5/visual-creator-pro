@@ -278,16 +278,7 @@ const Index = () => {
 
       <section className="relative pt-32 pb-24 px-6 min-h-[80vh] flex items-center">
         <div className="container mx-auto max-w-5xl flex flex-col items-center text-center gap-10">
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border backdrop-blur-md"
-            data-animate
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <span className="text-sm text-muted-foreground font-medium">Gemini 3 Pro + Vizion Render</span>
-          </div>
+          
 
           <div className="space-y-4 w-full">
             <h1 className="text-4xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight w-full">
@@ -336,16 +327,6 @@ const Index = () => {
               Start Creating Free
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 rounded-full border-border hover:bg-secondary backdrop-blur-sm transition-all beam-button"
-              data-animate
-              style={{ ["--delay" as any]: "0.55s" }}
-            >
-              <Play className="mr-2 w-5 h-5" />
-              Watch Demo
-            </Button>
           </div>
         </div>
       </section>
@@ -380,7 +361,7 @@ const Index = () => {
                       <Icon className="w-5 h-5 text-foreground" />
                       <h3 className="text-xl font-semibold text-foreground">{feature.title}</h3>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-secondary text-xs text-foreground">{feature.badge}</span>
+                    <span className="px-3 py-1 rounded-full bg-secondary text-xs text-foreground whitespace-nowrap">{feature.badge}</span>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
                   {feature.steps && (
@@ -723,13 +704,7 @@ const Index = () => {
             <span className="font-bold text-lg">Vizion</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            © 2024 Vizion AI. All rights reserved.
-          </div>
-          <div className="flex gap-8 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
-            <a href="#" className="hover:text-foreground transition-colors">Discord</a>
+            © 2025 Vizion AI. All rights reserved.
           </div>
         </div>
       </footer>
