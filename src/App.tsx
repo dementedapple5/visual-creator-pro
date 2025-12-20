@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -60,7 +61,9 @@ const App = () => (
               path="/backgrounds"
               element={
                 <AppLayout>
-                  <Backgrounds />
+                  <SubscriptionGuard>
+                    <Backgrounds />
+                  </SubscriptionGuard>
                 </AppLayout>
               }
             />
@@ -68,7 +71,9 @@ const App = () => (
               path="/titles"
               element={
                 <AppLayout>
-                  <Titles />
+                  <SubscriptionGuard>
+                    <Titles />
+                  </SubscriptionGuard>
                 </AppLayout>
               }
             />
@@ -76,7 +81,9 @@ const App = () => (
               path="/font-styles"
               element={
                 <AppLayout>
-                  <FontStyles />
+                  <SubscriptionGuard>
+                    <FontStyles />
+                  </SubscriptionGuard>
                 </AppLayout>
               }
             />
@@ -100,7 +107,9 @@ const App = () => (
               path="/products"
               element={
                 <AppLayout>
-                  <Products />
+                  <SubscriptionGuard>
+                    <Products />
+                  </SubscriptionGuard>
                 </AppLayout>
               }
             />

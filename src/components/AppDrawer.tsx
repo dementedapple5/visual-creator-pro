@@ -1,4 +1,4 @@
-import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, Type, History, PenTool } from "lucide-react";
+import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, Type, History, PenTool, Lock } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,8 +27,8 @@ const mainMenuItems = [
 ];
 
 const contentMenuItems = [
-  { icon: Package, label: "Elements", path: "/products" },
   { icon: User, label: "Avatars", path: "/avatars" },
+  { icon: Package, label: "Elements", path: "/products" },
   { icon: ImageIcon, label: "Backgrounds", path: "/backgrounds" },
   { icon: Type, label: "Titles", path: "/titles" },
   { icon: PenTool, label: "Font Styles", path: "/font-styles" },
@@ -386,17 +386,25 @@ export const AppDrawer = () => {
                 {contentMenuItems.map((item) => {
                   const isActive = location.pathname === item.path;
                   const Icon = item.icon;
+                  const isRestricted = !subscription.subscribed && 
+                    ["/products", "/backgrounds", "/titles", "/font-styles"].includes(item.path);
+                  
                   return (
                     <button
                       key={item.path}
                       onClick={() => handleNavigation(item.path)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-300 ${isActive
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all duration-300 ${isActive
                           ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
                           : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                         }`}
                     >
-                      <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
-                      <span>{item.label}</span>
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
+                        <span>{item.label}</span>
+                      </div>
+                      {isRestricted && (
+                        <Lock className="w-3.5 h-3.5 text-muted-foreground/50" />
+                      )}
                     </button>
                   );
                 })}

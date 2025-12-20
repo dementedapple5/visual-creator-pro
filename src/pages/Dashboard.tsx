@@ -19,6 +19,15 @@ import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles } from
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface Thumbnail {
   id: string;
@@ -64,6 +73,8 @@ const initialFilters: FiltersState = {
   element: "all",
 };
 
+const ITEMS_PER_PAGE = 15;
+
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -75,23 +86,50 @@ const Dashboard = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   // const [loading, setLoading] = useState(true); // Replaced by useQuery
   const [pendingGenerations, setPendingGenerations] = useState<Generation[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const previousPendingCountRef = useRef(0);
 
-  const { data: thumbnails = [], isLoading: loading } = useQuery({
-    queryKey: ["thumbnails"],
+  const { data: { thumbnails, count } = { thumbnails: [], count: 0 }, isLoading: loading } = useQuery({
+    queryKey: ["thumbnails", currentPage, filters, dateRange],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("thumbnails")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*", { count: "exact" });
+
+      if (filters.search.trim()) {
+        query = query.or(`title.ilike.%${filters.search}%,subtitle.ilike.%${filters.search}%`);
+      }
+
+      if (filters.avatar !== "all") {
+        query = query.eq("avatar_id", filters.avatar);
+      }
+
+      if (filters.element !== "all") {
+        query = query.eq("product_id", filters.element);
+      }
+
+      if (dateRange?.from) {
+        query = query.gte("created_at", dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        query = query.lte("created_at", toDate.toISOString());
+      }
+
+      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      const { data, error, count } = await query
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) {
         toast.error("Failed to load thumbnails");
         throw error;
       }
-      return data as Thumbnail[];
+      return { thumbnails: data as Thumbnail[], count: count || 0 };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   useEffect(() => {
@@ -107,6 +145,10 @@ const Dashboard = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, dateRange]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -192,33 +234,7 @@ const Dashboard = () => {
     });
   };
 
-  const filteredThumbnails = useMemo(() => {
-    return thumbnails.filter((thumbnail) => {
-      const matchesSearch =
-        !filters.search.trim() ||
-        (thumbnail.title || "").toLowerCase().includes(filters.search.toLowerCase()) ||
-        (thumbnail.subtitle || "").toLowerCase().includes(filters.search.toLowerCase());
-
-      const matchesAvatar = filters.avatar === "all" || thumbnail.avatar_id === filters.avatar;
-      const matchesElement = filters.element === "all" || thumbnail.product_id === filters.element;
-
-      const createdDate = new Date(thumbnail.created_at);
-      const fromDate = dateRange?.from ? new Date(dateRange.from) : null;
-      const toDate = dateRange?.to ? new Date(dateRange.to) : null;
-
-      if (toDate) {
-        toDate.setHours(23, 59, 59, 999);
-      }
-      if (fromDate) {
-        fromDate.setHours(0, 0, 0, 0);
-      }
-
-      const matchesFrom = !fromDate || createdDate >= fromDate;
-      const matchesTo = !toDate || createdDate <= toDate;
-
-      return matchesSearch && matchesAvatar && matchesElement && matchesFrom && matchesTo;
-    });
-  }, [filters, thumbnails, dateRange]);
+  const totalPages = Math.ceil(count / ITEMS_PER_PAGE);
 
   const resetFilters = () => {
     setFilters(initialFilters);
@@ -234,6 +250,12 @@ const Dashboard = () => {
     }
     return "Select date range";
   }, [dateRange]);
+
+  const hasActiveFilters = 
+    filters.search.trim() !== "" || 
+    filters.avatar !== "all" || 
+    filters.element !== "all" || 
+    !!dateRange;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/90">
@@ -416,143 +438,205 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
-        ) : thumbnails.length === 0 ? (
-          <div className="text-center py-20 rounded-2xl border border-border/60 bg-card/70 shadow-inner">
-            <p className="text-muted-foreground mb-4">No thumbnails yet. Create your first one!</p>
-            <Button
-              onClick={() => navigate("/create")}
-              size="sm"
-              className="bg-primary hover:bg-primary/90 shadow-primary/20 shadow-lg"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Thumbnail
-            </Button>
-          </div>
-        ) : filteredThumbnails.length === 0 ? (
-          <div className="rounded-2xl border border-border/60 bg-card/70 p-10 text-center shadow-inner">
-            <p className="text-lg font-semibold mb-2">No results match these filters</p>
-            <p className="text-muted-foreground mb-6">
-              Try adjusting your search terms, avatar, element, or date range.
-            </p>
-            <Button onClick={resetFilters} variant="outline">
-              Reset filters
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {/* Placeholder cards for new generations in progress */}
-            {newGenerations.map((generation, index) => (
-              <div
-                key={generation.id}
-                className="relative overflow-hidden rounded-lg border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-4 duration-500"
-                style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
+        ) : count === 0 ? (
+          !hasActiveFilters ? (
+            <div className="text-center py-20 rounded-2xl border border-border/60 bg-card/70 shadow-inner">
+              <p className="text-muted-foreground mb-4">No thumbnails yet. Create your first one!</p>
+              <Button
+                onClick={() => navigate("/create")}
+                size="sm"
+                className="bg-primary hover:bg-primary/90 shadow-primary/20 shadow-lg"
               >
-                <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="relative">
-                      <span className="absolute inset-0 h-12 w-12 rounded-full bg-primary/30 animate-ping" />
-                      <span className="absolute inset-0 h-12 w-12 rounded-full bg-primary/20 animate-ping [animation-delay:150ms]" />
-                      <div className="relative h-12 w-12 rounded-full bg-primary/20 backdrop-blur-sm flex items-center justify-center">
-                        <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-                      </div>
-                    </div>
-                    <p className="mt-4 text-sm text-muted-foreground animate-pulse">
-                      Generating...
-                    </p>
-                  </div>
-                </div>
-                <div className="relative space-y-4 p-2">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="h-6 w-3/4 rounded bg-muted animate-pulse" />
-                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                    </div>
-                    <div className="h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
-                  </div>
-                  <div className="pt-2">
-                    <div className="h-9 w-28 rounded bg-muted/40 animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {filteredThumbnails.map((thumbnail, index) => {
-              const isIterating = hasPendingIteration(thumbnail.id);
-
-              return (
+                <Plus className="w-4 h-4 mr-2" />
+                Create Thumbnail
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-border/60 bg-card/70 p-10 text-center shadow-inner">
+              <p className="text-lg font-semibold mb-2">No results match these filters</p>
+              <p className="text-muted-foreground mb-6">
+                Try adjusting your search terms, avatar, element, or date range.
+              </p>
+              <Button onClick={resetFilters} variant="outline">
+                Reset filters
+              </Button>
+            </div>
+          )
+        ) : (
+          <div className="space-y-12">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {/* Placeholder cards for new generations in progress - only on first page */}
+              {currentPage === 1 && newGenerations.map((generation, index) => (
                 <div
-                  key={thumbnail.id}
-                  className="group relative flex flex-col overflow-hidden rounded-lg border border-border/60 bg-card shadow-lg animate-in fade-in slide-in-from-top-4 duration-500"
-                  style={{ animationDelay: `${(newGenerations.length + index) * 50}ms`, animationFillMode: 'both' }}
+                  key={generation.id}
+                  className="relative overflow-hidden rounded-lg border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-4 duration-500"
+                  style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
                 >
-                  <div
-                    className="relative aspect-video w-full overflow-hidden bg-muted/20 cursor-pointer"
-                    onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <img
-                      src={thumbnail.image_url}
-                      alt={thumbnail.title || "Thumbnail"}
-                      className={cn(
-                        "h-full w-full object-cover",
-                        isIterating && "opacity-50 grayscale-[0.5]"
-                      )}
-                    />
-
-                    {/* Loading overlay for iterations in progress */}
-                    {isIterating && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-sm">
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="rounded-full bg-background/80 p-3 backdrop-blur-md shadow-lg">
-                            <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                          </div>
-                          <span className="rounded-full bg-background/80 px-3 py-1 text-xs font-medium backdrop-blur-md shadow-sm">
-                            Iterating...
-                          </span>
+                  <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className="relative">
+                        <span className="absolute inset-0 h-12 w-12 rounded-full bg-primary/30 animate-ping" />
+                        <span className="absolute inset-0 h-12 w-12 rounded-full bg-primary/20 animate-ping [animation-delay:150ms]" />
+                        <div className="relative h-12 w-12 rounded-full bg-primary/20 backdrop-blur-sm flex items-center justify-center">
+                          <Sparkles className="h-6 w-6 text-primary animate-pulse" />
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col justify-between p-2 space-y-4">
-                    <div className="space-y-0 cursor-pointer" onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}>
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="line-clamp-1 text-lg font-semibold leading-tight text-card-foreground pt-2.5">
-                          {thumbnail.title || "Untitled Project"}
-                        </h3>
-                        {isIterating && (
-                          <span className="relative flex h-2.5 w-2.5 flex-none translate-y-1.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                          </span>
-                        )}
-                      </div>
-                      <p className="line-clamp-2 text-sm text-muted-foreground/80 leading-relaxed h-11">
-                        {thumbnail.subtitle || "No description provided"}
+                      <p className="mt-4 text-sm text-muted-foreground animate-pulse">
+                        Generating...
                       </p>
                     </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-border/40 mt-auto">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/thumbnail/${thumbnail.id}`);
-                        }}
-                        variant="secondary"
-                        size="sm"
-                        className="h-9 px-4 rounded bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
-                      >
-                        View Details
-                      </Button>
-
-                      <span className="text-xs font-medium text-muted-foreground/60">
-                        {formatDate(thumbnail.created_at)}
-                      </span>
+                  </div>
+                  <div className="relative space-y-4 p-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="h-6 w-3/4 rounded bg-muted animate-pulse" />
+                        <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                      </div>
+                      <div className="h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
+                    </div>
+                    <div className="pt-2">
+                      <div className="h-9 w-28 rounded bg-muted/40 animate-pulse" />
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+
+              {thumbnails.map((thumbnail, index) => {
+                const isIterating = hasPendingIteration(thumbnail.id);
+
+                return (
+                  <div
+                    key={thumbnail.id}
+                    className="group relative flex flex-col overflow-hidden rounded-lg border border-border/60 bg-card shadow-lg animate-in fade-in slide-in-from-top-4 duration-500"
+                    style={{ animationDelay: `${(currentPage === 1 ? newGenerations.length + index : index) * 50}ms`, animationFillMode: 'both' }}
+                  >
+                    <div
+                      className="relative aspect-video w-full overflow-hidden bg-muted/20 cursor-pointer"
+                      onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                      <img
+                        src={thumbnail.image_url}
+                        alt={thumbnail.title || "Thumbnail"}
+                        className={cn(
+                          "h-full w-full object-cover",
+                          isIterating && "opacity-50 grayscale-[0.5]"
+                        )}
+                      />
+
+                      {/* Loading overlay for iterations in progress */}
+                      {isIterating && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="rounded-full bg-background/80 p-3 backdrop-blur-md shadow-lg">
+                              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                            </div>
+                            <span className="rounded-full bg-background/80 px-3 py-1 text-xs font-medium backdrop-blur-md shadow-sm">
+                              Iterating...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-1 flex-col justify-between p-2 space-y-4">
+                      <div className="space-y-0 cursor-pointer" onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}>
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="line-clamp-1 text-lg font-semibold leading-tight text-card-foreground pt-2.5">
+                            {thumbnail.title || "Untitled Project"}
+                          </h3>
+                          {isIterating && (
+                            <span className="relative flex h-2.5 w-2.5 flex-none translate-y-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                            </span>
+                          )}
+                        </div>
+                        <p className="line-clamp-2 text-sm text-muted-foreground/80 leading-relaxed h-11">
+                          {thumbnail.subtitle || "No description provided"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-border/40 mt-auto">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/thumbnail/${thumbnail.id}`);
+                          }}
+                          variant="secondary"
+                          size="sm"
+                          className="h-9 px-4 rounded bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                        >
+                          View Details
+                        </Button>
+
+                        <span className="text-xs font-medium text-muted-foreground/60">
+                          {formatDate(thumbnail.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <Pagination className="mt-8">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === 1 && "pointer-events-none opacity-50"
+                      )}
+                    />
+                  </PaginationItem>
+                  
+                  {[...Array(totalPages)].map((_, i) => {
+                    const page = i + 1;
+                    // Logic to show only a subset of pages if there are many
+                    if (
+                      totalPages > 7 &&
+                      page !== 1 &&
+                      page !== totalPages &&
+                      Math.abs(page - currentPage) > 1
+                    ) {
+                      if (Math.abs(page - currentPage) === 2) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    }
+
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === totalPages && "pointer-events-none opacity-50"
+                      )}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
         )}
       </div>
