@@ -29,8 +29,7 @@ const productionPlans = [
     productId: null,
     tier: "free" as const,
     features: [
-      "1 thumbnail/day",
-      "HD resolution",
+      "1 credit/day",
       "Email support"
     ]
   },
@@ -45,8 +44,8 @@ const productionPlans = [
     productId: "prod_TTytxm2oUYxzXe",
     tier: "starter" as const,
     features: [
-      "50 HD thumbnails/month",
-      "2K resolution",
+      "50 credits/month",
+      "Advanced customization",
       "Email support"
     ]
   },
@@ -62,8 +61,8 @@ const productionPlans = [
     tier: "pro" as const,
     popular: true,
     features: [
-      "100 HD thumbnails/month",
-      "2K resolution",
+      "100 credits/month",
+      "Advanced customization",
       "Priority support"
     ]
   },
@@ -78,8 +77,8 @@ const productionPlans = [
     productId: "prod_TTyuNeWPfbeOFz",
     tier: "enterprise" as const,
     features: [
-      "300 HD thumbnails/month",
-      "4K resolution",
+      "300 credits/month",
+      "Advanced customization",
       "24/7 support"
     ]
   }
@@ -102,8 +101,7 @@ const testPlans = [
     productId: null,
     tier: "free" as const,
     features: [
-      "1 thumbnail/day",
-      "HD resolution",
+      "1 credit/day",
       "Email support"
     ]
   },
@@ -118,8 +116,8 @@ const testPlans = [
     productId: import.meta.env.VITE_STRIPE_TEST_STARTER_PRODUCT || null,
     tier: "starter" as const,
     features: [
-      "50 HD thumbnails/month",
-      "2K resolution",
+      "50 credits/month",
+      "Advanced customization",
       "Email support"
     ]
   },
@@ -135,8 +133,8 @@ const testPlans = [
     tier: "pro" as const,
     popular: true,
     features: [
-      "100 HD thumbnails/month",
-      "2K resolution",
+      "100 credits/month",
+      "Advanced customization",
       "Priority support"
     ]
   },
@@ -151,8 +149,8 @@ const testPlans = [
     productId: import.meta.env.VITE_STRIPE_TEST_ENTERPRISE_PRODUCT || null,
     tier: "enterprise" as const,
     features: [
-      "300 HD thumbnails/month",
-      "4K resolution",
+      "300 credits/month",
+      "Advanced customization",
       "24/7 support"
     ]
   }

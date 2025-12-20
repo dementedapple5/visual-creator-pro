@@ -219,7 +219,7 @@ const ThumbnailDetail = () => {
 
       if (!isSuperAdmin && usedGenerations >= monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
-        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
+        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users get 1 credit per day. Upgrade to create more." : "You've used all your credits for this billing period."}`);
         setIterating(false);
         return;
       }

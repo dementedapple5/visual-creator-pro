@@ -54,8 +54,8 @@ const productionPlansData = [
     productId: "prod_TTytxm2oUYxzXe",
     tier: "starter",
     features: [
-      "50 HD thumbnails/month",
-      "2K resolution",
+      "50 credits/month",
+      "Advanced customization",
       "Email support"
     ]
   },
@@ -70,8 +70,8 @@ const productionPlansData = [
     tier: "pro",
     popular: true,
     features: [
-      "100 HD thumbnails/month",
-      "2K resolution",
+      "100 credits/month",
+      "Advanced customization",
       "Priority support"
     ]
   },
@@ -85,8 +85,8 @@ const productionPlansData = [
     productId: "prod_TTyuNeWPfbeOFz",
     tier: "enterprise",
     features: [
-      "300 HD thumbnails/month",
-      "4K resolution",
+      "300 credits/month",
+      "Advanced customization",
       "24/7 support"
     ]
   }
@@ -104,8 +104,8 @@ const testPlansData = [
     productId: import.meta.env.VITE_STRIPE_TEST_STARTER_PRODUCT || null,
     tier: "starter",
     features: [
-      "50 HD thumbnails/month",
-      "2K resolution",
+      "50 credits/month",
+      "Advanced customization",
       "Email support"
     ]
   },
@@ -120,8 +120,8 @@ const testPlansData = [
     tier: "pro",
     popular: true,
     features: [
-      "100 HD thumbnails/month",
-      "2K resolution",
+      "100 credits/month",
+      "Advanced customization",
       "Priority support"
     ]
   },
@@ -135,8 +135,8 @@ const testPlansData = [
     productId: import.meta.env.VITE_STRIPE_TEST_ENTERPRISE_PRODUCT || null,
     tier: "enterprise",
     features: [
-      "300 HD thumbnails/month",
-      "4K resolution",
+      "300 credits/month",
+      "Advanced customization",
       "24/7 support"
     ]
   }
@@ -449,7 +449,7 @@ export const AppDrawer = () => {
               Choose Your Plan
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Upgrade to unlock unlimited thumbnail creation and premium features
+              Upgrade to unlock more credits and premium features
             </DialogDescription>
           </DialogHeader>
 

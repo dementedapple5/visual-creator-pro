@@ -27,8 +27,7 @@ const subscriptionPlans = [
     productId: null,
     desc: "Perfect for trying out Vizion",
     features: [
-      "1 thumbnail/day",
-      "HD resolution",
+      "1 credit/day",
       "Email support"
     ]
   },
@@ -43,8 +42,8 @@ const subscriptionPlans = [
     productId: "prod_TTytxm2oUYxzXe",
     desc: "For casual creators",
     features: [
-      "50 HD thumbnails/month",
-      "2K resolution",
+      "50 credits/month",
+      "Advanced customization",
       "Email support"
     ]
   },
@@ -60,8 +59,8 @@ const subscriptionPlans = [
     popular: true,
     desc: "For serious creators",
     features: [
-      "100 HD thumbnails/month",
-      "2K resolution",
+      "100 credits/month",
+      "Advanced customization",
       "Priority support"
     ]
   },
@@ -76,8 +75,8 @@ const subscriptionPlans = [
     productId: "prod_TTyuNeWPfbeOFz",
     desc: "For teams and agencies",
     features: [
-      "300 HD thumbnails/month",
-      "4K resolution",
+      "300 credits/month",
+      "Advanced customization",
       "24/7 support"
     ]
   }
@@ -168,7 +167,7 @@ const bentoFeatures = [
       { title: "Downloads", detail: "One-click PNG export from the canvas gallery." }
     ],
     stats: [
-      { label: "Limits enforced", value: "Quota aware", sub: "Free: 1/day • Starter: 50/mo • Pro: 100/mo" }
+      { label: "Limits enforced", value: "Quota aware", sub: "Free: 1 credit/day • Starter: 50 credits/mo • Pro: 100 credits/mo" }
     ],
     footnote: "Each generation saves to your thumbnails list automatically."
   }
