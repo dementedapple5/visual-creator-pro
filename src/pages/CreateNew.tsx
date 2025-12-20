@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot, X } from "lucide-react";
+import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot, X, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
 import { MultiSelectChips } from "@/components/MultiSelectChips";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { RadioCardSelector } from "@/components/RadioCardSelector";
+import { useSubscription } from "@/hooks/use-subscription";
 import {
   Dialog,
   DialogContent,
@@ -247,6 +248,8 @@ const CreateNew = () => {
     }
   }, [currentGenerationId]);
 
+  const { isFree } = useSubscription();
+
   // Data states
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -298,6 +301,13 @@ const CreateNew = () => {
 
   const [activeTab, setActiveTab] = useState<string>("avatar");
   const [generationMode, setGenerationMode] = useState<string>("1");
+
+  // Ensure generation mode is "1" for free tier users
+  useEffect(() => {
+    if (isFree && generationMode !== "1") {
+      setGenerationMode("1");
+    }
+  }, [isFree, generationMode]);
 
   const hasGeneratedImage = Boolean(selectedImage || generatedThumbnails.length > 0);
   const previewImage = selectedImage || generatedThumbnails[0] || null;
@@ -2138,20 +2148,27 @@ const CreateNew = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Select generation mode</DropdownMenuLabel>
-                      {GENERATION_MODES.map((mode) => (
-                        <DropdownMenuItem
-                          key={mode.value}
-                          onClick={() => setGenerationMode(mode.value)}
-                          className={generationMode === mode.value ? "bg-accent" : ""}
-                        >
-                          <div className="flex items-center justify-between w-full">
-                            <span>{mode.label}</span>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {mode.credits} credit{mode.credits !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
+                      {GENERATION_MODES.map((mode) => {
+                        const isDisabled = isFree && mode.value !== "1";
+                        return (
+                          <DropdownMenuItem
+                            key={mode.value}
+                            onClick={() => !isDisabled && setGenerationMode(mode.value)}
+                            disabled={isDisabled}
+                            className={`${generationMode === mode.value ? "bg-accent" : ""} ${isDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center gap-2">
+                                <span>{mode.label}</span>
+                                {isDisabled && <Lock className="h-3 w-3" />}
+                              </div>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {mode.credits} credit{mode.credits !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          </DropdownMenuItem>
+                        );
+                      })}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
