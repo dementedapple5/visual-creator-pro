@@ -167,6 +167,85 @@ const CreateNew = () => {
   const [remixing, setRemixing] = useState(false);
   const [remixDialogOpen, setRemixDialogOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
+
+  // Persistence logic - Load from sessionStorage on mount
+  useEffect(() => {
+    const savedThumbnails = sessionStorage.getItem("generated_thumbnails");
+    const savedSelectedImage = sessionStorage.getItem("selected_image");
+    const savedSelectedImages = sessionStorage.getItem("selected_images");
+    const savedGridImageUrl = sessionStorage.getItem("grid_image_url");
+    const savedGenerationId = sessionStorage.getItem("current_generation_id");
+
+    if (savedThumbnails) {
+      try {
+        const parsed = JSON.parse(savedThumbnails);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setGeneratedThumbnails(parsed);
+          if (savedSelectedImage) setSelectedImage(savedSelectedImage);
+          if (savedSelectedImages) setSelectedImages(new Set(JSON.parse(savedSelectedImages)));
+          if (savedGridImageUrl) setGridImageUrl(savedGridImageUrl);
+          if (savedGenerationId) setCurrentGenerationId(savedGenerationId);
+        }
+      } catch (e) {
+        console.error("Error loading persisted thumbnails:", e);
+      }
+    }
+  }, []);
+
+  // Persistence logic - Save to sessionStorage when state changes
+  useEffect(() => {
+    try {
+      if (generatedThumbnails.length > 0) {
+        sessionStorage.setItem("generated_thumbnails", JSON.stringify(generatedThumbnails));
+      } else {
+        sessionStorage.removeItem("generated_thumbnails");
+      }
+    } catch (e) {
+      console.warn("Session storage quota exceeded for thumbnails");
+    }
+  }, [generatedThumbnails]);
+
+  useEffect(() => {
+    if (selectedImage) {
+      try {
+        sessionStorage.setItem("selected_image", selectedImage);
+      } catch (e) {
+        console.warn("Session storage quota exceeded for selected image");
+      }
+    } else {
+      sessionStorage.removeItem("selected_image");
+    }
+  }, [selectedImage]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("selected_images", JSON.stringify(Array.from(selectedImages)));
+    } catch (e) {
+      console.warn("Session storage quota exceeded for selected images set");
+    }
+  }, [selectedImages]);
+
+  useEffect(() => {
+    if (gridImageUrl) {
+      try {
+        sessionStorage.setItem("grid_image_url", gridImageUrl);
+      } catch (e) {
+        console.warn("Session storage quota exceeded for grid image");
+      }
+    } else {
+      sessionStorage.removeItem("grid_image_url");
+    }
+  }, [gridImageUrl]);
+
+  useEffect(() => {
+    if (currentGenerationId) {
+      sessionStorage.setItem("current_generation_id", currentGenerationId);
+    } else {
+      sessionStorage.removeItem("current_generation_id");
+    }
+  }, [currentGenerationId]);
 
   // Data states
   const [avatars, setAvatars] = useState<Avatar[]>([]);
@@ -627,6 +706,9 @@ const CreateNew = () => {
         )
       );
 
+      // Log the generation parameters
+      console.log("Generation mode:", generationMode, "Thumbnails:", selectedMode.thumbnailCount, "Credits:", requiredCredits);
+
       // Call edge function to generate thumbnail
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "generate-thumbnail",
@@ -712,8 +794,9 @@ const CreateNew = () => {
         }
       }
 
-      // Keep generationId only for logs for now (we don't attach thumbnail_id until user saves)
+      // Store generationId to link back when user saves thumbnails
       if (generationId) {
+        setCurrentGenerationId(generationId);
         console.log("Generation completed:", generationId);
       }
     } catch (error) {
@@ -757,53 +840,85 @@ const CreateNew = () => {
 
   const saveSelected = async () => {
     const urls = selectedImages.size > 0 ? Array.from(selectedImages) : selectedImage ? [selectedImage] : [];
-    if (urls.length === 0) return;
+    if (urls.length === 0) {
+      toast.error("No thumbnails selected to save");
+      return;
+    }
 
+    setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
+      console.log(`Saving ${urls.length} thumbnails...`);
+
       // Upload data URLs to storage and get public URLs
       const uploadedUrls = await Promise.all(
-        urls.map(async (url) => {
+        urls.map(async (url, index) => {
           if (isDataUrl(url)) {
-            return await uploadDataUrlToStorage(url, supabase, user.id);
+            console.log(`Uploading thumbnail ${index + 1}/${urls.length}...`);
+            try {
+              const publicUrl = await uploadDataUrlToStorage(url, supabase, user.id);
+              console.log(`Thumbnail ${index + 1} uploaded successfully`);
+              return publicUrl;
+            } catch (uploadError: any) {
+              console.error(`Failed to upload thumbnail ${index + 1}:`, uploadError);
+              throw uploadError;
+            }
           }
           return url;
         })
       );
 
-      const insertPromises = uploadedUrls.map((image_url) =>
-        supabase.from("thumbnails").insert({
+      const insertPromises = uploadedUrls.map((image_url) => {
+        const payload = {
           user_id: user.id,
           image_url,
           avatar_id: selectedAvatar || null,
-          avatar_position: (avatarPositions.length ? avatarPositions.join(",") : null) as any,
+          avatar_position: (avatarPositions.length ? avatarPositions.join(",") : ""),
           avatar_importance: null,
-          expression: (expressions.length ? expressions.join(",") : null) as any,
+          expression: (expressions.length ? expressions.join(",") : ""),
           product_id: selectedProducts.find(id => !id.startsWith("custom-")) || null,
-          product_position: (Object.values(elementPositions).flat().join(",") || null) as any,
+          product_position: (Object.values(elementPositions).flat().join(",") || ""),
           product_importance: null,
-          title: titleMode === "custom" ? (title || null) : null,
-          subtitle: subtitleMode === "custom" ? (subtitle || null) : null,
-          text_position: (textPositions.length ? textPositions.join(",") : null) as any,
+          title: titleMode === "custom" ? (title || "") : "",
+          subtitle: subtitleMode === "custom" ? (subtitle || "") : "",
+          text_position: (textPositions.length ? textPositions.join(",") : ""),
           text_importance: null,
-          text_style: (textStyles.length ? textStyles.join(",") : null) as any,
-          visual_style: (visualStyles.length ? visualStyles.join(",") : null) as any,
-          background_type: backgroundType,
-          background_value: backgroundValue,
+          text_style: (textStyles.length ? textStyles.join(",") : ""),
+          visual_style: (visualStyles.length ? visualStyles.join(",") : ""),
+          background_type: backgroundType || "",
+          background_value: backgroundValue || "",
           aspect_ratio: aspectRatio,
-        })
-      );
+        };
+        return supabase.from("thumbnails").insert(payload);
+      });
 
       const results = await Promise.all(insertPromises);
       const anyError = results.find((r) => r.error);
-      if (anyError?.error) throw anyError.error;
+      if (anyError?.error) {
+        throw anyError.error;
+      }
+
+      // Update the generation record with the first saved thumbnail's image URL
+      // This ensures the thumbnail appears in the Generations history
+      if (currentGenerationId && uploadedUrls.length > 0) {
+        const { error: genUpdateError } = await supabase
+          .from("generations")
+          .update({ image_url: uploadedUrls[0] })
+          .eq("id", currentGenerationId);
+        
+        if (genUpdateError) {
+          console.warn("Could not update generation record", genUpdateError);
+        }
+      }
 
       toast.success(`Saved ${urls.length} thumbnail${urls.length > 1 ? "s" : ""}!`);
     } catch (e) {
       console.error("Error saving thumbnails:", e);
       toast.error("Failed to save thumbnails");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -821,16 +936,17 @@ const CreateNew = () => {
       const monthlyLimit = subscriptionData?.monthly_limit || 1;
       const countStartDate = getGenerationWindowStart(subscriptionData || {});
 
-      const { count } = await supabase
+      const { data: usageData } = await supabase
         .from("generations")
-        .select("*", { count: "exact", head: true })
+        .select("credits_used")
         .eq("user_id", user.id)
         .eq("status", "completed")
         .gte("created_at", countStartDate);
 
-      const usedGenerations = count || 0;
+      const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
+      const remixCredits = 1; // Remix uses 1 credit
 
-      if (usedGenerations >= monthlyLimit) {
+      if (usedGenerations + remixCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
         setRemixing(false);
@@ -873,7 +989,8 @@ const CreateNew = () => {
               gridMode: false,
             },
             remixImageUrl: selectedImage,
-            remixPrompt: remixPrompt
+            remixPrompt: remixPrompt,
+            creditsUsed: remixCredits
           },
         }
       );
@@ -883,6 +1000,14 @@ const CreateNew = () => {
       const imageUrl = functionData.imageUrl;
       const generationId = functionData.generationId as string | undefined;
 
+      // Update the generation record with the image URL
+      if (generationId && imageUrl) {
+        await supabase
+          .from("generations")
+          .update({ image_url: imageUrl })
+          .eq("id", generationId);
+      }
+
       // Save to database
       if (user) {
         await supabase
@@ -891,21 +1016,21 @@ const CreateNew = () => {
             user_id: user.id,
             image_url: imageUrl,
             avatar_id: selectedAvatar || null,
-            avatar_position: avatarPositions.length ? avatarPositions.join(",") : null,
+            avatar_position: avatarPositions.length ? avatarPositions.join(",") : "",
             avatar_importance: null,
-            expression: expressions.length ? expressions.join(",") : null,
+            expression: expressions.length ? expressions.join(",") : "",
             product_id: selectedProducts.find(id => !id.startsWith("custom-")) || null,
-            product_position: Object.values(elementPositions).flat().join(",") || null,
+            product_position: Object.values(elementPositions).flat().join(",") || "",
             product_importance: null,
-            title: titleMode === "custom" ? (title || null) : null,
-            subtitle: subtitleMode === "custom" ? (subtitle || null) : null,
-            text_position: textPositions.length ? textPositions.join(",") : null,
+            title: titleMode === "custom" ? (title || "") : "",
+            subtitle: subtitleMode === "custom" ? (subtitle || "") : "",
+            text_position: textPositions.length ? textPositions.join(",") : "",
             text_importance: null,
             text_style: textStyles.length ? textStyles.join(",") : "",
             visual_style: visualStyles.length ? visualStyles.join(",") : "",
-            background_type: backgroundType,
-            background_value: backgroundValue,
-            aspect_ratio: aspectRatio,
+            background_type: backgroundType || "",
+            background_value: backgroundValue || "",
+            aspect_ratio: aspectRatio || "16:9",
           } as any);
       }
 
@@ -1124,33 +1249,15 @@ const CreateNew = () => {
 
                 {hasGeneratedImage && (
                   <div className="flex flex-wrap gap-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="flex-1 min-w-[140px]"
-                          disabled={downloading}
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          {downloading ? "Downloading..." : "Download"}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuLabel>Select size</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleDownload("youtube")}
-                          disabled={downloading}
-                        >
-                          {DOWNLOAD_SIZES.youtube.label}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDownload("full")}
-                          disabled={downloading}
-                        >
-                          {DOWNLOAD_SIZES.full.label}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button
+                      variant="outline"
+                      className="flex-1 min-w-[140px]"
+                      onClick={() => handleDownload("youtube")}
+                      disabled={downloading}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      {downloading ? "Downloading..." : "Download"}
+                    </Button>
                     <Button
                       variant="outline"
                       className="flex-1 min-w-[140px]"
@@ -1171,34 +1278,58 @@ const CreateNew = () => {
                     <p className="text-sm font-semibold">Generated thumbnails</p>
                     <p className="text-xs text-muted-foreground">Click to select</p>
                   </div>
-                  <span className="text-xs text-muted-foreground">{generatedThumbnails.length} results</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">{generatedThumbnails.length} results</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to clear the generated thumbnails? This will remove them from cache.")) {
+                          setGeneratedThumbnails([]);
+                          setSelectedImage(null);
+                          setSelectedImages(new Set());
+                          setGridImageUrl(null);
+                          setCurrentGenerationId(null);
+                        }
+                      }}
+                    >
+                      Clear all
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-3">
                   {generatedThumbnails.map((url, index) => (
-                    <button
+                    <div
                       key={index}
-                      className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${previewImage === url
+                      className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer animate-in fade-in slide-in-from-top-4 duration-500 ${previewImage === url
                         ? "border-primary ring-2 ring-primary/20"
-                        : selectedImages.has(url)
-                          ? "border-green-500 ring-2 ring-green-500/20"
-                          : "border-border hover:border-primary/50"
+                        : "border-border hover:border-primary/50"
                         }`}
-                      onClick={() => {
-                        setSelectedImage(url);
-                        toggleSelect(url);
+                      style={{ 
+                        animationDelay: `${index * 150}ms`,
+                        animationFillMode: 'both' 
                       }}
+                      onClick={() => setSelectedImage(url)}
                     >
                       <img
                         src={url}
                         alt={`Generated thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
-                      {selectedImages.has(url) && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                    </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelect(url);
+                        }}
+                        className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${selectedImages.has(url)
+                          ? "bg-primary border-primary text-white shadow-lg scale-110"
+                          : "bg-black/40 border-white/60 text-white hover:bg-black/60 hover:border-white"
+                          }`}
+                      >
+                        <Check className={`w-4 h-4 transition-all ${selectedImages.has(url) ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
+                      </button>
+                    </div>
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
@@ -1208,8 +1339,16 @@ const CreateNew = () => {
                   <Button variant="outline" size="sm" onClick={() => setSelectedImages(new Set())}>
                     Deselect all
                   </Button>
-                  <Button size="sm" onClick={saveSelected} disabled={isLoading}>
-                    Save {selectedImages.size > 0 ? selectedImages.size : 1}
+                  <Button 
+                    size="sm" 
+                    onClick={saveSelected} 
+                    disabled={isLoading || saving || selectedImages.size === 0}
+                    className="relative w-[120px] rounded-[4px] border border-[#F43F5E] bg-transparent text-[#F43F5E] hover:text-white transition-all duration-300 disabled:opacity-50 disabled:border-zinc-800 disabled:text-zinc-500 overflow-hidden group"
+                  >
+                    <span className="relative z-10">{saving ? "Saving..." : `Save ${selectedImages.size}`}</span>
+                    {/* Metal reflection fill effect */}
+                    <div className="absolute inset-0 z-0 bg-gradient-to-tr from-[#F43F5E] via-[#F43F5E]/80 to-[#F43F5E] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 pointer-events-none bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 translate-x-[-150%] group-hover:animate-shine" />
                   </Button>
                 </div>
               </div>
@@ -1529,6 +1668,7 @@ const CreateNew = () => {
                           {titleMode === "custom" && (
                             <Input
                               placeholder="Enter title..."
+                              className="mx-1 w-[calc(100%-8px)]"
                               value={title}
                               onChange={(e) => setTitle(e.target.value)}
                             />
@@ -1548,6 +1688,7 @@ const CreateNew = () => {
                           {subtitleMode === "custom" && (
                             <Textarea
                               placeholder="Enter subtitle..."
+                              className="mx-1 w-[calc(100%-8px)]"
                               value={subtitle}
                               onChange={(e) => setSubtitle(e.target.value)}
                               rows={2}

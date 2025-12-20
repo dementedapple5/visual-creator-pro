@@ -342,7 +342,7 @@ const Backgrounds = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-6 py-12 pl-20 max-w-6xl space-y-8">
+      <main className="container mx-auto px-6 py-4 max-w-6xl space-y-8">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">

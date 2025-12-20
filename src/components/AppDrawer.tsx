@@ -284,7 +284,7 @@ export const AppDrawer = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="fixed top-4 left-4 z-50 glass-button hover:bg-white/20 text-white"
+          className="fixed top-4 left-4 z-50 glass-button text-foreground"
         >
           <svg
             width="20"
@@ -302,20 +302,20 @@ export const AppDrawer = () => {
           </svg>
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-full w-64 glass-panel border-r border-white/10 rounded-r-3xl rounded-l-none">
+      <DrawerContent className="h-full w-64 glass-panel border-r border-border rounded-r-3xl rounded-l-none">
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-white/10 space-y-6">
-            <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">VIZION</h2>
+          <div className="p-6 border-b border-border space-y-6">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">VIZION</h2>
 
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-              <Avatar className="h-10 w-10 ring-2 ring-white/10">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/10">
                 <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-600 text-white font-bold">
                   {getInitials()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <p className="text-sm font-medium truncate text-white">
+                  <p className="text-sm font-medium truncate text-foreground">
                     {profile?.username || profile?.email || "User"}
                   </p>
                   {subscription.subscribed ? (
@@ -323,7 +323,7 @@ export const AppDrawer = () => {
                       {subscription.plan_name}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-white/20 text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-border text-muted-foreground">
                       Free
                     </Badge>
                   )}
@@ -363,8 +363,8 @@ export const AppDrawer = () => {
                         isDisabled
                           ? "opacity-50 cursor-not-allowed text-muted-foreground"
                           : isActive
-                          ? "bg-white/10 text-white shadow-lg shadow-purple-500/10 border border-white/10"
-                          : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                          ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
+                          : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                       }`}
                     >
                       <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
@@ -380,7 +380,7 @@ export const AppDrawer = () => {
               })}
             </div>
 
-            <div className="pt-4 border-t border-white/10">
+            <div className="pt-4 border-t border-border">
               <p className="text-xs font-semibold text-muted-foreground mb-4 px-4 uppercase tracking-wider">Content</p>
               <div className="space-y-1">
                 {contentMenuItems.map((item) => {
@@ -391,8 +391,8 @@ export const AppDrawer = () => {
                       key={item.path}
                       onClick={() => handleNavigation(item.path)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-300 ${isActive
-                          ? "bg-white/10 text-white shadow-lg shadow-purple-500/10 border border-white/10"
-                          : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                          ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
+                          : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                         }`}
                     >
                       <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
@@ -404,12 +404,12 @@ export const AppDrawer = () => {
             </div>
           </nav>
 
-          <div className="p-4 border-t border-white/10 space-y-1">
+          <div className="p-4 border-t border-border space-y-1">
             <button
               onClick={() => handleNavigation("/profile")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-300 ${location.pathname === "/profile"
-                  ? "bg-white/10 text-white shadow-lg shadow-purple-500/10 border border-white/10"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                  ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
+                  : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                 }`}
             >
               <User className="w-5 h-5" />
@@ -428,9 +428,9 @@ export const AppDrawer = () => {
 
       {/* Upgrade Plan Dialog */}
       <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
-        <DialogContent className="glass-panel border-white/10 max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="glass-panel border-border max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
               Choose Your Plan
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -439,13 +439,13 @@ export const AppDrawer = () => {
           </DialogHeader>
 
           {/* Billing Interval Toggle */}
-          <div className="flex items-center justify-center gap-2 p-1 rounded-lg bg-white/5 border border-white/10 w-fit mx-auto mb-6">
+          <div className="flex items-center justify-center gap-2 p-1 rounded-lg bg-muted border border-border w-fit mx-auto mb-6">
             <button
               onClick={() => setBillingInterval("monthly")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 billingInterval === "monthly"
-                  ? "bg-white/10 text-white"
-                  : "text-muted-foreground hover:text-white"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Monthly
@@ -454,12 +454,12 @@ export const AppDrawer = () => {
               onClick={() => setBillingInterval("yearly")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all relative ${
                 billingInterval === "yearly"
-                  ? "bg-white/10 text-white"
-                  : "text-muted-foreground hover:text-white"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Yearly
-              <span className="absolute -top-4 -right-4 text-[10px] bg-gradient-to-r from-purple-500 to-blue-600 text-white px-1.5 py-0.5 rounded-full">
+              <span className="absolute -top-4 -right-4 text-[10px] bg-gradient-to-r from-purple-500 to-blue-600 text-white px-1.5 py-0.5 rounded-full shadow-lg shadow-purple-500/20">
                 20% off
               </span>
             </button>
@@ -492,7 +492,7 @@ export const AppDrawer = () => {
                   className={`relative rounded-xl border p-6 transition-all ${
                     isPopular
                       ? "border-purple-500/50 bg-gradient-to-br from-purple-500/10 to-blue-600/10 shadow-lg shadow-purple-500/20"
-                      : "border-white/10 bg-white/5 hover:border-white/20"
+                      : "border-border bg-card hover:border-foreground/20"
                   }`}
                 >
                   {isPopular && (
@@ -505,9 +505,9 @@ export const AppDrawer = () => {
 
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                      <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
                       <div className="mt-2 flex items-baseline gap-2">
-                        <span className="text-3xl font-bold text-white">{displayPrice}</span>
+                        <span className="text-3xl font-bold text-foreground">{displayPrice}</span>
                         <span className="text-muted-foreground">{priceLabel}</span>
                       </div>
                       {billingInterval === "yearly" && plan.yearlySavings && (
@@ -531,8 +531,8 @@ export const AppDrawer = () => {
                       disabled={loading}
                       className={`w-full ${
                         isPopular
-                          ? "bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white border-0"
-                          : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                          ? "bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white border-0 shadow-lg shadow-purple-500/20"
+                          : "bg-primary hover:bg-primary/90 text-primary-foreground"
                       }`}
                     >
                       {loading ? "Processing..." : "Get Started"}

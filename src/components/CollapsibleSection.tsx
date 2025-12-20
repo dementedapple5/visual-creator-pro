@@ -39,7 +39,7 @@ export function CollapsibleSection({
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
-        <div className="pt-3 pb-1 space-y-4">
+        <div className="pt-3 pb-1 px-1 space-y-4">
           {children}
         </div>
       </CollapsibleContent>

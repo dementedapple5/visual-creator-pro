@@ -86,6 +86,10 @@ export default {
         'slide-up-fade': {
           '0%': { opacity: '0', transform: 'translateY(40px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' }
+        },
+        shine: {
+          '0%': { transform: 'translateX(-100%) skewX(-15deg)' },
+          '100%': { transform: 'translateX(200%) skewX(-15deg)' }
         }
       },
       animation: {
@@ -94,6 +98,7 @@ export default {
         float: 'float 6s ease-in-out infinite',
         glow: 'glow 4s ease-in-out infinite',
         'slide-up-fade': 'slide-up-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        shine: 'shine 1.5s ease-in-out infinite',
       }
     }
   },

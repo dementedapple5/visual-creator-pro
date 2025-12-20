@@ -179,7 +179,7 @@ const Products = () => {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-6 py-12 pl-20">
+      <main className="container mx-auto px-6 py-4">
         <div className="mb-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Elements</h1>
           <Button 

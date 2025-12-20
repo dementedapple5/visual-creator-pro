@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { Check, Moon, Sun, Monitor } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Detect if running on localhost
 const isLocalhost = import.meta.env.DEV || 
@@ -191,6 +193,7 @@ const Profile = () => {
   });
   const [checkingSubscription, setCheckingSubscription] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("yearly");
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     checkUser();
@@ -392,7 +395,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-6 py-12 pl-20 max-w-6xl">
+      <main className="container mx-auto px-6 py-4 max-w-6xl">
         <div className="space-y-8">
           {/* User Info */}
           <Card className="bg-card border-border">
@@ -425,6 +428,35 @@ const Profile = () => {
               <div className="space-y-2">
                 <Label>User ID</Label>
                 <Input value={user?.id || ""} disabled className="bg-secondary text-xs" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Theme Switcher */}
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="text-xl">Appearance</CardTitle>
+              <CardDescription>Customize how the app looks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Label>Theme</Label>
+                <Tabs value={theme} onValueChange={setTheme} className="w-full max-w-xs">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="light" className="flex items-center gap-2">
+                      <Sun className="h-4 w-4" />
+                      <span className="hidden sm:inline">Light</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="dark" className="flex items-center gap-2">
+                      <Moon className="h-4 w-4" />
+                      <span className="hidden sm:inline">Dark</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="system" className="flex items-center gap-2">
+                      <Monitor className="h-4 w-4" />
+                      <span className="hidden sm:inline">System</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
             </CardContent>
           </Card>

@@ -30,7 +30,7 @@ export function RadioCardSelector({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative px-2.5 py-2 rounded-lg border transition-all text-left flex items-center gap-2",
+              "relative mx-1 px-2.5 py-2 rounded-[4px] border transition-all text-left flex items-center gap-2",
               isSelected
                 ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]"
                 : "border-border/60 bg-card/50 hover:border-muted-foreground/50"
@@ -51,14 +51,14 @@ export function RadioCardSelector({
             </div>
             <div
               className={cn(
-                "shrink-0 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all",
+                "shrink-0 w-3.5 h-3.5 rounded-[2px] border-2 flex items-center justify-center transition-all",
                 isSelected
                   ? "border-primary bg-primary"
                   : "border-muted-foreground/40"
               )}
             >
               {isSelected && (
-                <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                <div className="w-1.5 h-1.5 rounded-[1px] bg-primary-foreground" />
               )}
             </div>
           </button>

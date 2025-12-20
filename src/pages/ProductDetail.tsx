@@ -160,7 +160,7 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-6 py-12 pl-20 max-w-6xl space-y-8">
+      <main className="container mx-auto px-6 py-4 max-w-6xl space-y-8">
         <div className="flex justify-between items-center">
           <Button variant="ghost" onClick={() => navigate("/products")}>
             <ArrowLeft className="w-4 h-4 mr-2" />

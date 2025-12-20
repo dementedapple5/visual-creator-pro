@@ -230,7 +230,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-hidden selection:bg-primary/20 font-sans relative">
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-grid-white/[0.03]" />
+        <div className="absolute inset-0 bg-grid-white/[0.03] dark:bg-grid-white/[0.03]" />
         <div className="absolute inset-0 clip-grid">
           {Array.from({ length: 10 }).map((_, index) => (
             <span
@@ -244,7 +244,7 @@ const Index = () => {
         <div className="absolute bottom-[-18%] right-[-4%] w-[50%] h-[50%] bg-rose-400/10 rounded-full blur-[140px]" />
       </div>
 
-      <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/60 backdrop-blur-xl transition-all duration-300">
+      <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/60 backdrop-blur-xl transition-all duration-300">
         <div className="container mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10">
@@ -254,21 +254,21 @@ const Index = () => {
                 className="w-full h-full rounded-xl  object-contain shadow-lg shadow-primary/20 bg-white/80"
               />
             </div>
-            <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+            <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60">
               VIZION
             </span>
           </div>
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              className="text-muted-foreground hover:text-white transition-colors hidden sm:flex beam-button"
+              className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex beam-button"
               onClick={() => navigate("/auth")}
             >
               Sign In
             </Button>
             <Button
               onClick={() => navigate("/auth")}
-              className="bg-white text-black hover:bg-white/90 rounded-full px-6 shadow-glow transition-all beam-button"
+              className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-6 shadow-glow transition-all beam-button"
             >
               Get Started
             </Button>
@@ -279,7 +279,7 @@ const Index = () => {
       <section className="relative pt-32 pb-24 px-6 min-h-[80vh] flex items-center">
         <div className="container mx-auto max-w-5xl flex flex-col items-center text-center gap-10">
           <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border backdrop-blur-md"
             data-animate
           >
             <span className="relative flex h-2 w-2">
@@ -311,7 +311,7 @@ const Index = () => {
                 style={{ ["--delay" as any]: "0.25s" }}
               >
                 Fast & Professional
-                <span className="typewriter text-white">{displayedWord}</span>
+                <span className="typewriter text-foreground">{displayedWord}</span>
                 <span className="type-caret" aria-hidden="true" />
               </span>
             </h1>
@@ -329,7 +329,7 @@ const Index = () => {
             <Button
               size="lg"
               onClick={() => navigate("/auth")}
-              className="h-14 px-8 rounded-full bg-white text-black hover:bg-white/90 text-lg transition-all beam-button"
+              className="h-14 px-8 rounded-full bg-foreground text-background hover:bg-foreground/90 text-lg transition-all beam-button shadow-glow shadow-primary/20"
               data-animate
               style={{ ["--delay" as any]: "0.45s" }}
             >
@@ -339,7 +339,7 @@ const Index = () => {
             <Button
               size="lg"
               variant="outline"
-              className="h-14 px-8 rounded-full border-white/10 hover:bg-white/5 backdrop-blur-sm transition-all beam-button"
+              className="h-14 px-8 rounded-full border-border hover:bg-secondary backdrop-blur-sm transition-all beam-button"
               data-animate
               style={{ ["--delay" as any]: "0.55s" }}
             >
@@ -371,27 +371,27 @@ const Index = () => {
               return (
                 <div
                   key={feature.title}
-                  className={`relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 flex flex-col gap-4 ${feature.span}`}
+                  className={`relative overflow-hidden rounded-3xl border border-border bg-card/40 backdrop-blur-xl p-6 flex flex-col gap-4 ${feature.span}`}
                   data-animate
                   style={{ ["--delay" as any]: `${0.05 * idx}s` }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-white" />
-                      <h3 className="text-xl font-semibold text-white">{feature.title}</h3>
+                      <Icon className="w-5 h-5 text-foreground" />
+                      <h3 className="text-xl font-semibold text-foreground">{feature.title}</h3>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-white">{feature.badge}</span>
+                    <span className="px-3 py-1 rounded-full bg-secondary text-xs text-foreground">{feature.badge}</span>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
                   {feature.steps && (
                     <div className="space-y-3">
                       {feature.steps.map((step, stepIdx) => (
                         <div key={step.title} className="flex gap-3 items-start">
-                          <span className="h-7 w-7 rounded-full bg-white/5 border border-white/10 text-white/80 text-xs flex items-center justify-center">
+                          <span className="h-7 w-7 rounded-full bg-secondary/50 border border-border text-foreground/80 text-xs flex items-center justify-center">
                             {stepIdx + 1}
                           </span>
                           <div className="space-y-1">
-                            <p className="text-sm font-semibold text-white">{step.title}</p>
+                            <p className="text-sm font-semibold text-foreground">{step.title}</p>
                             {step.detail && <p className="text-xs text-muted-foreground leading-relaxed">{step.detail}</p>}
                           </div>
                         </div>
@@ -402,9 +402,9 @@ const Index = () => {
                   {feature.stats && (
                     <div className="grid grid-cols-2 gap-3">
                       {feature.stats.map((stat) => (
-                        <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <div key={stat.label} className="rounded-2xl border border-border bg-muted/50 p-3">
                           <p className="text-xs text-muted-foreground">{stat.label}</p>
-                          <p className="text-base font-semibold text-white">{stat.value}</p>
+                          <p className="text-base font-semibold text-foreground">{stat.value}</p>
                           {stat.sub && <p className="text-[11px] text-muted-foreground mt-1 leading-tight">{stat.sub}</p>}
                         </div>
                       ))}
@@ -422,9 +422,9 @@ const Index = () => {
                             : swatch.colors[0];
 
                         return (
-                          <div key={swatch.label} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                            <span className="h-6 w-6 rounded-lg border border-white/10" style={{ background }} />
-                            <span className="text-xs text-white/80">{swatch.label}</span>
+                          <div key={swatch.label} className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-2">
+                            <span className="h-6 w-6 rounded-lg border border-border" style={{ background }} />
+                            <span className="text-xs text-foreground/80">{swatch.label}</span>
                           </div>
                         );
                       })}
@@ -432,13 +432,13 @@ const Index = () => {
                   )}
 
                   {feature.sample && (
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-2">
-                      <p className="text-sm font-semibold text-white">{feature.sample.title}</p>
-                      <p className="text-xs text-white/70">{feature.sample.subtitle}</p>
+                    <div className="rounded-2xl border border-border bg-muted/50 p-4 space-y-2">
+                      <p className="text-sm font-semibold text-foreground">{feature.sample.title}</p>
+                      <p className="text-xs text-foreground/70">{feature.sample.subtitle}</p>
                       {feature.sample.tags && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {feature.sample.tags.map((tag) => (
-                            <span key={tag} className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
+                            <span key={tag} className="text-[11px] px-2.5 py-1 rounded-full bg-secondary border border-border text-foreground/80">
                               {tag}
                             </span>
                           ))}
@@ -450,7 +450,7 @@ const Index = () => {
                   {feature.chips && (
                     <div className="flex flex-wrap gap-2">
                       {feature.chips.map((chip) => (
-                        <span key={chip} className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
+                        <span key={chip} className="text-xs px-3 py-1 rounded-full bg-secondary border border-border text-foreground/80">
                           {chip}
                         </span>
                       ))}
@@ -465,8 +465,8 @@ const Index = () => {
         </div>
       </section>
 
-      <section className="py-28 bg-white/[0.02] border-y border-white/5 backdrop-blur-sm relative overflow-hidden">
-        <div className="absolute inset-0 bg-fine-grid opacity-100" />
+      <section className="py-28 bg-muted/20 border-y border-border backdrop-blur-sm relative overflow-hidden">
+        <div className="absolute inset-0 bg-fine-grid opacity-100 dark:opacity-100" />
         <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background pointer-events-none" />
 
         <div className="relative z-10">
@@ -523,16 +523,16 @@ const Index = () => {
                     avatar: "AR"
                   }
                 ].map((testimonial, i) => (
-                  <div key={`first-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] cursor-default group">
+                  <div key={`first-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-muted/50 transition-all duration-300 hover:scale-[1.02] cursor-default group">
                     <Quote className="w-8 h-8 text-primary mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-lg text-white/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
+                    <p className="text-lg text-foreground/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
                         {testimonial.avatar}
                       </div>
                       <div>
-                        <p className="font-bold text-white">{testimonial.author}</p>
-                        <p className="text-sm text-white/50">{testimonial.role}</p>
+                        <p className="font-bold text-foreground">{testimonial.author}</p>
+                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                       </div>
                     </div>
                   </div>
@@ -575,16 +575,16 @@ const Index = () => {
                     avatar: "AR"
                   }
                 ].map((testimonial, i) => (
-                  <div key={`second-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] cursor-default group">
+                  <div key={`second-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-muted/50 transition-all duration-300 hover:scale-[1.02] cursor-default group">
                     <Quote className="w-8 h-8 text-primary mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-lg text-white/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
+                    <p className="text-lg text-foreground/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
                         {testimonial.avatar}
                       </div>
                       <div>
-                        <p className="font-bold text-white">{testimonial.author}</p>
-                        <p className="text-sm text-white/50">{testimonial.role}</p>
+                        <p className="font-bold text-foreground">{testimonial.author}</p>
+                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                       </div>
                     </div>
                   </div>
@@ -606,20 +606,20 @@ const Index = () => {
             </p>
 
             <div className="flex items-center justify-center gap-4" data-animate style={{ ["--delay" as any]: "0.2s" }}>
-              <span className={`text-sm font-medium transition-colors ${billingInterval === "monthly" ? "text-white" : "text-muted-foreground"}`}>
+              <span className={`text-sm font-medium transition-colors ${billingInterval === "monthly" ? "text-foreground" : "text-muted-foreground"}`}>
                 Monthly
               </span>
               <button
                 onClick={() => setBillingInterval(billingInterval === "monthly" ? "yearly" : "monthly")}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${billingInterval === "yearly" ? "bg-primary" : "bg-white/20"
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${billingInterval === "yearly" ? "bg-primary" : "bg-muted"
                   }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${billingInterval === "yearly" ? "translate-x-8" : "translate-x-1"
+                  className={`inline-block h-5 w-5 transform rounded-full bg-background shadow-lg transition-transform ${billingInterval === "yearly" ? "translate-x-8" : "translate-x-1"
                     }`}
                 />
               </button>
-              <span className={`text-sm font-medium transition-colors ${billingInterval === "yearly" ? "text-white" : "text-muted-foreground"}`}>
+              <span className={`text-sm font-medium transition-colors ${billingInterval === "yearly" ? "text-foreground" : "text-muted-foreground"}`}>
                 Yearly
               </span>
               {billingInterval === "yearly" && (
@@ -641,7 +641,7 @@ const Index = () => {
                   key={plan.name}
                   className={`relative p-6 rounded-3xl border backdrop-blur-sm flex flex-col transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${plan.popular
                     ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
-                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                    : 'border-border bg-card/50 hover:border-foreground/20'
                     }`}
                   data-animate
                   style={{ ["--delay" as any]: `${0.08 * idx}s` }}
@@ -656,7 +656,7 @@ const Index = () => {
                     <div className="min-h-[80px]">
                       {billingInterval === "monthly" ? (
                         <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold text-white">{plan.monthlyPrice}</span>
+                          <span className="text-4xl font-bold text-foreground">{plan.monthlyPrice}</span>
                           {!isFree && <span className="text-muted-foreground">/month</span>}
                         </div>
                       ) : (
@@ -667,7 +667,7 @@ const Index = () => {
                                 <span className="text-lg text-muted-foreground line-through">
                                   {plan.monthlyPrice}
                                 </span>
-                                <span className="text-4xl font-bold text-white">
+                                <span className="text-4xl font-bold text-foreground">
                                   ${discountedMonthlyPrice.toFixed(2)}
                                 </span>
                               </div>
@@ -678,7 +678,7 @@ const Index = () => {
                             </>
                           ) : (
                             <div className="flex items-baseline gap-1">
-                              <span className="text-4xl font-bold text-white">{plan.monthlyPrice}</span>
+                              <span className="text-4xl font-bold text-foreground">{plan.monthlyPrice}</span>
                             </div>
                           )}
                         </>
@@ -690,14 +690,14 @@ const Index = () => {
                     {plan.features.map((feature, j) => (
                       <li key={j} className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-white/80">{feature}</span>
+                        <span className="text-sm text-foreground/80">{feature}</span>
                       </li>
                     ))}
                   </ul>
                   <Button
                     className={`w-full h-12 rounded-xl font-bold text-base transition-all beam-button ${plan.popular
-                      ? 'bg-white text-black hover:bg-white/90 hover:shadow-lg'
-                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg'
+                      : 'bg-secondary hover:bg-secondary/80 text-foreground border border-border'
                       }`}
                     onClick={() => navigate("/auth")}
                   >
@@ -710,7 +710,7 @@ const Index = () => {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 py-12 bg-black/40 backdrop-blur-xl">
+      <footer className="border-t border-border py-12 bg-background/40 backdrop-blur-xl">
         <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8">
@@ -726,10 +726,10 @@ const Index = () => {
             © 2024 Vizion AI. All rights reserved.
           </div>
           <div className="flex gap-8 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Twitter</a>
-            <a href="#" className="hover:text-white transition-colors">Discord</a>
+            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+            <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
+            <a href="#" className="hover:text-foreground transition-colors">Discord</a>
           </div>
         </div>
       </footer>

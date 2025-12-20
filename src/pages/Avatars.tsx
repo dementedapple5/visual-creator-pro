@@ -207,7 +207,7 @@ const Avatars = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-6 py-12 pl-20 max-w-6xl">
+      <main className="container mx-auto px-6 py-4 max-w-6xl">
         <div className="space-y-8">
           <div>
             <h2 className="text-2xl font-semibold mb-2">Your Avatars</h2>

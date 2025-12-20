@@ -54,7 +54,7 @@ export const HowItWorks = () => {
 
             <div className="container mx-auto max-w-7xl">
                 <div className="text-center mb-24 space-y-4">
-                    <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
+                    <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/60">
                         How Vizion Works
                     </h2>
                     <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -75,7 +75,7 @@ export const HowItWorks = () => {
                             >
                                 {/* Text Side */}
                                 <div className="flex-1 space-y-8">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-rose-400">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary border border-border text-sm font-medium text-rose-500 dark:text-rose-400">
                                         <span className="flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/20 text-[10px] font-bold">
                                             {idx + 1}
                                         </span>
@@ -83,7 +83,7 @@ export const HowItWorks = () => {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <h3 className="text-3xl md:text-4xl font-bold">
+                                        <h3 className="text-3xl md:text-4xl font-bold text-foreground">
                                             {step.title}
                                         </h3>
                                         <p className="text-lg text-muted-foreground leading-relaxed">
@@ -93,8 +93,8 @@ export const HowItWorks = () => {
 
                                     <ul className="space-y-3">
                                         {['Professional presets', 'Time-saving automation', 'Agency-quality output'].map((item, i) => (
-                                            <li key={i} className="flex items-center gap-3 text-white/80">
-                                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
+                                            <li key={i} className="flex items-center gap-3 text-foreground/80">
+                                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
                                                     <Check className="w-3.5 h-3.5 text-rose-500" />
                                                 </div>
                                                 {item}
@@ -106,9 +106,9 @@ export const HowItWorks = () => {
                                 {/* Image Side */}
                                 <div className="flex-1 w-full">
                                     <div className="relative group perspective-1000">
-                                        <div className="relative rounded-2xl border border-white/10 bg-black/50 overflow-hidden shadow-2xl transition-transform duration-500 hover:rotate-x-2">
+                                        <div className="relative rounded-2xl border border-border bg-card/50 overflow-hidden shadow-2xl transition-transform duration-500 hover:rotate-x-2">
                                             {/* Glass overlay effect */}
-                                            <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none z-10" />
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-foreground/5 to-transparent pointer-events-none z-10" />
 
                                             <img
                                                 src={step.image}

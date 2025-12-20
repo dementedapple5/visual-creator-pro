@@ -15,7 +15,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       </div>
 
       <AppDrawer />
-      <main className="pl-0 relative z-10">{children}</main>
+      <main className="pl-0 pt-16 relative z-10">{children}</main>
     </div>
   );
 };

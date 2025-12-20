@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { BadgeCheck, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,10 +38,10 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden selection:bg-primary/20 text-white">
+    <div className="min-h-screen bg-background relative overflow-hidden selection:bg-primary/20 text-foreground">
       {/* Landing-style background */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-grid-white/[0.03]" />
+        <div className="absolute inset-0 bg-grid-white/[0.03] dark:bg-grid-white/[0.03]" />
         <div className="absolute inset-0 clip-grid">
           {Array.from({ length: 10 }).map((_, index) => (
             <span
@@ -68,13 +70,13 @@ const Auth = () => {
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Vizion
               </p>
-              <p className="text-sm text-white/80">Visual Creator Pro</p>
+              <p className="text-sm text-foreground/80">Visual Creator Pro</p>
             </div>
           </div>
 
           <button
             onClick={() => navigate("/")}
-            className="text-sm text-muted-foreground hover:text-white transition-colors underline underline-offset-4"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
           >
             Back to landing
           </button>
@@ -116,22 +118,22 @@ const Auth = () => {
           </div>
 
           <div
-            className="glass-panel p-8 rounded-2xl relative overflow-hidden border border-white/10 shadow-2xl animate-slide-up-fade"
+            className="glass-panel p-8 rounded-2xl relative overflow-hidden border border-border shadow-2xl animate-slide-up-fade"
             style={{ animationDelay: "0.1s" }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/0 to-white/5 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-foreground/5 via-transparent to-foreground/5 pointer-events-none" />
             <div className="absolute -top-10 -right-10 w-36 h-36 bg-primary/20 rounded-full blur-3xl" />
             <div className="relative space-y-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Sign in</p>
-                  <h2 className="text-2xl font-semibold text-white">Enter the Vizion studio</h2>
+                  <h2 className="text-2xl font-semibold text-foreground">Enter the Vizion studio</h2>
                 </div>
               </div>
 
               <button
                 onClick={handleGoogleSignIn}
-                className="w-full inline-flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-black font-medium transition-all hover:bg-white/90 hover:shadow-lg hover:shadow-white/30"
+                className="w-full inline-flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-foreground text-background font-medium transition-all hover:bg-foreground/90 hover:shadow-lg hover:shadow-foreground/30"
               >
                 <img
                   src="/google.png"
@@ -142,9 +144,9 @@ const Auth = () => {
               </button>
 
               <div className="flex items-center gap-3">
-                <span className="h-px flex-1 bg-white/10" />
+                <span className="h-px flex-1 bg-border" />
                 <span className="text-xs text-muted-foreground">or continue with email</span>
-                <span className="h-px flex-1 bg-white/10" />
+                <span className="h-px flex-1 bg-border" />
               </div>
 
               <SupabaseAuth
@@ -154,21 +156,21 @@ const Auth = () => {
                   variables: {
                     default: {
                       colors: {
-                        brand: "white",
-                        brandAccent: "#e5e5e5",
-                        brandButtonText: "black",
+                        brand: "hsl(var(--primary))",
+                        brandAccent: "hsl(var(--primary))",
+                        brandButtonText: "hsl(var(--primary-foreground))",
                         defaultButtonBackground: "transparent",
-                        defaultButtonBackgroundHover: "rgba(255,255,255,0.08)",
-                        defaultButtonBorder: "rgba(255,255,255,0.1)",
-                        defaultButtonText: "white",
-                        dividerBackground: "rgba(255,255,255,0.1)",
-                        inputBackground: "rgba(255,255,255,0.05)",
-                        inputBorder: "rgba(255,255,255,0.15)",
-                        inputBorderHover: "rgba(255,255,255,0.25)",
-                        inputBorderFocus: "white",
-                        inputText: "white",
-                        inputLabelText: "rgba(255,255,255,0.7)",
-                        inputPlaceholder: "rgba(255,255,255,0.45)",
+                        defaultButtonBackgroundHover: "hsl(var(--secondary))",
+                        defaultButtonBorder: "hsl(var(--border))",
+                        defaultButtonText: "hsl(var(--foreground))",
+                        dividerBackground: "hsl(var(--border))",
+                        inputBackground: "transparent",
+                        inputBorder: "hsl(var(--border))",
+                        inputBorderHover: "hsl(var(--primary))",
+                        inputBorderFocus: "hsl(var(--primary))",
+                        inputText: "hsl(var(--foreground))",
+                        inputLabelText: "hsl(var(--muted-foreground))",
+                        inputPlaceholder: "hsl(var(--muted-foreground))",
                       },
                       space: {
                         inputPadding: "1rem",
@@ -189,11 +191,11 @@ const Auth = () => {
                     container: "space-y-4",
                     button: "w-full font-medium transition-all duration-200 hover:scale-[1.01]",
                     input:
-                      "bg-white/5 border-white/15 text-white placeholder:text-white/40 focus:border-white/60 focus:ring-0 transition-all duration-200",
+                      "bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-0 transition-all duration-200",
                     label: "text-sm text-muted-foreground mb-1.5 block",
-                    loader: "text-white",
+                    loader: "text-primary",
                     anchor:
-                      "text-sm text-muted-foreground hover:text-white transition-colors underline-offset-4 hover:underline",
+                      "text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline",
                   },
                 }}
                 providers={[]}

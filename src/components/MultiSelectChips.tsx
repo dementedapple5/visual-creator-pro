@@ -113,7 +113,7 @@ export function MultiSelectChips({
         <button
           type="button"
           onClick={() => toggle(aiValue)}
-          className={`w-full px-4 py-3.5 rounded-2xl border transition-all duration-200 ease-out flex items-start justify-between gap-3 ${
+          className={`w-[calc(100%-8px)] mx-1 px-4 py-3.5 rounded-[4px] border transition-all duration-200 ease-out flex items-start justify-between gap-3 ${
             isAiMode 
               ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]" 
               : "border-border/60 bg-card/40 hover:bg-card/60 hover:border-muted-foreground/50"
@@ -125,7 +125,7 @@ export function MultiSelectChips({
           </div>
           <div className="mt-0.5 flex-shrink-0">
             <div
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ease-out ${
+              className={`w-5 h-5 rounded-[2px] border-2 flex items-center justify-center transition-all duration-200 ease-out ${
                 isAiMode
                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-muted-foreground/40 bg-transparent"
@@ -138,7 +138,7 @@ export function MultiSelectChips({
       )}
 
       <div className={`${isAiMode ? "opacity-50 pointer-events-none" : ""} space-y-4 ${showAiDecide ? "mt-1" : ""}`}>
-        <div className="flex flex-wrap gap-x-2 gap-y-3">
+        <div className="flex flex-wrap gap-x-2 gap-y-3 px-1">
           {options.map((opt) => {
             const isSelected = selected.includes(opt.value);
             const disabled = !isSelected && typeof remaining === "number" && remaining === 0;
@@ -148,7 +148,7 @@ export function MultiSelectChips({
                 type="button"
                 disabled={disabled}
                 onClick={() => toggle(opt.value)}
-                className={`inline-flex items-center rounded-full border text-sm font-medium shadow-sm select-none outline-none transition-all duration-200 ease-out ${
+                className={`inline-flex items-center rounded-[4px] border text-sm font-medium shadow-sm select-none outline-none transition-all duration-200 ease-out ${
                   isSelected
                     ? "bg-primary/10 border-primary text-foreground shadow-[0_0_0_1px_hsl(var(--primary))] px-2 py-1.5"
                     : disabled
@@ -157,7 +157,7 @@ export function MultiSelectChips({
                 }`}
               >
                 <span
-                  className={`inline-flex items-center justify-center rounded-full border-2 overflow-hidden transition-all duration-200 ease-out ${
+                  className={`inline-flex items-center justify-center rounded-[2px] border-2 overflow-hidden transition-all duration-200 ease-out ${
                     isSelected
                       ? "w-5 h-5 me-2.5 bg-primary border-primary text-primary-foreground opacity-100"
                       : "w-0 h-5 mr-0 bg-transparent border-transparent opacity-0"
@@ -174,7 +174,7 @@ export function MultiSelectChips({
         {placeholder && <p className="text-xs text-muted-foreground">{placeholder}</p>}
 
         {allowCustom && (
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1 px-1">
             <Input
               placeholder={customPlaceholder}
               value={custom}
@@ -194,7 +194,7 @@ export function MultiSelectChips({
             {customSelected.map((v) => (
               <span
                 key={v}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/50 px-3.5 py-1.5 text-sm shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-[4px] border border-border/60 bg-secondary/50 px-3.5 py-1.5 text-sm shadow-sm"
               >
                 {optionMap.get(v)?.label ?? v}
                 <button type="button" onClick={() => remove(v)} className="hover:text-destructive">

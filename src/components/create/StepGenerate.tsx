@@ -16,13 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
 import { DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
 
@@ -121,6 +114,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
   const [remixDialogOpen, setRemixDialogOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [gridImageUrl, setGridImageUrl] = useState<string | null>(null);
+  const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -181,8 +175,9 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         .gte("created_at", countStartDate);
 
       const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
+      const requiredCredits = 4; // 3x3 grid uses 4 credits
 
-      if (usedGenerations >= monthlyLimit) {
+      if (usedGenerations + requiredCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
         setGenerating(false);
@@ -201,12 +196,17 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         {
           body: { 
             thumbnailData,
-            creditsUsed: 4 // 3x3 grid uses 4 credits
+            creditsUsed: requiredCredits
           },
         }
       );
 
       if (functionError) throw functionError;
+
+      // Store generationId to link back when user saves thumbnails
+      if (functionData?.generationId) {
+        setCurrentGenerationId(functionData.generationId);
+      }
 
       // Handle grid mode response (base64) vs single mode (URL)
       let gridImageSource: string;
@@ -272,8 +272,9 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
         .gte("created_at", countStartDate);
 
       const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
+      const remixCredits = 1; // Remix uses 1 credit
 
-      if (usedGenerations >= monthlyLimit) {
+      if (usedGenerations + remixCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
         toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
         setRemixing(false);
@@ -287,7 +288,7 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             thumbnailData: { ...data, aspectRatio, gridMode: false }, // Single image for remix
             remixImageUrl: previewImage,
             remixPrompt: remixPrompt,
-            creditsUsed: 1 // Remix uses 1 credit
+            creditsUsed: remixCredits
           },
         }
       );
@@ -369,22 +370,22 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
       const insertPromises = uploadedUrls.map((imageUrl) =>
         supabase.from("thumbnails").insert({
           user_id: user.id,
-          title: data.titleMode === 'ai' ? 'AI Generated' : data.title,
-          subtitle: data.subtitleMode === 'ai' ? undefined : data.subtitle,
-          avatar_id: data.avatarId,
-          avatar_position: data.avatarPositions?.join(',') || data.avatarPosition,
-          avatar_importance: data.avatarImportance,
-          product_id: data.productIds?.[0],
-          product_position: data.productPositions?.join(',') || data.productPosition,
-          product_importance: data.productImportance,
-          text_position: data.textPositions?.join(',') || data.textPosition,
-          text_importance: data.textImportance,
-          expression: data.expressions?.join(',') || data.expression,
+          title: data.titleMode === 'ai' ? 'AI Generated' : (data.title || ""),
+          subtitle: data.subtitleMode === 'ai' ? "" : (data.subtitle || ""),
+          avatar_id: data.avatarId || null,
+          avatar_position: data.avatarPositions?.join(',') || data.avatarPosition || "",
+          avatar_importance: data.avatarImportance || 3,
+          product_id: data.productIds?.[0] || null,
+          product_position: data.productPositions?.join(',') || data.productPosition || "",
+          product_importance: data.productImportance || 3,
+          text_position: data.textPositions?.join(',') || data.textPosition || "",
+          text_importance: data.textImportance || 3,
+          expression: data.expressions?.join(',') || data.expression || "",
           visual_style: data.visualStyles?.join(',') || data.visualStyle || "",
           text_style: data.textStyle || "",
           background_type: data.backgroundType || "",
-          background_value: data.backgroundValue,
-          aspect_ratio: aspectRatio,
+          background_value: data.backgroundValue || "",
+          aspect_ratio: aspectRatio || "16:9",
           image_url: imageUrl,
         })
       );
@@ -394,6 +395,15 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
 
       if (errors.length > 0) {
         throw errors[0].error;
+      }
+
+      // Update the generation record with the first saved thumbnail's image URL
+      // This ensures the thumbnail appears in the Generations history
+      if (currentGenerationId && uploadedUrls.length > 0) {
+        await supabase
+          .from("generations")
+          .update({ image_url: uploadedUrls[0] })
+          .eq("id", currentGenerationId);
       }
 
       toast.success(`${imagesToSave.length} thumbnail${imagesToSave.length > 1 ? 's' : ''} saved!`);
@@ -576,33 +586,15 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
 
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    disabled={!previewImage || downloading}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    {downloading ? "Downloading..." : "Download"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Select size</DropdownMenuLabel>
-                  <DropdownMenuItem
-                    onClick={() => handleDownload("youtube")}
-                    disabled={downloading}
-                  >
-                    {DOWNLOAD_SIZES.youtube.label}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDownload("full")}
-                    disabled={downloading}
-                  >
-                    {DOWNLOAD_SIZES.full.label}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleDownload("youtube")}
+                disabled={!previewImage || downloading}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {downloading ? "Downloading..." : "Download"}
+              </Button>
 
               <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
                 <DialogTrigger asChild>
@@ -672,17 +664,12 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
               const isPreview = previewImage === imageUrl;
 
               return (
-                <button
+                <div
                   key={index}
-                  onClick={() => {
-                    setPreviewImage(imageUrl);
-                    toggleImageSelection(imageUrl);
-                  }}
-                  className={`relative ${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]"} rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] ${isPreview
+                  onClick={() => setPreviewImage(imageUrl)}
+                  className={`relative ${aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]"} rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] cursor-pointer ${isPreview
                     ? "border-primary ring-2 ring-primary/20"
-                    : isSelected
-                      ? "border-green-500 ring-2 ring-green-500/20"
-                      : "border-border hover:border-primary/50"
+                    : "border-border hover:border-primary/50"
                     }`}
                 >
                   <img
@@ -690,15 +677,22 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
                     alt={`Thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
-                  {isSelected && (
-                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                  <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleImageSelection(imageUrl);
+                    }}
+                    className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
+                      ? "bg-primary border-primary text-white shadow-lg scale-110"
+                      : "bg-black/40 border-white/60 text-white hover:bg-black/60 hover:border-white"
+                      }`}
+                  >
+                    <Check className={`w-4 h-4 transition-all ${isSelected ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
+                  </button>
+                  <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded pointer-events-none">
                     #{index + 1}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -760,12 +754,12 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
             </Button>
             <Button
               onClick={handleSave}
-              disabled={(!previewImage && selectedImages.size === 0) || isLoading || remixing}
+              disabled={selectedImages.size === 0 || isLoading || remixing}
               className="flex-1"
             >
               {selectedImages.size > 0
                 ? `Save ${selectedImages.size} Selected`
-                : "Save & Finish"
+                : "Save"
               }
             </Button>
           </>
@@ -774,3 +768,4 @@ export const StepGenerate = ({ data, updateData, onPrev }: StepGenerateProps) =>
     </div>
   );
 };
+

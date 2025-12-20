@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, CalendarDays, Filter, Loader2, Sparkles } from "lucide-react";
+import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -237,7 +237,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/90">
-      <div className="w-full px-6 pb-8 pt-20 space-y-8">
+      <div className="w-full px-6 pb-8 pt-4 space-y-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-primary/80">Gallery</p>
@@ -273,7 +273,7 @@ const Dashboard = () => {
             <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="gap-2 bg-card/70">
-                  <Filter className="h-4 w-4" />
+                  <SlidersHorizontal className="h-4 w-4" />
                   Filters
                 </Button>
               </PopoverTrigger>
@@ -399,17 +399,17 @@ const Dashboard = () => {
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-lg"
+                className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-lg"
               >
                 <Skeleton className="aspect-video w-full" />
-                <div className="p-5 space-y-3">
+                <div className="p-2 space-y-3">
                   <div className="space-y-2">
                     <Skeleton className="h-6 w-3/4" />
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-2/3" />
                   </div>
                   <div className="pt-4 flex items-center justify-between">
-                    <Skeleton className="h-9 w-24 rounded-full" />
+                    <Skeleton className="h-9 w-24 rounded" />
                     <Skeleton className="h-5 w-16" />
                   </div>
                 </div>
@@ -441,10 +441,11 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {/* Placeholder cards for new generations in progress */}
-            {newGenerations.map((generation) => (
+            {newGenerations.map((generation, index) => (
               <div
                 key={generation.id}
-                className="relative overflow-hidden rounded-3xl border border-border/60 bg-card shadow-xl"
+                className="relative overflow-hidden rounded-lg border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-4 duration-500"
+                style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
               >
                 <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent">
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -460,7 +461,7 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-                <div className="relative space-y-4 p-5">
+                <div className="relative space-y-4 p-2">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="h-6 w-3/4 rounded bg-muted animate-pulse" />
@@ -469,19 +470,20 @@ const Dashboard = () => {
                     <div className="h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
                   </div>
                   <div className="pt-2">
-                    <div className="h-9 w-28 rounded-full bg-muted/40 animate-pulse" />
+                    <div className="h-9 w-28 rounded bg-muted/40 animate-pulse" />
                   </div>
                 </div>
               </div>
             ))}
 
-            {filteredThumbnails.map((thumbnail) => {
+            {filteredThumbnails.map((thumbnail, index) => {
               const isIterating = hasPendingIteration(thumbnail.id);
 
               return (
                 <div
                   key={thumbnail.id}
-                  className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-card shadow-lg"
+                  className="group relative flex flex-col overflow-hidden rounded-lg border border-border/60 bg-card shadow-lg animate-in fade-in slide-in-from-top-4 duration-500"
+                  style={{ animationDelay: `${(newGenerations.length + index) * 50}ms`, animationFillMode: 'both' }}
                 >
                   <div
                     className="relative aspect-video w-full overflow-hidden bg-muted/20 cursor-pointer"
@@ -512,10 +514,10 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-1 flex-col justify-between p-5 space-y-4">
-                    <div className="space-y-1.5 cursor-pointer" onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}>
+                  <div className="flex flex-1 flex-col justify-between p-2 space-y-4">
+                    <div className="space-y-0 cursor-pointer" onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}>
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="line-clamp-1 text-lg font-semibold leading-tight text-card-foreground">
+                        <h3 className="line-clamp-1 text-lg font-semibold leading-tight text-card-foreground pt-2.5">
                           {thumbnail.title || "Untitled Project"}
                         </h3>
                         {isIterating && (
@@ -538,7 +540,7 @@ const Dashboard = () => {
                         }}
                         variant="secondary"
                         size="sm"
-                        className="h-9 px-4 rounded-full bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                        className="h-9 px-4 rounded bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
                       >
                         View Details
                       </Button>
