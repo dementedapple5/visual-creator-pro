@@ -6,25 +6,25 @@ const steps = [
         title: "Start with your Identity",
         description: "Upload your face once and reuse it freely. Choose expressions that match your video's vibe—excited, serious, or surprised—without taking new photos every time.",
         icon: User,
-        image: "/examples/steps/Screenshot 2025-12-16 at 23.42.28.png"
+        image: "/examples/steps/stage_1.png"
     },
     {
         title: "Add your Elements",
         description: "Place your product, screenshots, or key visuals. Upload generic assets or branded files to fill the composition.",
         icon: Layout,
-        image: "/examples/steps/Screenshot 2025-12-16 at 23.42.58.png"
+        image: "/examples/steps/stage_2.png"
     },
     {
         title: "Hook with Text",
         description: "Add punchy titles and subtitles. Select from high-converting text styles and placements that ensure your thumbnail is readable and click-worthy.",
         icon: Palette,
-        image: "/examples/steps/Screenshot 2025-12-16 at 23.43.31.png"
+        image: "/examples/steps/stage_3.png"
     },
     {
         title: "Style & Background",
         description: "Set the scene with gradients, solid colors, or AI-generated backgrounds. Define the overall visual style, then hit generate to bring it all together.",
         icon: Sparkles,
-        image: "/examples/steps/Screenshot 2025-12-16 at 23.44.08.png"
+        image: "/examples/steps/stage_4.png"
     }
 ];
 

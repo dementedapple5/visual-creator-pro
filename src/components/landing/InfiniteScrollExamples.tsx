@@ -1,20 +1,14 @@
 import { useRef, useEffect } from "react";
 
 const examples = [
-    "5 HISTORIAS TERRORIFICAS-1280x720.png",
-    "DJI Osmo Action 6-1280x720.png",
-    "How to Cook the Perfect Lasagna!!-1280x720.png",
-    "Mi Primera Victory Royale!!-1280x720.png",
-    "This Helped me To Make My 1st Million-1280x720.png",
-    "thumbnail-1280x720 (2).png",
-    "thumbnail-1280x720 (3).png",
-    "5 HISTORIAS TERRORIFICAS-1280x720.png",
-    "DJI Osmo Action 6-1280x720.png",
-    "How to Cook the Perfect Lasagna!!-1280x720.png",
-    "Mi Primera Victory Royale!!-1280x720.png",
-    "This Helped me To Make My 1st Million-1280x720.png",
-    "thumbnail-1280x720 (2).png",
-    "thumbnail-1280x720 (3).png",
+    "ex_1.png",
+    "ex_2.png",
+    "ex_3.png",
+    "ex_4.png",
+    "ex_5.png",
+    "ex_6.png",
+    "ex_7.png",
+    "ex_8.png",
 ];
 
 export const InfiniteScrollExamples = () => {

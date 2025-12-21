@@ -87,92 +87,92 @@ const subscriptionPlans = [
 
 const rotatingWords = [
   "Thumbnails",
-  "Viral Covers",
-  "Channel Art",
-  "Video Intros",
-  "Hooks"
+  "CTR Hooks",
+  "YouTube 16:9",
+  "Variations",
+  "Viral Covers"
 ];
 
 const bentoFeatures = [
   {
-    title: "Guided thumbnail builder",
-    desc: "Move through avatar, elements, text, and background without losing context.",
-    icon: Sparkles,
-    badge: "Create flow",
+    title: "Your identity, automated",
+    desc: "Upload your face once and let AI integrate it into any thumbnail with the perfect expression.",
+    icon: Camera,
+    badge: "Personalization",
     span: "lg:col-span-3",
     steps: [
-      { title: "Avatar stage", detail: "Pick saved faces or upload, set expressions, place them." },
-      { title: "Elements board", detail: "Drop up to 3 elements or uploads and choose positions." },
-      { title: "Canvas controls", detail: "Live preview, remix, and download from the same screen." }
+      { title: "Face library", detail: "Save your best angles and expressions." },
+      { title: "Lighting match", detail: "AI adjusts your face to match the thumbnail background." },
+      { title: "No new shoots", detail: "Reuse your photos without having to pose again." }
     ],
-    footnote: "Aspect ratios ready: 16:9, 9:16, 1:1, 4:3."
+    footnote: "Compatible with any visual style."
   },
   {
-    title: "Avatar capture & reuse",
-    desc: "Upload images or grab frames from a video, then reuse them anywhere in Create.",
-    icon: Camera,
-    badge: "Face library",
+    title: "Design that gets clicks",
+    desc: "Specialized tools for visual hierarchy and contrast to stand out in the YouTube feed.",
+    icon: Sparkles,
+    badge: "Conversion",
     span: "lg:col-span-3",
     stats: [
-      { label: "Imports", value: "Images", sub: "PNG/JPG auto-compressed for upload" },
-      { label: "Capture", value: "Video frames", sub: "Pause and save the still you want" },
-      { label: "Limits", value: "1 free slot", sub: "Add more when subscribed" },
-      { label: "Control", value: "Delete anytime", sub: "Cleans up storage + record" }
+      { label: "Format", value: "Native 16:9", sub: "Optimal 1280x720 resolution" },
+      { label: "Contrast", value: "Smart-Edge", sub: "Highlight key elements" },
+      { label: "Readability", value: "Mobile-First", sub: "Legible titles on small screens" },
+      { label: "Presets", value: "9 options", sub: "Creator-proven layouts" }
     ],
-    footnote: "Works with avatar-based backgrounds, expressions, and positioning."
+    footnote: "Optimized to maximize CTR."
   },
   {
-    title: "Background recipes",
-    desc: "Save gradients, solids, uploads, avatar-sourced scenes, or prompt text and reapply.",
+    title: "Styles that hook",
+    desc: "Backgrounds, gradients, and text presets optimized to be read instantly.",
     icon: Palette,
-    badge: "Reusable",
+    badge: "Visuals",
     span: "lg:col-span-2",
     swatches: [
-      { label: "Gradient", colors: ["#FF6B9D", "#C239B3"] },
-      { label: "Solid", colors: ["#0EA5E9"] },
-      { label: "Upload / Avatar", colors: ["linear-gradient(135deg, #0f172a, #6366f1)"] }
+      { label: "Gaming Pro", colors: ["#FF0000", "#000000"] },
+      { label: "Clean IRL", colors: ["#FFFFFF", "#F3F4F6"] },
+      { label: "AI Scenery", colors: ["linear-gradient(135deg, #6366f1, #a855f7)"] }
     ],
-    chips: ["Gradient", "Solid color", "Image upload", "From avatar", "Custom prompt"],
-    footnote: "Apply from the Backgrounds library or inside the Create flow."
+    chips: ["AI Backgrounds", "Pro Filters", "Auto Contrast", "Smart Layers"],
+    footnote: "Ever-expanding style library."
   },
   {
-    title: "Title bank & placement",
-    desc: "Keep headline/subtitle pairs with text style and placement ready to drop in.",
+    title: "Text that cuts through noise",
+    desc: "Typefaces and layouts with shadows and strokes designed to pop on any background.",
     icon: Type,
-    badge: "Text presets",
+    badge: "Impact",
     span: "lg:col-span-2",
     sample: {
-      title: "Launch the new drop",
-      subtitle: "Swap fonts & positions without retyping",
-      tags: ["Bold & Large", "Top center", "Saved to reuse"]
+      title: "WATCH THIS NOW!",
+      subtitle: "The secret to higher CTR",
+      tags: ["Bold & Contrast", "Pro Shadows", "Ready to use"]
     }
   },
   {
-    title: "Elements board",
-    desc: "Attach up to 3 elements or uploads, then set per-element placement.",
+    title: "Smart Layouts",
+    desc: "Place key elements, screenshots, and products with professional composition guides.",
     icon: LayoutGrid,
-    badge: "3 slots",
+    badge: "Composition",
     span: "lg:col-span-2",
     stats: [
-      { label: "Positions", value: "9 options", sub: "Top/center/bottom presets" },
-      { label: "Sources", value: "Catalog + uploads", sub: "Mix element records and custom PNGs" }
+      { label: "Rules", value: "Thirds & Gold", sub: "Intelligent visual guides" },
+      { label: "Slots", value: "3 Objects", sub: "Balanced compositions" }
     ],
-    chips: ["Per-element placement", "Order indicators", "Works with elements or custom files"]
+    chips: ["Auto-align", "Layer order", "Smart Scaling"]
   },
   {
-    title: "Remix & exports",
-    desc: "Regenerate from any output with extra instructions, then download instantly.",
+    title: "Remix & Scale",
+    desc: "Don't settle for one. Generate variations and remix until you find the winner.",
     icon: Repeat2,
-    badge: "Outputs",
+    badge: "Speed",
     span: "lg:col-span-4",
     steps: [
-      { title: "Remix prompt", detail: "Adjust color, text, or layout from the active preview." },
-      { title: "Downloads", detail: "One-click PNG export from the canvas gallery." }
+      { title: "AI Remix", detail: "Change the style or background while keeping your face consistent." },
+      { title: "1-Click Export", detail: "Download your optimized 1280x720 thumbnail." }
     ],
     stats: [
-      { label: "Limits enforced", value: "Quota aware", sub: "Free: 1 credit/day • Starter: 50 credits/mo • Pro: 100 credits/mo" }
+      { label: "Productivity", value: "10x Faster", sub: "From idea to result in 2 minutes" }
     ],
-    footnote: "Each generation saves to your thumbnails list automatically."
+    footnote: "Generation history saved automatically."
   }
 ];
 
@@ -278,8 +278,27 @@ const Index = () => {
         </div>
       </nav>
 
-      <section className="relative pt-32 pb-24 px-6 min-h-[80vh] flex items-center">
-        <div className="container mx-auto max-w-5xl flex flex-col items-center text-center gap-10">
+      <section className="relative pt-32 pb-24 px-6 min-h-[80vh] flex items-center overflow-hidden">
+        {/* Floating Thumbnails Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 opacity-[0.15] dark:opacity-[0.1]">
+          <div className="absolute top-[15%] -left-[5%] w-[300px] h-[168px] rotate-[-12deg] blur-[1px] animate-float" style={{ animationDelay: '0s' }}>
+            <img src="/examples/ex_1.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+          </div>
+          <div className="absolute top-[45%] -right-[8%] w-[320px] h-[180px] rotate-[8deg] blur-[0.5px] animate-float" style={{ animationDelay: '1.5s' }}>
+            <img src="/examples/ex_2.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+          </div>
+          <div className="absolute bottom-[10%] left-[10%] w-[280px] h-[157px] rotate-[-5deg] blur-[2px] animate-float" style={{ animationDelay: '3s' }}>
+            <img src="/examples/ex_3.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+          </div>
+          <div className="absolute top-[10%] right-[15%] w-[260px] h-[146px] rotate-[15deg] blur-[3px] animate-float" style={{ animationDelay: '4.5s' }}>
+            <img src="/examples/ex_4.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+          </div>
+          <div className="absolute bottom-[20%] right-[20%] w-[340px] h-[191px] rotate-[-8deg] blur-[4px] opacity-40 animate-float" style={{ animationDelay: '2s' }}>
+            <img src="/examples/ex_5.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+          </div>
+        </div>
+
+        <div className="container mx-auto max-w-5xl flex flex-col items-center text-center gap-10 relative z-10">
           
 
           <div className="space-y-4 w-full">
@@ -289,21 +308,21 @@ const Index = () => {
                 data-animate
                 style={{ ["--delay" as any]: "0.05s" }}
               >
-                Create Viral YouTube
+                Create YouTube thumbnails
               </span>
               <span
                 className="hero-font-secondary text-gradient text-balance block w-full pb-2"
                 data-animate
                 style={{ ["--delay" as any]: "0.15s" }}
               >
-                thumbnails that get clicks
+                that skyrocket your clicks
               </span>
               <span
                 className="flex flex-wrap justify-center items-center gap-3 text-lg md:text-xl text-muted-foreground/90 hero-type w-full"
                 data-animate
                 style={{ ["--delay" as any]: "0.25s" }}
               >
-                Fast & Professional
+                Expert workflow for
                 <span className="typewriter text-foreground">{displayedWord}</span>
                 <span className="type-caret" aria-hidden="true" />
               </span>
@@ -341,10 +360,10 @@ const Index = () => {
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16 space-y-3">
             <h2 className="text-3xl md:text-5xl font-bold" data-animate>
-              What you can do in Vizion today
+              Power up your channel with Vizion
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              Build thumbnails with the pieces you already have—avatars, backgrounds, titles, elements—and keep every step in one place.
+              Everything you need to build viral thumbnails—avatars, backgrounds, titles, and elements—all in one place.
             </p>
           </div>
 
