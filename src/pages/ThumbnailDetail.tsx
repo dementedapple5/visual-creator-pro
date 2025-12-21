@@ -383,7 +383,7 @@ const ThumbnailDetail = () => {
             <Button
               size="sm"
               onClick={() => handleDownload("youtube")}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-4"
               disabled={downloading}
             >
               <Download className="w-4 h-4 mr-2" />
@@ -620,25 +620,25 @@ const ThumbnailDetail = () => {
             </h3>
             <div className="flex flex-wrap gap-1.5 mb-4">
               <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <Palette className="w-2.5 h-2.5 mr-1 text-purple-400" />
+                <Palette className="w-2.5 h-2.5 mr-2 text-purple-400" />
                 {thumbnail.visual_style}
               </Badge>
               <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <Type className="w-2.5 h-2.5 mr-1 text-blue-400" />
+                <Type className="w-2.5 h-2.5 mr-2 text-blue-400" />
                 {thumbnail.text_style}
               </Badge>
               <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <ImageIcon className="w-2.5 h-2.5 mr-1 text-pink-400" />
+                <ImageIcon className="w-2.5 h-2.5 mr-2 text-pink-400" />
                 {thumbnail.background_type}
               </Badge>
               {thumbnail.expression && (
                 <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                  <Smile className="w-2.5 h-2.5 mr-1 text-green-400" />
+                  <Smile className="w-2.5 h-2.5 mr-2 text-green-400" />
                   {thumbnail.expression}
                 </Badge>
               )}
               <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <Monitor className="w-2.5 h-2.5 mr-1 text-orange-400" />
+                <Monitor className="w-2.5 h-2.5 mr-2 text-orange-400" />
                 {thumbnail.aspect_ratio}
               </Badge>
             </div>

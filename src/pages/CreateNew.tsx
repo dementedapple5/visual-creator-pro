@@ -1525,7 +1525,7 @@ const CreateNew = () => {
                             {textElements.map((element, index) => (
                               <span
                                 key={index}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/50 px-3.5 py-1.5 text-sm shadow-sm"
+                                className="inline-flex items-center gap-1.5 rounded border border-border/60 bg-secondary/50 px-3.5 py-1.5 text-sm shadow-sm"
                               >
                                 {element}
                                 <button type="button" onClick={() => handleRemoveTextElement(element)} className="hover:text-destructive">

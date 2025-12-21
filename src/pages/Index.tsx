@@ -43,6 +43,7 @@ const subscriptionPlans = [
     desc: "For casual creators",
     features: [
       "50 credits/month",
+      "10 headshots/month",
       "Advanced customization",
       "Email support"
     ]
@@ -60,6 +61,7 @@ const subscriptionPlans = [
     desc: "For serious creators",
     features: [
       "100 credits/month",
+      "30 headshots/month",
       "Advanced customization",
       "Priority support"
     ]
@@ -76,6 +78,7 @@ const subscriptionPlans = [
     desc: "For teams and agencies",
     features: [
       "300 credits/month",
+      "100 headshots/month",
       "Advanced customization",
       "24/7 support"
     ]

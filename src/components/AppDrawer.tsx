@@ -55,6 +55,7 @@ const productionPlansData = [
     tier: "starter",
     features: [
       "50 credits/month",
+      "10 headshots/month",
       "Advanced customization",
       "Email support"
     ]
@@ -71,6 +72,7 @@ const productionPlansData = [
     popular: true,
     features: [
       "100 credits/month",
+      "30 headshots/month",
       "Advanced customization",
       "Priority support"
     ]
@@ -86,6 +88,7 @@ const productionPlansData = [
     tier: "enterprise",
     features: [
       "300 credits/month",
+      "100 headshots/month",
       "Advanced customization",
       "24/7 support"
     ]
@@ -105,6 +108,7 @@ const testPlansData = [
     tier: "starter",
     features: [
       "50 credits/month",
+      "10 headshots/month",
       "Advanced customization",
       "Email support"
     ]
@@ -121,6 +125,7 @@ const testPlansData = [
     popular: true,
     features: [
       "100 credits/month",
+      "30 headshots/month",
       "Advanced customization",
       "Priority support"
     ]
@@ -136,6 +141,7 @@ const testPlansData = [
     tier: "enterprise",
     features: [
       "300 credits/month",
+      "100 headshots/month",
       "Advanced customization",
       "24/7 support"
     ]
