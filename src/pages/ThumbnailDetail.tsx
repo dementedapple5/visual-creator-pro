@@ -3,7 +3,23 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, Trash2, Bot, Palette, Type, Image as ImageIcon, Smile, Monitor, CalendarDays, Plus, Send } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Download, 
+  Trash2, 
+  Bot, 
+  Palette, 
+  Type, 
+  Image as ImageIcon, 
+  Smile, 
+  Monitor, 
+  CalendarDays, 
+  Plus, 
+  Send,
+  Info,
+  MoreVertical,
+  ChevronRight
+} from "lucide-react";
 import { toast } from "sonner";
 import { DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, extractStoragePath } from "@/lib/imageUtils";
 import { getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
@@ -17,6 +33,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 interface Thumbnail {
   id: string;
@@ -67,6 +92,7 @@ const ThumbnailDetail = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<ThumbnailVersion | null>(null);
+  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -342,6 +368,123 @@ const ThumbnailDetail = () => {
     return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const ThumbnailInfo = () => (
+    <div className="space-y-6">
+      {selectedVersion && (
+        <div className="space-y-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Selected Version
+          </h3>
+          <div
+            className="rounded-[8px] overflow-hidden border border-border bg-muted"
+            style={{ aspectRatio: thumbnail?.aspect_ratio.replace(":", "/") }}
+          >
+            <img
+              src={selectedVersion.image_url}
+              alt="Selected version"
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground font-medium">Created</span>
+              <span className="text-foreground">
+                {new Date(selectedVersion.created_at).toLocaleDateString()}
+              </span>
+            </div>
+            {selectedVersion.prompt && (
+              <div className="pt-3 border-t border-border">
+                <span className="text-[10px] text-muted-foreground block mb-2 font-semibold uppercase tracking-wider">Prompt used</span>
+                <p className="text-xs text-foreground leading-relaxed bg-muted/50 p-3 rounded-lg border border-border/50">
+                  {selectedVersion.prompt}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="pt-6 border-t border-border">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Base Settings
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block mb-1.5 font-semibold">Title</span>
+            <p className="text-sm text-foreground leading-relaxed font-medium bg-muted/30 p-2 rounded border border-border/30">
+              {thumbnail?.title || "Untitled"}
+            </p>
+          </div>
+          <div className="flex items-center justify-between bg-muted/30 p-2 rounded border border-border/30">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Total Versions</span>
+            <span className="text-sm text-foreground font-bold">{versions.length}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-border">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Generation Config
+        </h3>
+        <div className="flex flex-wrap gap-2 mb-6">
+          <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground text-[10px] px-2.5 py-1 border-border rounded-md flex items-center gap-2">
+            <Palette className="w-3 h-3 text-purple-400" />
+            {thumbnail?.visual_style}
+          </Badge>
+          <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground text-[10px] px-2.5 py-1 border-border rounded-md flex items-center gap-2">
+            <Type className="w-3 h-3 text-blue-400" />
+            {thumbnail?.text_style}
+          </Badge>
+          <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground text-[10px] px-2.5 py-1 border-border rounded-md flex items-center gap-2">
+            <ImageIcon className="w-3 h-3 text-pink-400" />
+            {thumbnail?.background_type}
+          </Badge>
+          {thumbnail?.expression && (
+            <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground text-[10px] px-2.5 py-1 border-border rounded-md flex items-center gap-2">
+              <Smile className="w-3 h-3 text-green-400" />
+              {thumbnail.expression}
+            </Badge>
+          )}
+          <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground text-[10px] px-2.5 py-1 border-border rounded-md flex items-center gap-2">
+            <Monitor className="w-3 h-3 text-orange-400" />
+            {thumbnail?.aspect_ratio}
+          </Badge>
+        </div>
+
+        {(avatar || products.length > 0) && (
+          <div className="space-y-4 pt-4 border-t border-border/50">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block font-semibold">Assets Used</span>
+            <div className="flex flex-wrap items-center gap-3">
+              {avatar && (
+                <div className="group relative">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 shadow-sm transition-transform group-hover:scale-105">
+                    <img src={avatar.image_url} alt="Avatar" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 bg-primary text-[8px] text-white px-1 rounded-full border border-background">Avatar</span>
+                </div>
+              )}
+              {products.map((product) => (
+                product.images?.[0] && (
+                  <div
+                    key={product.id}
+                    className="group relative cursor-pointer"
+                    onClick={() => navigate(`/products/${product.id}`)}
+                  >
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-border/50 shadow-sm transition-all group-hover:border-primary/50 group-hover:scale-105">
+                      <img src={product.images[0].image_url} alt={product.title} className="w-full h-full object-cover" />
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 bg-secondary text-[8px] text-foreground px-1 rounded-full border border-border">Product</span>
+                  </div>
+                )
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -355,45 +498,63 @@ const ThumbnailDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden relative">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border shrink-0">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/dashboard")}
-              className="text-muted-foreground hover:text-foreground hover:bg-accent"
+              className="text-muted-foreground hover:text-foreground hover:bg-accent -ml-2 shrink-0"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
-            <div className="hidden sm:block">
-              <h1 className="text-sm font-medium text-foreground truncate max-w-[200px]">
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-sm font-semibold text-foreground truncate max-w-[120px] sm:max-w-[200px]">
                 {thumbnail.title || "Untitled"}
               </h1>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {versions.length} version{versions.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Button
               size="sm"
               onClick={() => handleDownload("youtube")}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-4"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-2.5 sm:px-4 h-8 sm:h-9"
               disabled={downloading}
             >
-              <Download className="w-4 h-4 mr-2" />
-              {downloading ? "..." : "Download"}
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+              <span className="text-xs sm:text-sm">{downloading ? "..." : "Download"}</span>
             </Button>
+            
+            <Sheet open={showDetailsSheet} onOpenChange={setShowDetailsSheet}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="lg:hidden text-muted-foreground h-8 w-8 border-border">
+                  <Info className="w-4 h-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[85vw] sm:w-[400px] overflow-y-auto bg-card border-l border-border px-6 py-8">
+                <SheetHeader className="text-left mb-6">
+                  <SheetTitle className="text-xl font-bold">Thumbnail Details</SheetTitle>
+                  <SheetDescription>Settings and selected version information</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4">
+                  <ThumbnailInfo />
+                </div>
+              </SheetContent>
+            </Sheet>
+
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => setShowDeleteDialog(true)}
-              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -401,88 +562,75 @@ const ThumbnailDetail = () => {
         </div>
       </header>
 
-      {/* Mobile Summary - Visible only on mobile */}
-      <div className="lg:hidden bg-card border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {avatar && (
-            <div className="w-7 h-7 rounded-full overflow-hidden border border-border">
-              <img src={avatar.image_url} alt="Avatar" className="w-full h-full object-cover" />
-            </div>
-          )}
-          <div className="flex gap-1.5">
-            <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-border text-muted-foreground">
-              {thumbnail.aspect_ratio}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-border text-muted-foreground">
-              {thumbnail.visual_style}
-            </Badge>
-          </div>
-        </div>
-        <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">
-          {versions.length} versions
-        </span>
-      </div>
-
       {/* Main Content - Chat Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 bg-background/50 relative">
           {/* Scrollable Chat */}
-          <div className="flex-1 overflow-y-auto px-4 py-6">
-            <div className="max-w-3xl mx-auto space-y-6">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 scroll-smooth">
+            <div className="max-w-3xl mx-auto space-y-8 sm:space-y-10">
               {/* Versions as Chat Messages */}
               {versions.map((version, index) => (
                 <div
                   key={version.id}
-                  className={`group animate-in fade-in slide-in-from-bottom-2 duration-300`}
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className={`group animate-in fade-in slide-in-from-bottom-4 duration-500`}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {/* Prompt/Label */}
                   {version.prompt && (
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-4 h-4 text-white" />
+                    <div className="flex items-start gap-3 sm:gap-4 mb-4">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-rose-500/20">
+                        <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground leading-relaxed">
-                          {version.prompt}
-                        </p>
-                        <span className="text-xs text-muted-foreground mt-1 block">
+                        <div className="bg-card border border-border/60 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                          <p className="text-sm text-foreground leading-relaxed">
+                            {version.prompt}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground mt-2 ml-1 flex items-center gap-1.5 uppercase tracking-tighter font-medium">
+                          <CalendarDays className="w-3 h-3" />
                           {formatTime(version.created_at)}
                         </span>
                       </div>
                     </div>
                   )}
 
-                  {/* Image */}
-                  <div
-                    className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectedVersion?.id === version.id
-                      ? "border-rose-500/50 shadow-lg shadow-rose-500/10"
-                      : "border-border hover:border-border/80"
-                      }`}
-                    onClick={() => setSelectedVersion(version)}
-                  >
+                  {/* Image Container */}
+                  <div className="pl-0 sm:pl-14">
                     <div
-                      className="bg-muted"
-                      style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
+                      className={`relative rounded-2xl overflow-hidden border-2 transition-all cursor-pointer shadow-sm ${selectedVersion?.id === version.id
+                        ? "border-rose-500 shadow-xl shadow-rose-500/10 scale-[1.01]"
+                        : "border-border/60 hover:border-border hover:shadow-md"
+                        }`}
+                      onClick={() => setSelectedVersion(version)}
                     >
-                      <img
-                        src={version.image_url}
-                        alt={`Version ${index + 1}`}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-
-                    {/* Selection indicator */}
-                    {selectedVersion?.id === version.id && (
-                      <div className="absolute top-2 right-2 px-2 py-1 bg-background rounded border border-border text-xs font-medium text-foreground">
-                        Selected
+                      <div
+                        className="bg-muted"
+                        style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
+                      >
+                        <img
+                          src={version.image_url}
+                          alt={`Version ${index + 1}`}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                        />
                       </div>
-                    )}
 
-                    {/* Version number */}
-                    <div className="absolute bottom-3 left-3 px-2 py-1 bg-background/60 backdrop-blur-sm rounded-lg text-xs text-foreground/70">
-                      v{index + 1}
+                      {/* Selection indicator */}
+                      {selectedVersion?.id === version.id && (
+                        <div className="absolute top-3 right-3 px-2.5 py-1 bg-rose-500 text-white rounded-full text-[10px] font-bold shadow-lg animate-in zoom-in duration-300 uppercase tracking-wider">
+                          Selected
+                        </div>
+                      )}
+
+                      {/* Version number */}
+                      <div className="absolute bottom-3 left-3 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold text-white border border-white/10 tracking-widest uppercase">
+                        v{index + 1}
+                      </div>
+
+                      {/* Quick action buttons on hover (mobile always visible or simple) */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
                     </div>
                   </div>
                 </div>
@@ -490,69 +638,82 @@ const ThumbnailDetail = () => {
 
               {/* Loading indicator for new generation */}
               {iterating && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 animate-pulse">
-                      <Bot className="w-4 h-4 text-white" />
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-start gap-3 sm:gap-4 mb-4">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 animate-pulse shadow-lg shadow-rose-500/20">
+                      <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-foreground">{prompt}</p>
+                      <div className="bg-card border border-border/60 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                        <p className="text-sm text-foreground italic opacity-70">{prompt}</p>
+                      </div>
                     </div>
                   </div>
-                  <div
-                    className="rounded-xl overflow-hidden border-2 border-border bg-muted flex items-center justify-center"
-                    style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
-                  >
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-10 h-10 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm text-muted-foreground">Generating...</span>
+                  <div className="pl-0 sm:pl-14">
+                    <div
+                      className="rounded-2xl overflow-hidden border-2 border-dashed border-border/60 bg-muted/30 flex items-center justify-center"
+                      style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
+                    >
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="relative">
+                          <div className="w-12 h-12 border-4 border-rose-500/20 rounded-full" />
+                          <div className="absolute inset-0 w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-sm font-semibold text-foreground">Generating Magic...</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Version {versions.length + 1}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div ref={chatEndRef} />
+              <div ref={chatEndRef} className="h-4" />
             </div>
           </div>
 
           {/* Input Area - Fixed at bottom */}
-          <div className="border-t border-border bg-background p-4">
+          <div className="border-t border-border bg-background/80 backdrop-blur-xl p-4 sm:pt-4 sm:px-6 sm:pb-20 sticky bottom-0 z-30">
             <div className="max-w-3xl mx-auto">
-              <div className="relative bg-muted/50 rounded-xl border border-border focus-within:border-primary/50 transition-colors flex items-center">
+              <div className="relative bg-card rounded-2xl border border-border focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/5 transition-all flex items-end p-2 shadow-lg">
                 <textarea
                   ref={inputRef}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Describe changes to generate a new version..."
+                  placeholder="Describe changes for a new version..."
                   rows={1}
                   disabled={iterating}
-                  className="flex-1 bg-transparent text-foreground placeholder-muted-foreground/50 px-4 py-3 pr-14 resize-none focus:outline-none text-sm leading-relaxed min-h-[44px] max-h-[120px]"
+                  className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/60 px-3 py-2.5 resize-none focus:outline-none text-[16px] sm:text-sm leading-relaxed min-h-[42px] max-h-[150px]"
                   style={{ height: 'auto' }}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;
                     target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                    target.style.height = Math.min(target.scrollHeight, 150) + 'px';
                   }}
                 />
 
-                {/* Action buttons */}
-                <div className="pr-2 flex items-center gap-1">
+                <div className="flex items-center gap-2 mb-1.5 mr-1.5 ml-2">
                   <Button
                     size="sm"
                     onClick={handleIterate}
                     disabled={!prompt.trim() || iterating}
-                    className={`rounded-full w-9 h-9 p-0 transition-all ${prompt.trim() && !iterating
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    className={`rounded-xl h-9 w-9 p-0 transition-all duration-300 font-semibold shadow-sm ${prompt.trim() && !iterating
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95"
                       : "bg-secondary text-muted-foreground"
                       }`}
                   >
-                    <Send className="w-4 h-4" />
+                    {iterating ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
 
-              <p className="text-center text-xs text-muted-foreground mt-2">
+              <p className="hidden sm:block text-center text-[10px] text-muted-foreground mt-3 font-medium uppercase tracking-widest opacity-60">
                 Press Enter to send, Shift+Enter for new line
               </p>
             </div>
@@ -560,111 +721,8 @@ const ThumbnailDetail = () => {
         </div>
 
         {/* Preview Panel - Desktop only */}
-        <div className="hidden lg:block w-80 border-l border-border bg-card p-4 overflow-y-auto">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-            Selected Version
-          </h3>
-
-          {selectedVersion && (
-            <div className="space-y-4">
-              <div
-                className="rounded-[8px] overflow-hidden border border-border"
-                style={{ aspectRatio: thumbnail.aspect_ratio.replace(":", "/") }}
-              >
-                <img
-                  src={selectedVersion.image_url}
-                  alt="Selected version"
-                  className="w-full h-full object-contain bg-muted"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Created</span>
-                  <span className="text-foreground">
-                    {new Date(selectedVersion.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                {selectedVersion.prompt && (
-                  <div className="pt-2 border-t border-border">
-                    <span className="text-xs text-muted-foreground block mb-1">Prompt</span>
-                    <p className="text-xs text-foreground leading-relaxed">
-                      {selectedVersion.prompt}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Title and Versions - First */}
-          <div className="mt-6 pt-4 border-t border-border">
-            <div className="space-y-3">
-              <div>
-                <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1.5">Title</span>
-                <p className="text-xs text-foreground leading-relaxed line-clamp-2">
-                  {thumbnail.title || "Untitled"}
-                </p>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">Versions</span>
-                <span className="text-xs text-foreground">{versions.length}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Generation Settings - Compact badges */}
-          <div className="mt-6 pt-4 border-t border-border">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              Generation Settings
-            </h3>
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <Palette className="w-2.5 h-2.5 mr-2 text-purple-400" />
-                {thumbnail.visual_style}
-              </Badge>
-              <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <Type className="w-2.5 h-2.5 mr-2 text-blue-400" />
-                {thumbnail.text_style}
-              </Badge>
-              <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <ImageIcon className="w-2.5 h-2.5 mr-2 text-pink-400" />
-                {thumbnail.background_type}
-              </Badge>
-              {thumbnail.expression && (
-                <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                  <Smile className="w-2.5 h-2.5 mr-2 text-green-400" />
-                  {thumbnail.expression}
-                </Badge>
-              )}
-              <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px] px-2 py-1 border-border rounded-[4px]">
-                <Monitor className="w-2.5 h-2.5 mr-2 text-orange-400" />
-                {thumbnail.aspect_ratio}
-              </Badge>
-            </div>
-
-            {/* Assets row */}
-            {(avatar || products.length > 0) && (
-              <div className="flex items-center gap-2">
-                {avatar && (
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-border">
-                    <img src={avatar.image_url} alt="Avatar" className="w-full h-full object-cover" />
-                  </div>
-                )}
-                {products.map((product) => (
-                  product.images?.[0] && (
-                    <div
-                      key={product.id}
-                      className="w-8 h-8 rounded-lg overflow-hidden border border-border cursor-pointer hover:border-border/30"
-                      onClick={() => navigate(`/products/${product.id}`)}
-                    >
-                      <img src={product.images[0].image_url} alt={product.title} className="w-full h-full object-cover" />
-                    </div>
-                  )
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="hidden lg:block w-96 border-l border-border bg-card/50 backdrop-blur-sm p-6 overflow-y-auto">
+          <ThumbnailInfo />
         </div>
       </div>
 
