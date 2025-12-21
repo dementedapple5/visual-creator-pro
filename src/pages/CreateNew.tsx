@@ -636,9 +636,9 @@ const CreateNew = () => {
       return (
         <div className="h-16 w-full rounded-md border border-border overflow-hidden bg-secondary">
           {url ? (
-            <img src={url} alt={background.name} className="h-full w-full object-cover" />
+            <img src={url} alt={background.name} className="  w-full object-cover" />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+            <div className="  w-full flex items-center justify-center text-xs text-muted-foreground">
               No image
             </div>
           )}
@@ -651,7 +651,7 @@ const CreateNew = () => {
       return (
         <div className="h-16 w-full rounded-md border border-border overflow-hidden bg-secondary flex items-center justify-center">
           {avatar ? (
-            <img src={avatar.image_url} alt="Avatar" className="h-full w-full object-cover" />
+            <img src={avatar.image_url} alt="Avatar" className="  w-full object-cover" />
           ) : (
             <div className="text-xs text-muted-foreground">Avatar not found</div>
           )}
@@ -1205,7 +1205,7 @@ const CreateNew = () => {
                       <img
                         src={previewImage}
                         alt="Selected thumbnail"
-                        className="w-full h-full object-contain"
+                        className="w-full   object-contain"
                       />
                       {generating && (
                         <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center overflow-hidden">
@@ -1329,7 +1329,7 @@ const CreateNew = () => {
                       <img
                         src={url}
                         alt={`Generated thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full   object-cover"
                       />
                       <button
                         onClick={(e) => {
@@ -1370,7 +1370,7 @@ const CreateNew = () => {
           </div>
 
           <div className="rounded-xl border border-border bg-card/70 shadow-sm">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col  ">
               <div className="p-4 border-b border-border/60 space-y-1">
                 <p className="text-sm font-semibold">Creation stages</p>
                 <p className="text-xs text-muted-foreground">
@@ -1409,7 +1409,7 @@ const CreateNew = () => {
                                 <img
                                   src={customAvatarUrl}
                                   alt="Custom Avatar"
-                                  className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                                  className="absolute inset-0 w-full object-cover rounded-lg"
                                 />
                                 <div className={`absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg ${!selectedAvatar ? 'ring-2 ring-primary' : ''}`}>
                                   <Upload className="w-6 h-6 text-white" />
@@ -1441,7 +1441,7 @@ const CreateNew = () => {
                               <img
                                 src={avatar.image_url}
                                 alt="Avatar"
-                                className="w-full h-full object-cover"
+                                className="w-full object-cover"
                               />
                             </button>
                           ))}
@@ -1579,7 +1579,7 @@ const CreateNew = () => {
                             <img
                               src={customEl.url}
                               alt="Custom Element"
-                              className="w-full h-full object-cover"
+                              className="w-full   object-cover"
                             />
                             {selectedProducts.includes(customEl.id) && (
                               <div className="absolute top-1 right-1 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">
@@ -1613,10 +1613,10 @@ const CreateNew = () => {
                               <img
                                 src={product.images[0].image_url}
                                 alt={product.title}
-                                className="w-full h-full object-cover"
+                                className="w-full   object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <div className="w-full   bg-muted flex items-center justify-center">
                                 <span className="text-xs">No image</span>
                               </div>
                             )}
@@ -1770,7 +1770,7 @@ const CreateNew = () => {
                                         <img
                                           src={fs.image_url}
                                           alt={fs.name}
-                                          className="w-full h-full object-cover"
+                                          className="w-full   object-cover"
                                         />
                                       </div>
                                       {fs.is_system && (
