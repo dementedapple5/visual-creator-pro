@@ -288,7 +288,7 @@ CRITICAL INSTRUCTIONS:
         } else if (thumbnailData.backgroundType === "avatar" || thumbnailData.backgroundType === "avatar-bg") {
           prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image in all thumbnails. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
         } else if (thumbnailData.backgroundType === "custom" || thumbnailData.backgroundType === "image") {
-          prompt += `\n\nBackground for all thumbnails: use the provided background image. Dont modify the image in any way, keep it as is. Only if the avatar is going to be placed on top of a subject in the background image, move the background a little to show all the subjects.`;
+          prompt += `\n\nBackground for all thumbnails: use the provided background image. Dont modify the image in any way, keep it as is. Keep everything intact even if there are people in the background image.`;
         }
       }
 
@@ -474,10 +474,11 @@ CRITICAL INSTRUCTIONS:
     // Add element images (skip in remix/iteration mode)
     if (!remixImageUrl && !iterationImageUrl) {
       if (thumbnailData.elements && thumbnailData.elements.length > 0) {
+        console.log(`Processing ${thumbnailData.elements.length} elements for the prompt`);
         // Process new elements structure
-        for (const element of thumbnailData.elements) {
+        for (const [index, element] of thumbnailData.elements.entries()) {
           if (element.url) {
-            // Custom element URL
+            console.log(`Adding custom element image from URL at index ${index}: ${element.url}`);
             const base64Image = await fetchImageAsBase64(element.url);
             contentParts.push({
               inlineData: {
@@ -486,14 +487,12 @@ CRITICAL INSTRUCTIONS:
               }
             });
           } else if (element.id) {
-            // Library element (product)
-            // We need to fetch the image URL for this product ID
-            // Assuming product_images table links to product_id
+            console.log(`Adding library element with ID: ${element.id}`);
             const { data: productImages } = await supabase
               .from("product_images")
               .select("image_url")
               .eq("product_id", element.id)
-              .limit(1); // Just take the first image for now
+              .limit(1);
 
             if (productImages && productImages.length > 0 && productImages[0].image_url) {
               const base64Image = await fetchImageAsBase64(productImages[0].image_url);

@@ -88,7 +88,7 @@ const Backgrounds = () => {
   const fetchAvatars = async () => {
     const { data, error } = await supabase
       .from("avatars")
-      .select("id, image_url")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
