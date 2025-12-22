@@ -253,7 +253,7 @@ const Backgrounds = () => {
       const end = second || meta.color2 || "#C239B3";
       return (
         <div
-          className="h-28 w-full rounded-lg border border-border"
+          className="aspect-video w-full rounded-lg border border-border"
           style={{ background: `linear-gradient(135deg, ${start}, ${end})` }}
         />
       );
@@ -263,7 +263,7 @@ const Backgrounds = () => {
       const color = background.value || meta.color || "#FF6B9D";
       return (
         <div
-          className="h-28 w-full rounded-lg border border-border"
+          className="aspect-video w-full rounded-lg border border-border"
           style={{ background: color }}
         />
       );
@@ -272,7 +272,7 @@ const Backgrounds = () => {
     if (background.type === "image") {
       const url = background.value || meta.imageUrl;
       return (
-        <div className="h-28 w-full rounded-lg border border-border overflow-hidden bg-secondary">
+        <div className="aspect-video w-full rounded-lg border border-border overflow-hidden bg-secondary">
           {url ? (
             <img
               src={url}
@@ -291,7 +291,7 @@ const Backgrounds = () => {
     if (background.type === "avatar") {
       const avatar = avatars.find((a) => a.id === (background.value || meta.avatarId));
       return (
-        <div className="h-28 w-full rounded-lg border border-border overflow-hidden bg-secondary flex items-center justify-center">
+        <div className="aspect-video w-full rounded-lg border border-border overflow-hidden bg-secondary flex items-center justify-center">
           {avatar ? (
             <img
               src={avatar.image_url}
@@ -306,7 +306,7 @@ const Backgrounds = () => {
     }
 
     return (
-      <div className="h-28 w-full rounded-lg border border-border bg-secondary/50 p-3 text-sm text-muted-foreground overflow-hidden">
+      <div className="aspect-video w-full rounded-lg border border-border bg-secondary/50 p-3 text-sm text-muted-foreground overflow-hidden">
         {background.value || (meta.prompt as string) || "Custom prompt background"}
       </div>
     );

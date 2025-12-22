@@ -274,12 +274,21 @@ CRITICAL INSTRUCTIONS:
       if (thumbnailData.backgroundType && thumbnailData.backgroundValue) {
         if (thumbnailData.backgroundType === "preset") {
           prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue} setting. `;
-        } else if (thumbnailData.backgroundType === "color") {
+        } else if (thumbnailData.backgroundType === "color" || thumbnailData.backgroundType === "solid") {
           prompt += `\n\nBackground for all thumbnails: solid ${thumbnailData.backgroundValue} color. `;
+        } else if (thumbnailData.backgroundType === "gradient") {
+          const colors = thumbnailData.backgroundValue.split(",");
+          if (colors.length >= 2) {
+            prompt += `\n\nBackground for all thumbnails: a gradient from ${colors[0]} to ${colors[1]}. `;
+          } else {
+            prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue} gradient. `;
+          }
         } else if (thumbnailData.backgroundType === "prompt" || thumbnailData.backgroundType === "custom-prompt") {
           prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue}. `;
         } else if (thumbnailData.backgroundType === "avatar" || thumbnailData.backgroundType === "avatar-bg") {
           prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image in all thumbnails. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
+        } else if (thumbnailData.backgroundType === "custom" || thumbnailData.backgroundType === "image") {
+          prompt += `\n\nBackground for all thumbnails: use the provided background image. Dont modify the image in any way, keep it as is. Only if the avatar is going to be placed on top of a subject in the background image, move the background a little to show all the subjects.`;
         }
       }
 
@@ -370,7 +379,7 @@ CRITICAL INSTRUCTIONS:
 
         // Avatar positioning
         if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.avatarPosition) {
-          prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. `;
+          prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. this is unnegotiable, the avatar must be in the position specified.`;
         }
 
         // Elements positioning
@@ -521,7 +530,10 @@ CRITICAL INSTRUCTIONS:
     }
 
     // Add custom background (skip in remix/iteration mode)
-    if (!remixImageUrl && !iterationImageUrl && thumbnailData?.backgroundType === "custom" && thumbnailData?.backgroundValue) {
+    if (!remixImageUrl && !iterationImageUrl && 
+        (thumbnailData?.backgroundType === "custom" || thumbnailData?.backgroundType === "image") && 
+        thumbnailData?.backgroundValue) {
+      console.log(`Adding custom background image: ${thumbnailData.backgroundValue}`);
       const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
       contentParts.push({
         inlineData: {

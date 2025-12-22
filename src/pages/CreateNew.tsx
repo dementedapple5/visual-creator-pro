@@ -1369,8 +1369,8 @@ const CreateNew = () => {
             )}
           </div>
 
-          <div className="rounded-xl border border-border bg-card/70 shadow-sm">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col  ">
+          <div className="rounded-xl border border-border bg-card/70 shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-140px)] flex flex-col overflow-hidden">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
               <div className="p-4 border-b border-border/60 space-y-1">
                 <p className="text-sm font-semibold">Creation stages</p>
                 <p className="text-xs text-muted-foreground">
@@ -1387,7 +1387,7 @@ const CreateNew = () => {
                 </TabsList>
               </div>
 
-              <ScrollArea className="flex-1 px-4 pb-4 pt-3 max-h-[75vh]">
+              <ScrollArea className="flex-1 px-4 pb-4 pt-3">
                 <div className="pr-2 space-y-4">
                   <TabsContent value="avatar" className="space-y-6 mt-0">
                     <CollapsibleSection
@@ -1426,7 +1426,7 @@ const CreateNew = () => {
                             )}
                           </div>
 
-                          {avatars.slice(0, 5).map((avatar) => (
+                          {avatars.map((avatar) => (
                             <button
                               key={avatar.id}
                               onClick={() => {
@@ -1589,7 +1589,7 @@ const CreateNew = () => {
                           </button>
                         ))}
 
-                        {products.slice(0, 6).map((product) => (
+                        {products.map((product) => (
                           <button
                             key={product.id}
                             onClick={() => {
@@ -1825,7 +1825,7 @@ const CreateNew = () => {
                       >
                         <div className="space-y-3">
                           <div className="space-y-2">
-                            {savedTitles.slice(0, 4).map((saved) => (
+                            {savedTitles.map((saved) => (
                               <div
                                 key={saved.id}
                                 className="rounded-lg border border-border p-3 bg-secondary/40 space-y-1"
@@ -1853,16 +1853,14 @@ const CreateNew = () => {
                               </div>
                             ))}
                           </div>
-                          {savedTitles.length > 4 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full"
-                              onClick={() => navigate("/titles")}
-                            >
-                              View all titles
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => navigate("/titles")}
+                          >
+                            View all titles
+                          </Button>
                         </div>
                       </CollapsibleSection>
                     )}
@@ -2050,23 +2048,6 @@ const CreateNew = () => {
                       </div>
                     </CollapsibleSection>
 
-                    <CollapsibleSection
-                      title="Aspect Ratio"
-                      subtitle="Select the dimensions for your thumbnail output"
-                    >
-                      <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="16:9">16:9 (YouTube)</SelectItem>
-                          <SelectItem value="9:16">9:16 (Stories)</SelectItem>
-                          <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                          <SelectItem value="4:3">4:3 (Classic)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </CollapsibleSection>
-
                     {savedBackgrounds.length > 0 && (
                       <CollapsibleSection
                         title="Saved Backgrounds"
@@ -2074,7 +2055,7 @@ const CreateNew = () => {
                       >
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {savedBackgrounds.slice(0, 4).map((bg) => (
+                            {savedBackgrounds.map((bg) => (
                               <div
                                 key={bg.id}
                                 className="rounded-lg border border-border p-2 space-y-2 bg-secondary/40"
@@ -2097,16 +2078,14 @@ const CreateNew = () => {
                               </div>
                             ))}
                           </div>
-                          {savedBackgrounds.length > 4 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full"
-                              onClick={() => navigate("/backgrounds")}
-                            >
-                              View all backgrounds
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => navigate("/backgrounds")}
+                          >
+                            View all backgrounds
+                          </Button>
                         </div>
                       </CollapsibleSection>
                     )}
