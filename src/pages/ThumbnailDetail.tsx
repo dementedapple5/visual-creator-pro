@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,7 @@ interface ThumbnailVersion {
 interface Avatar {
   id: string;
   image_url: string;
+  name?: string | null;
 }
 
 interface Product {
@@ -79,13 +80,24 @@ interface Product {
   images: { image_url: string }[];
 }
 
+type MentionType = "avatar" | "product";
+
+interface MentionItem {
+  type: MentionType;
+  id: string;
+  label: string;
+  imageUrl: string;
+}
+
 const ThumbnailDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [thumbnail, setThumbnail] = useState<Thumbnail | null>(null);
   const [versions, setVersions] = useState<ThumbnailVersion[]>([]);
   const [avatar, setAvatar] = useState<Avatar | null>(null);
+  const [availableAvatars, setAvailableAvatars] = useState<Avatar[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [iterating, setIterating] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -93,12 +105,18 @@ const ThumbnailDetail = () => {
   const [downloading, setDownloading] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<ThumbnailVersion | null>(null);
   const [showDetailsSheet, setShowDetailsSheet] = useState(false);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionStart, setMentionStart] = useState<number | null>(null);
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
+  const [mentionTab, setMentionTab] = useState<"all" | "avatar" | "product">("all");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     checkUser();
     fetchThumbnail();
+    fetchAvailableAssets();
   }, [id]);
 
   useEffect(() => {
@@ -174,7 +192,7 @@ const ThumbnailDetail = () => {
       if (data.avatar_id) {
         const { data: avatarData, error: avatarError } = await supabase
           .from("avatars")
-          .select("id, image_url")
+          .select("id, image_url, name")
           .eq("id", data.avatar_id)
           .single();
 
@@ -220,6 +238,165 @@ const ThumbnailDetail = () => {
     }
   };
 
+  const fetchAvailableAssets = async () => {
+    try {
+      // Fetch avatars
+      const { data: avatarsData, error: avatarsError } = await supabase
+        .from("avatars")
+        .select("id,image_url,name")
+        .order("created_at", { ascending: false });
+      
+      if (avatarsError) throw avatarsError;
+      setAvailableAvatars((avatarsData || []) as Avatar[]);
+
+      // Fetch all products for the user
+      const { data: productsData, error: productsError } = await supabase
+        .from("products")
+        .select(`
+          id,
+          title,
+          brand,
+          images:product_images(image_url)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (productsError) throw productsError;
+      setAvailableProducts((productsData || []) as Product[]);
+    } catch (error) {
+      console.warn("Could not fetch available assets for mentions", error);
+    }
+  };
+
+  const mentionItems: MentionItem[] = useMemo(() => {
+    const items: MentionItem[] = [];
+
+    // Avatars
+    for (const a of availableAvatars) {
+      if (!a?.id || !a?.image_url) continue;
+      items.push({
+        type: "avatar",
+        id: a.id,
+        label: a.name || `Avatar ${a.id.slice(0, 6)}`,
+        imageUrl: a.image_url,
+      });
+    }
+
+    // Products/Elements from the entire library
+    for (const p of availableProducts) {
+      const img = p.images?.[0]?.image_url;
+      if (!p?.id || !img) continue;
+      items.push({
+        type: "product",
+        id: p.id,
+        label: `${p.brand ? `${p.brand} ` : ""}${p.title}`.trim() || `Product ${p.id.slice(0, 6)}`,
+        imageUrl: img,
+      });
+    }
+
+    return items;
+  }, [availableAvatars, availableProducts]);
+
+  const filteredMentionItems = useMemo(() => {
+    const raw = mentionQuery.trim().toLowerCase();
+    const isAvatar = raw.startsWith("avatar:") || raw.startsWith("avatars:");
+    const isProduct = raw.startsWith("product:") || raw.startsWith("products:") || raw.startsWith("element:") || raw.startsWith("elements:");
+    const q = (isAvatar || isProduct) ? raw.split(":").slice(1).join(":").trim() : raw;
+
+    let base = mentionItems;
+    if (mentionTab !== "all") {
+      base = mentionItems.filter((it) => it.type === mentionTab);
+    } else if (isAvatar) {
+      base = mentionItems.filter((it) => it.type === "avatar");
+    } else if (isProduct) {
+      base = mentionItems.filter((it) => it.type === "product");
+    }
+
+    if (!q) return base.slice(0, 8);
+    return base
+      .filter((it) => it.label.toLowerCase().includes(q) || it.id.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [mentionItems, mentionQuery, mentionTab]);
+
+  const parseContextImagesFromPrompt = (text: string): MentionItem[] => {
+    const found: MentionItem[] = [];
+    
+    for (const item of mentionItems) {
+      const safeLabel = item.label.replace(/\s+/g, "_");
+      // Escape special regex chars just in case
+      const escapedLabel = safeLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`@${escapedLabel}(\\s|$)`, "i");
+      
+      if (regex.test(text)) {
+        found.push(item);
+      }
+    }
+    
+    return found;
+  };
+
+  const contextPreviewItems = useMemo(() => {
+    return parseContextImagesFromPrompt(prompt);
+  }, [prompt, mentionItems]);
+
+  const openMentionIfNeeded = (nextText: string, caret: number) => {
+    const beforeCaret = nextText.slice(0, caret);
+    const at = beforeCaret.lastIndexOf("@");
+    if (at < 0) {
+      setMentionOpen(false);
+      setMentionStart(null);
+      setMentionQuery("");
+      return;
+    }
+
+    const charBefore = at === 0 ? " " : beforeCaret[at - 1];
+    if (charBefore && !/\s/.test(charBefore)) {
+      setMentionOpen(false);
+      setMentionStart(null);
+      setMentionQuery("");
+      return;
+    }
+
+    const query = beforeCaret.slice(at + 1);
+    if (/\s/.test(query)) {
+      setMentionOpen(false);
+      setMentionStart(null);
+      setMentionQuery("");
+      return;
+    }
+
+    setMentionOpen(true);
+    setMentionStart(at);
+    setMentionQuery(query);
+    setMentionActiveIndex(0);
+  };
+
+  const insertMention = (item: MentionItem) => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    const caret = el.selectionStart ?? prompt.length;
+    const start = mentionStart ?? caret;
+    // Use a readable token: @Name (replacing spaces with underscores for easier parsing)
+    const safeLabel = item.label.replace(/\s+/g, "_");
+    const token = `@${safeLabel}`;
+
+    const next = prompt.slice(0, start) + token + " " + prompt.slice(caret);
+    setPrompt(next);
+
+    setMentionOpen(false);
+    setMentionStart(null);
+    setMentionQuery("");
+    setMentionTab("all");
+
+    requestAnimationFrame(() => {
+      const pos = start + token.length + 1;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 150) + "px";
+    });
+  };
+
   const handleIterate = async () => {
     if (!prompt.trim() || !thumbnail) return;
 
@@ -252,6 +429,7 @@ const ThumbnailDetail = () => {
 
       // Get the currently selected version's image URL to use as reference
       const currentVersionImageUrl = selectedVersion?.image_url || thumbnail.image_url;
+      const contextItems = parseContextImagesFromPrompt(prompt);
 
       // Generate a new version based on the current image and the prompt
       const { data: result, error } = await supabase.functions.invoke("generate-thumbnail", {
@@ -259,6 +437,8 @@ const ThumbnailDetail = () => {
           thumbnailId: id,
           iterationImageUrl: currentVersionImageUrl,
           iterationPrompt: prompt,
+          contextImageUrls: contextItems.map((it) => it.imageUrl),
+          contextImageLabels: contextItems.map((it) => `${it.type}:${it.label}`),
           thumbnailData: {
             aspectRatio: thumbnail.aspect_ratio,
           },
@@ -358,6 +538,32 @@ const ThumbnailDetail = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentionOpen) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionActiveIndex((i) => Math.min(i + 1, Math.max(filteredMentionItems.length - 1, 0)));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionActiveIndex((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMentionOpen(false);
+        setMentionStart(null);
+        setMentionQuery("");
+        return;
+      }
+      if (e.key === "Enter") {
+        if (filteredMentionItems[mentionActiveIndex]) {
+          e.preventDefault();
+          insertMention(filteredMentionItems[mentionActiveIndex]);
+          return;
+        }
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleIterate();
@@ -459,9 +665,11 @@ const ThumbnailDetail = () => {
               {avatar && (
                 <div className="group relative">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 shadow-sm transition-transform group-hover:scale-105">
-                    <img src={avatar.image_url} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={avatar.image_url} alt={avatar.name || "Avatar"} className="w-full h-full object-cover" />
                   </div>
-                  <span className="absolute -bottom-1 -right-1 bg-primary text-[8px] text-white px-1 rounded-full border border-background">Avatar</span>
+                  <span className="absolute -bottom-1 -right-1 bg-primary text-[8px] text-white px-1 rounded-full border border-background">
+                    {avatar.name || "Avatar"}
+                  </span>
                 </div>
               )}
               {products.map((product) => (
@@ -676,11 +884,108 @@ const ThumbnailDetail = () => {
           {/* Input Area - Fixed at bottom */}
           <div className="border-t border-border bg-background/80 backdrop-blur-xl p-4 sm:pt-4 sm:px-6 sm:pb-20 sticky bottom-0 z-30">
             <div className="max-w-3xl mx-auto">
-              <div className="relative bg-card rounded-2xl border border-border focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/5 transition-all flex items-end p-2 shadow-lg">
+              {contextPreviewItems.length > 0 && (
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mr-1">
+                    Context
+                  </span>
+                  {contextPreviewItems.map((it) => (
+                    <div
+                      key={`${it.type}:${it.id}`}
+                      className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1 shadow-sm"
+                      title={`@${it.label.replace(/\s+/g, "_")}`}
+                    >
+                      <div className="w-5 h-5 rounded-full overflow-hidden border border-border bg-muted">
+                        <img src={it.imageUrl} alt={it.label} className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-[11px] text-foreground max-w-[220px] truncate">{it.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="relative bg-card rounded-2xl border border-border focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/5 transition-all flex items-center p-2 shadow-lg">
+                {mentionOpen && (
+                  <div className="absolute left-3 bottom-[54px] w-[min(520px,calc(100%-24px))] rounded-xl border border-border bg-popover shadow-xl overflow-hidden z-50">
+                    <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-muted-foreground border-b border-border flex items-center justify-between bg-muted/30">
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setMentionTab("all");
+                            setMentionActiveIndex(0);
+                          }}
+                          className={`hover:text-foreground transition-colors ${mentionTab === "all" ? "text-primary font-bold" : ""}`}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setMentionTab("avatar");
+                            setMentionActiveIndex(0);
+                          }}
+                          className={`hover:text-foreground transition-colors ${mentionTab === "avatar" ? "text-primary font-bold" : ""}`}
+                        >
+                          Avatars
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setMentionTab("product");
+                            setMentionActiveIndex(0);
+                          }}
+                          className={`hover:text-foreground transition-colors ${mentionTab === "product" ? "text-primary font-bold" : ""}`}
+                        >
+                          Elements
+                        </button>
+                      </div>
+                      <span className="font-semibold opacity-50">{mentionQuery ? `@${mentionQuery}` : "@"}</span>
+                    </div>
+                    <div className="max-h-64 overflow-auto">
+                      {filteredMentionItems.length === 0 ? (
+                        <div className="px-4 py-8 text-center text-xs text-muted-foreground italic">
+                          No {mentionTab === "all" ? "items" : mentionTab === "avatar" ? "avatars" : "elements"} found
+                        </div>
+                      ) : (
+                        filteredMentionItems.map((it, idx) => (
+                          <button
+                            key={`${it.type}:${it.id}`}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              insertMention(it);
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent transition-colors ${
+                              idx === mentionActiveIndex ? "bg-accent" : ""
+                            }`}
+                          >
+                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-border bg-muted shrink-0">
+                              <img src={it.imageUrl} alt={it.label} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm text-foreground font-medium truncate">{it.label}</div>
+                              <div className="text-[11px] text-muted-foreground truncate">
+                                @{it.label.replace(/\s+/g, "_")}
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <textarea
                   ref={inputRef}
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setPrompt(next);
+                    openMentionIfNeeded(next, e.target.selectionStart ?? next.length);
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="Describe changes for a new version..."
                   rows={1}
@@ -692,9 +997,21 @@ const ThumbnailDetail = () => {
                     target.style.height = 'auto';
                     target.style.height = Math.min(target.scrollHeight, 150) + 'px';
                   }}
+                  onClick={(e) => {
+                    const el = e.target as HTMLTextAreaElement;
+                    openMentionIfNeeded(el.value, el.selectionStart ?? el.value.length);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setMentionOpen(false);
+                      setMentionStart(null);
+                      setMentionQuery("");
+                      setMentionTab("all");
+                    }, 100);
+                  }}
                 />
 
-                <div className="flex items-center gap-2 mb-1.5 mr-1.5 ml-2">
+                <div className="flex items-center gap-2 mr-1.5 ml-2">
                   <Button
                     size="sm"
                     onClick={handleIterate}

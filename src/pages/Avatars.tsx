@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Upload, Trash2, Video, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { compressAndConvertToJpg, extractStoragePath } from "@/lib/imageUtils";
 import {
   AlertDialog,
@@ -25,6 +27,7 @@ import {
 interface Avatar {
   id: string;
   image_url: string;
+  name: string | null;
   created_at: string;
 }
 
@@ -37,6 +40,8 @@ const Avatars = () => {
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<any | null>(null);
   const [pendingAvatar, setPendingAvatar] = useState<{ id: string; url: string } | null>(null);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [avatarName, setAvatarName] = useState("");
   const [showHeadshotDialog, setShowHeadshotDialog] = useState(false);
   const [headshotUsage, setHeadshotUsage] = useState(0);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
@@ -150,9 +155,10 @@ const Avatars = () => {
       toast.success("Avatar uploaded successfully");
       fetchAvatars();
       
-      // Setup headshot prompt
+      // Setup naming dialog
       setPendingAvatar({ id: insertedAvatar?.id || "", url: insertedAvatar?.image_url || publicUrl });
-      setShowHeadshotDialog(true);
+      setAvatarName("");
+      setShowNameDialog(true);
     } catch (error) {
       console.error("Error uploading avatar:", error);
       toast.error("Failed to upload avatar");
@@ -228,15 +234,40 @@ const Avatars = () => {
         setVideoPreview(null);
         fetchAvatars();
 
-        // Setup headshot prompt
+        // Setup naming dialog
         setPendingAvatar({ id: insertedAvatar?.id || "", url: insertedAvatar?.image_url || publicUrl });
-        setShowHeadshotDialog(true);
+        setAvatarName("");
+        setShowNameDialog(true);
       }, "image/jpeg");
     } catch (error) {
       console.error("Error capturing frame:", error);
       toast.error("Failed to capture frame");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!pendingAvatar || !avatarName.trim()) {
+      toast.error("Please enter a name");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("avatars")
+        .update({ name: avatarName.trim() })
+        .eq("id", pendingAvatar.id);
+
+      if (error) throw error;
+
+      toast.success("Avatar named successfully");
+      fetchAvatars();
+      setShowNameDialog(false);
+      setShowHeadshotDialog(true);
+    } catch (error) {
+      console.error("Error naming avatar:", error);
+      toast.error("Failed to name avatar");
     }
   };
 
@@ -430,10 +461,17 @@ const Avatars = () => {
                     >
                       <img
                         src={avatar.image_url}
-                        alt="Avatar"
+                        alt={avatar.name || "Avatar"}
                         className="w-full h-full object-cover"
                         crossOrigin="anonymous"
                       />
+                      {avatar.name && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-b-lg">
+                          <p className="text-[10px] text-white font-medium truncate">
+                            {avatar.name}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="destructive"
@@ -465,6 +503,36 @@ const Avatars = () => {
               className="w-full h-full object-contain rounded-lg"
               crossOrigin="anonymous"
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Name your Avatar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="avatar-name">Avatar Name</Label>
+              <Input
+                id="avatar-name"
+                placeholder="e.g. Daniel, Professional Me, etc."
+                value={avatarName}
+                onChange={(e) => setAvatarName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveName();
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                This name will be used to mention this avatar in prompts using "@".
+              </p>
+            </div>
+            <Button onClick={handleSaveName} className="w-full">
+              Save Name
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

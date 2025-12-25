@@ -64,7 +64,7 @@ serve(async (req) => {
 
     supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { thumbnailData, remixImageUrl, remixPrompt, thumbnailId, iterationImageUrl, iterationPrompt, creditsUsed } = await req.json() as {
+    const { thumbnailData, remixImageUrl, remixPrompt, thumbnailId, iterationImageUrl, iterationPrompt, creditsUsed, contextImageUrls, contextImageLabels } = await req.json() as {
       thumbnailData: ThumbnailData;
       remixImageUrl?: string;
       remixPrompt?: string;
@@ -72,6 +72,8 @@ serve(async (req) => {
       iterationImageUrl?: string; // The current version's image URL to iterate on
       iterationPrompt?: string; // What changes to apply to the iteration
       creditsUsed?: number;
+      contextImageUrls?: string[];
+      contextImageLabels?: string[];
     };
 
     const authHeader = req.headers.get("Authorization");
@@ -103,7 +105,7 @@ serve(async (req) => {
         status: "processing",
         mode: generationMode,
         credits_used: creditsUsed || 1,
-        request: { thumbnailData, remixPrompt, remixImageUrl, iterationImageUrl, iterationPrompt },
+        request: { thumbnailData, remixPrompt, remixImageUrl, iterationImageUrl, iterationPrompt, contextImageUrls, contextImageLabels },
         prompt: iterationPrompt || null,
         remix_prompt: remixPrompt || null,
         aspect_ratio: thumbnailData?.aspectRatio || null,
@@ -147,7 +149,8 @@ CRITICAL INSTRUCTIONS:
 - Maintain the overall composition, style, colors, and layout of the original thumbnail
 - PRESERVE all elements that are not explicitly mentioned to be changed
 - Keep the same aspect ratio (${aspectRatio})
-- Do NOT change anything that wasn't specifically requested`;
+- Do NOT change anything that wasn't specifically requested
+- If additional context images are provided, use them ONLY as reference to preserve fidelity of mentioned assets (e.g., avatar/product) without changing the base composition`;
     }
     // Check if this is a remix request
     else if (remixImageUrl && remixPrompt) {
@@ -438,6 +441,28 @@ CRITICAL INSTRUCTIONS:
           data: base64Image
         }
       });
+    }
+
+    // Add extra context images (works for create + remix + iterate)
+    if (contextImageUrls && Array.isArray(contextImageUrls) && contextImageUrls.length > 0) {
+      console.log(`Adding ${contextImageUrls.length} context image(s)`);
+      for (let i = 0; i < contextImageUrls.length; i++) {
+        const url = contextImageUrls[i];
+        if (!url) continue;
+        const label = contextImageLabels?.[i] || `context-${i + 1}`;
+        try {
+          contentParts.push({ text: `Additional context image (${label}):` });
+          const base64Image = await fetchImageAsBase64(url);
+          contentParts.push({
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: base64Image
+            }
+          });
+        } catch (e) {
+          console.warn("Failed to add context image:", url, e);
+        }
+      }
     }
 
     // Add avatar image (skip in remix/iteration mode - they work from existing complete image)
