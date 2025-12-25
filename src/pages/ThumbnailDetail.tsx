@@ -236,7 +236,7 @@ const ThumbnailDetail = () => {
         .from("generations")
         .select("credits_used")
         .eq("user_id", user.id)
-        .eq("status", "completed")
+        .in("status", ["completed", "processing"])
         .gte("created_at", countStartDate);
 
       const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;

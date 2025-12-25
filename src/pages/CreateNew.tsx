@@ -682,7 +682,7 @@ const CreateNew = () => {
         .from("generations")
         .select("*")
         .eq("user_id", user.id)
-        .eq("status", "completed")
+        .in("status", ["completed", "processing"])
         .gte("created_at", countStartDate);
 
       const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
@@ -952,7 +952,7 @@ const CreateNew = () => {
         .from("generations")
         .select("credits_used")
         .eq("user_id", user.id)
-        .eq("status", "completed")
+        .in("status", ["completed", "processing"])
         .gte("created_at", countStartDate);
 
       const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
@@ -1206,6 +1206,7 @@ const CreateNew = () => {
                         src={previewImage}
                         alt="Selected thumbnail"
                         className="w-full   object-contain"
+                        crossOrigin="anonymous"
                       />
                       {generating && (
                         <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center overflow-hidden">
@@ -1330,6 +1331,7 @@ const CreateNew = () => {
                         src={url}
                         alt={`Generated thumbnail ${index + 1}`}
                         className="w-full   object-cover"
+                        crossOrigin="anonymous"
                       />
                       <button
                         onClick={(e) => {

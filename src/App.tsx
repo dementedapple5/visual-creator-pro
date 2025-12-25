@@ -19,6 +19,7 @@ import ThumbnailDetail from "./pages/ThumbnailDetail";
 import Backgrounds from "./pages/Backgrounds";
 import Titles from "./pages/Titles";
 import FontStyles from "./pages/FontStyles";
+import QuickCreate from "./pages/QuickCreate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -92,6 +93,14 @@ const App = () => (
               element={
                 <AppLayout>
                   <CreateNew />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/quick-create"
+              element={
+                <AppLayout>
+                  <QuickCreate />
                 </AppLayout>
               }
             />

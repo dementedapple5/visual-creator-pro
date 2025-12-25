@@ -1,4 +1,4 @@
-import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, Type, History, PenTool, Lock } from "lucide-react";
+import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, Type, History, PenTool, Lock, Zap } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import { calculateRemainingGenerations, getGenerationLimitLabel, getGenerationWi
 
 const mainMenuItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
+  { icon: Zap, label: "Quick Create", path: "/quick-create" },
   { icon: Sparkles, label: "Create", path: "/create" },
   { icon: History, label: "Generations", path: "/generations" },
 ];
@@ -234,7 +235,7 @@ export const AppDrawer = () => {
       .from("generations")
       .select("credits_used")
       .eq("user_id", user.id)
-      .eq("status", "completed")
+      .in("status", ["completed", "processing"])
       .gte("created_at", countStartDate);
 
     const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;

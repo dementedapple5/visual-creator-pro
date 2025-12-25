@@ -224,6 +224,7 @@ const Products = () => {
                     src={product.images[0]?.image_url || "/placeholder.svg"}
                     alt={product.title}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    crossOrigin="anonymous"
                   />
                 </div>
                 <div className="p-4">
@@ -296,6 +297,7 @@ const Products = () => {
                       src={url}
                       alt={`Element ${index + 1}`}
                       className="w-full aspect-square object-cover rounded-lg"
+                      crossOrigin="anonymous"
                     />
                     <button
                       onClick={() => handleRemoveImage(index)}

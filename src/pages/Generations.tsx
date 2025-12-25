@@ -320,7 +320,7 @@ const Generations = () => {
                     <div key={item.id} className="relative pl-4 pb-6 last:pb-0">
                       <span className="absolute left-[-9px] top-2 h-2.5 w-2.5 rounded-full bg-primary" />
                       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0 md:max-w-[640px]">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-semibold">
                               {item.title || "Untitled generation"}
@@ -368,11 +368,12 @@ const Generations = () => {
                           )}
                         </div>
                         {item.image_url && (
-                          <div className="mt-2 md:mt-0">
+                          <div className="mt-2 md:mt-0 flex-shrink-0">
                             <img
                               src={item.image_url}
                               alt={item.title || "Generated thumbnail"}
                               className="h-24 w-40 rounded-lg border border-border object-cover"
+                              crossOrigin="anonymous"
                             />
                           </div>
                         )}

@@ -432,6 +432,7 @@ const Avatars = () => {
                         src={avatar.image_url}
                         alt="Avatar"
                         className="w-full h-full object-cover"
+                        crossOrigin="anonymous"
                       />
                     </div>
                     <Button
@@ -462,6 +463,7 @@ const Avatars = () => {
               src={selectedAvatarUrl || ""}
               alt="Avatar Preview"
               className="w-full h-full object-contain rounded-lg"
+              crossOrigin="anonymous"
             />
           </div>
         </DialogContent>

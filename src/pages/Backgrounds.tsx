@@ -278,6 +278,7 @@ const Backgrounds = () => {
               src={url}
               alt={background.name}
               className="h-full w-full object-cover"
+              crossOrigin="anonymous"
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
@@ -297,6 +298,7 @@ const Backgrounds = () => {
               src={avatar.image_url}
               alt="Avatar"
               className="h-full w-full object-cover"
+              crossOrigin="anonymous"
             />
           ) : (
             <div className="text-xs text-muted-foreground">Avatar not found</div>
@@ -456,6 +458,7 @@ const Backgrounds = () => {
                             src={imageUrl}
                             alt="Background preview"
                             className="w-full h-32 object-cover rounded-lg"
+                            crossOrigin="anonymous"
                           />
                           <p className="text-sm text-muted-foreground">Click to replace</p>
                         </div>

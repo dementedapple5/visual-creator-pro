@@ -52,31 +52,15 @@ serve(async (req) => {
   let generationId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
   let userId: string | null = null;
-  const runId = "pre-fix";
 
   try {
-    // #region agent log (H1/H2)
-    fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:serve:entry',message:'generate-headshot entry',data:{method:req.method,hasAuth:!!req.headers.get("Authorization"),contentType:req.headers.get("content-type"),hasSupabaseUrl:!!Deno.env.get("SUPABASE_URL"),hasServiceRoleKey:!!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),hasGeminiKey:!!Deno.env.get("GEMINI_API_KEY")},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion agent log (H1/H2)
-    // #region agent log (LH1)
-    try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:serve:entry',message:'generate-headshot entry (console)',data:{method:req.method,hasAuth:!!req.headers.get("Authorization"),contentType:req.headers.get("content-type")},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH1'})); } catch (_) {}
-    // #endregion agent log (LH1)
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!;
 
     supabase = createClient(supabaseUrl, supabaseKey);
 
-    const body = await req.json().catch((e) => {
-      // #region agent log (H1)
-      fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:req.json',message:'req.json failed',data:{errorMessage:e instanceof Error ? e.message : String(e)},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion agent log (H1)
-      // #region agent log (LH1)
-      try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:req.json',message:'req.json failed (console)',data:{errorMessage:e instanceof Error ? e.message : String(e)},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH1'})); } catch (_) {}
-      // #endregion agent log (LH1)
-      throw e;
-    });
+    const body = await req.json();
 
     const { imageUrl, avatarId } = body as { imageUrl: string; avatarId?: string };
     if (!imageUrl) {
@@ -99,12 +83,6 @@ serve(async (req) => {
     }
 
     userId = user.id;
-    // #region agent log (H2)
-    fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:auth.getUser',message:'auth.getUser ok',data:{hasUser:!!user,userIdLen:userId?.length ?? 0},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion agent log (H2)
-    // #region agent log (LH2)
-    try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:auth.getUser',message:'auth.getUser ok (console)',data:{userIdLen:userId?.length ?? 0},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH2'})); } catch (_) {}
-    // #endregion agent log (LH2)
 
     // 2. Check subscription tier and quota
     // We invoke the existing check-subscription function to get consistent plan info
@@ -113,23 +91,11 @@ serve(async (req) => {
     });
 
     if (subError || !subscription) {
-      // #region agent log (H3)
-      fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:check-subscription',message:'check-subscription failed',data:{hasSubscription:!!subscription,subErrorMsg:subError?.message ?? null},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H3'})}).catch(()=>{});
-      // #endregion agent log (H3)
-      // #region agent log (LH3)
-      try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:check-subscription',message:'check-subscription failed (console)',data:{hasSubscription:!!subscription,subErrorMsg:subError?.message ?? null},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH3'})); } catch (_) {}
-      // #endregion agent log (LH3)
       throw new Error("Could not verify subscription status");
     }
 
     const planTier = subscription.plan_tier || "free";
     const isSuperAdmin = !!subscription.is_super_admin;
-    // #region agent log (H3)
-    fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:subscription',message:'subscription loaded',data:{planTier,isSuperAdmin,billingStart:subscription.billing_period_start ?? null},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion agent log (H3)
-    // #region agent log (LH3)
-    try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:subscription',message:'subscription loaded (console)',data:{planTier,isSuperAdmin},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH3'})); } catch (_) {}
-    // #endregion agent log (LH3)
     
     if (planTier === "free" && !isSuperAdmin) {
       return new Response(
@@ -187,40 +153,15 @@ serve(async (req) => {
     
     // Helper function to fetch and convert image to base64
     const fetchImageAsBase64 = async (url: string): Promise<string> => {
-      // #region agent log (H4)
-      fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:fetchImageAsBase64:beforeFetch',message:'fetching source image',data:{urlHost:(() => { try { return new URL(url).host } catch { return "invalid_url" } })()},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion agent log (H4)
-      // #region agent log (LH4)
-      try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:fetchImageAsBase64:beforeFetch',message:'fetching source image (console)',data:{urlHost:(() => { try { return new URL(url).host } catch { return "invalid_url" } })()},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH4'})); } catch (_) {}
-      // #endregion agent log (LH4)
-
       const response = await fetch(url);
-      // #region agent log (H4)
-      fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:fetchImageAsBase64:afterFetch',message:'fetched source image',data:{ok:response.ok,status:response.status,contentType:response.headers.get("content-type")},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion agent log (H4)
-      // #region agent log (LH4)
-      try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:fetchImageAsBase64:afterFetch',message:'fetched source image (console)',data:{ok:response.ok,status:response.status,contentType:response.headers.get("content-type")},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH4'})); } catch (_) {}
-      // #endregion agent log (LH4)
 
       const arrayBuffer = await response.arrayBuffer();
-      // #region agent log (H4/H5)
-      fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:fetchImageAsBase64:arrayBuffer',message:'source image bytes read',data:{byteLength:arrayBuffer.byteLength},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H5'})}).catch(()=>{});
-      // #endregion agent log (H4/H5)
-      // #region agent log (LH5)
-      try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:fetchImageAsBase64:arrayBuffer',message:'source image bytes read (console)',data:{byteLength:arrayBuffer.byteLength},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH5'})); } catch (_) {}
-      // #endregion agent log (LH5)
       const arr = new Uint8Array(arrayBuffer);
       const base64 = btoa(arr.reduce((data, byte) => data + String.fromCharCode(byte), ''));
       return base64;
     };
 
     const base64Image = await fetchImageAsBase64(imageUrl);
-    // #region agent log (H5)
-    fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:base64Image',message:'base64 encoded',data:{base64Len:base64Image?.length ?? 0},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H5'})}).catch(()=>{});
-    // #endregion agent log (H5)
-    // #region agent log (LH5)
-    try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:base64Image',message:'base64 encoded (console)',data:{base64Len:base64Image?.length ?? 0},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH5'})); } catch (_) {}
-    // #endregion agent log (LH5)
 
     const geminiResponse = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
@@ -255,13 +196,6 @@ serve(async (req) => {
       }
     );
 
-    // #region agent log (H6)
-    fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:gemini:response',message:'gemini responded',data:{ok:geminiResponse.ok,status:geminiResponse.status},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H6'})}).catch(()=>{});
-    // #endregion agent log (H6)
-    // #region agent log (LH6)
-    try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:gemini:response',message:'gemini responded (console)',data:{ok:geminiResponse.ok,status:geminiResponse.status},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH6'})); } catch (_) {}
-    // #endregion agent log (LH6)
-
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
       throw new Error(`Gemini API error: ${geminiResponse.status} ${errorText}`);
@@ -286,12 +220,6 @@ serve(async (req) => {
     // 6. Save to storage
     const fileName = `${userId}/headshot_${Date.now()}.jpg`;
     const binaryData = Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0));
-    // #region agent log (H7)
-    fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:storage:beforeUpload',message:'uploading to storage',data:{bucket:"avatars",fileNameSuffix:fileName.split("/").slice(-1)[0],bytes:binaryData.byteLength},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H7'})}).catch(()=>{});
-    // #endregion agent log (H7)
-    // #region agent log (LH7)
-    try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:storage:beforeUpload',message:'uploading to storage (console)',data:{bucket:"avatars",bytes:binaryData.byteLength},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH7'})); } catch (_) {}
-    // #endregion agent log (LH7)
 
     const { error: uploadError } = await supabase.storage
       .from("avatars") // Store in avatars bucket
@@ -300,12 +228,6 @@ serve(async (req) => {
       });
 
     if (uploadError) {
-      // #region agent log (H7)
-      fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:storage:uploadError',message:'storage upload failed',data:{errorMessage:uploadError.message},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion agent log (H7)
-      // #region agent log (LH7)
-      try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:storage:uploadError',message:'storage upload failed (console)',data:{errorMessage:uploadError.message},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH7'})); } catch (_) {}
-      // #endregion agent log (LH7)
       throw uploadError;
     }
 
@@ -362,12 +284,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error in generate-headshot function:", error);
-    // #region agent log (H0)
-    fetch('http://127.0.0.1:7244/ingest/2872faa0-d840-4698-a191-04da621796b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:catch',message:'generate-headshot caught error',data:{errorMessage:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'H0'})}).catch(()=>{});
-    // #endregion agent log (H0)
-    // #region agent log (LH0)
-    try { console.log(JSON.stringify({location:'supabase/functions/generate-headshot/index.ts:catch',message:'generate-headshot caught error (console)',data:{errorMessage:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'LH0'})); } catch (_) {}
-    // #endregion agent log (LH0)
     
     if (generationId && supabase) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
