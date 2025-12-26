@@ -1,21 +1,24 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface VideoInputProps {
-  onSubmit: (input: { type: "url" | "file"; value: string | File }) => void;
+  onSubmit: (input: { type: "url" | "file"; value: string | File; isViral: boolean }) => void;
   isLoading?: boolean;
 }
 
 export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [isViral, setIsViral] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     if (file) {
-      onSubmit({ type: "file", value: file });
+      onSubmit({ type: "file", value: file, isViral });
     }
   };
 
@@ -125,6 +128,29 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Viral Style Switch */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Zap className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <Label htmlFor="viral-mode" className="text-sm font-medium cursor-pointer">Viral Style</Label>
+            <p className="text-xs text-muted-foreground">High-impact, click-driven YouTube design</p>
+          </div>
+        </div>
+        <Switch
+          id="viral-mode"
+          checked={isViral}
+          onCheckedChange={setIsViral}
+          disabled={isLoading}
+        />
+      </motion.div>
 
       {/* Submit Button */}
       <motion.button

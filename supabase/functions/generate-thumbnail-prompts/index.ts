@@ -18,6 +18,7 @@ type ThumbnailPrompt = {
   background?: string;
   faceExpression?: string;
   textPosition?: string;
+  viralStyleGuidelines?: string;
   elements?: Array<{
     type?: string; // icon | prop | badge | sticker | shape | product | ui
     description?: string;
@@ -127,6 +128,7 @@ function buildValidatedThumbnails(raw: any): ThumbnailPrompt[] {
     const background = normalizeWhitespace(t.background) || undefined;
     const faceExpression = normalizeWhitespace(t.faceExpression) || undefined;
     const textPosition = normalizeWhitespace(t.textPosition) || undefined;
+    const viralStyleGuidelines = normalizeWhitespace(t.viralStyleGuidelines) || undefined;
     const elements = Array.isArray(t.elements) ? t.elements : undefined;
 
     return {
@@ -139,6 +141,7 @@ function buildValidatedThumbnails(raw: any): ThumbnailPrompt[] {
       background,
       faceExpression,
       textPosition,
+      viralStyleGuidelines,
       elements,
       description,
       // Backward compatibility
@@ -153,7 +156,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcription, videoTitle, frames } = await req.json();
+    const { transcription, videoTitle, frames, isViral } = await req.json();
     
     if (!transcription) {
       throw new Error('No transcription provided');
@@ -167,12 +170,65 @@ serve(async (req) => {
     console.log('Generating thumbnail prompts with Gemini 2.0 Flash...');
 
     const referenceFrames = pickReferenceFrames(frames, 5);
-    console.log(`Reference frames received: ${Array.isArray(frames) ? frames.length : 0}, usable: ${referenceFrames.length}`);
+    console.log(`Reference frames received: ${Array.isArray(frames) ? frames.length : 0}, usable: ${referenceFrames.length}, isViral: ${isViral}`);
+
+    const viralStyleGuidelines = `Create a high-impact YouTube thumbnail in a modern viral creator style.
+Use bold, condensed, all-caps sans-serif typography inspired by Anton / Bebas Neue / Impact-style fonts, with thick strokes, tight letter spacing, and strong vertical presence.
+
+Typography must feature:
+- Large headline words (1–4 words max)
+- High contrast colors (yellow, white, orange, red)
+- Subtle 3D depth or bevel
+- Soft drop shadow + outer glow for separation
+- Occasional outlined text (white or black stroke)
+
+Layout:
+- Subject placed slightly off-center
+- Text on opposite side of the face
+- Clear visual hierarchy (main keyword dominates)
+- No clutter, strong negative space
+
+Subject:
+- Single person with exaggerated facial expression (shock, excitement, fear, confidence)
+- Hands near face or expressive gesture (clenched fists, thumbs up, shocked pose)
+- Clean cutout with strong rim light
+
+Lighting & Color:
+- Cinematic contrast, high saturation
+- Warm key light + cool rim light
+- Background vignette
+- Neon accents and glow particles
+
+Background:
+- Dark gradient or blurred abstract scene
+- Floating icons relevant to topic
+- Subtle bokeh and light flares
+
+Effects:
+- Strong subject glow (orange, blue, or yellow)
+- Professional Photoshop-style compositing
+- Sharpened face, smooth skin, high clarity
+
+Overall feel:
+- Click-driven
+- High energy
+- Educational-but-viral YouTube creator aesthetic
+- Looks like a top 1% CTR thumbnail
+
+Aspect ratio 16:9, ultra sharp, optimized for mobile viewing.`;
 
     // Build the prompt
     const systemPrompt = `You are an expert YouTube thumbnail strategist + designer.
 
 Goal: Generate 4 PROFESSIONAL YouTube thumbnail concepts for a 2x2 grid (4 distinct variations), tightly aligned with the video's real topic.
+
+${isViral ? `STYLE GOAL (MANDATORY):
+Every thumbnail concept you generate MUST follow these viral style guidelines:
+${viralStyleGuidelines}
+
+CRITICAL IMPLEMENTATION NOTE:
+- You MUST incorporate these requirements into the JSON fields (visualStyle, textStyle, background, faceExpression, textPosition, elements, etc.)
+- You MUST also include the full guidelines text in a field called "viralStyleGuidelines" for each thumbnail object.` : ''}
 
 CRITICAL: Output MUST be valid JSON ONLY (no markdown, no backticks, no extra text).
 
@@ -203,6 +259,7 @@ Return JSON with exactly this structure (array length must be 4, positions fixed
       "background": "...",
       "faceExpression": "...",
       "textPosition": "...",
+      "viralStyleGuidelines": "...",
       "elements": [{ "type": "...", "description": "...", "position": "..." }],
       "description": "..."
     },
@@ -238,6 +295,7 @@ Task:
     ];
 
     // Add reference frames as inline images
+    contentParts.push({ text: "Video Content Reference Frames:" });
     for (const img of referenceFrames) {
       contentParts.push({
         inlineData: {

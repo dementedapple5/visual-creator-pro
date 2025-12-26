@@ -83,7 +83,7 @@ const QuickCreate = () => {
     }
   };
 
-  const handleSubmit = async (input: { type: "url" | "file"; value: string | File }) => {
+  const handleSubmit = async (input: { type: "url" | "file"; value: string | File; isViral: boolean }) => {
     // Check credits before starting
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

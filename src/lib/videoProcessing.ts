@@ -64,7 +64,7 @@ async function getFFmpeg(): Promise<FFmpeg> {
 }
 
 // Extract frames from video file at evenly distributed timestamps
-async function extractFramesFromVideo(file: File, numFrames: number = 6): Promise<string[]> {
+async function extractFramesFromVideo(file: File, numFrames: number = 6): Promise<{ frames: string[]; duration: number }> {
   return new Promise((resolve) => {
     const video = document.createElement('video');
     const canvas = document.createElement('canvas');
@@ -79,7 +79,7 @@ async function extractFramesFromVideo(file: File, numFrames: number = 6): Promis
     const timeout = setTimeout(() => {
       console.warn('Frame extraction timed out');
       URL.revokeObjectURL(video.src);
-      resolve(frames);
+      resolve({ frames, duration: 0 });
     }, 30000);
     
     video.onloadedmetadata = () => {
@@ -128,7 +128,7 @@ async function extractFramesFromVideo(file: File, numFrames: number = 6): Promis
           clearTimeout(timeout);
           URL.revokeObjectURL(video.src);
           console.log(`Extracted ${frames.length} frames successfully`);
-          resolve(frames);
+          resolve({ frames, duration });
           return;
         }
         
@@ -152,7 +152,7 @@ async function extractFramesFromVideo(file: File, numFrames: number = 6): Promis
     video.onerror = (e) => {
       console.error('Video loading error:', e);
       clearTimeout(timeout);
-      resolve(frames);
+      resolve({ frames, duration: 0 });
     };
     
     video.src = URL.createObjectURL(file);
@@ -164,12 +164,14 @@ export async function extractAudioFromVideo(
   opts?: {
     onProgress?: (ratio: number) => void;
     timeoutMs?: number;
+    duration?: number;
   }
 ): Promise<{ base64: string; mimeType: string }> {
   console.log("Starting FFmpeg audio extraction...", {
     name: file.name,
     type: file.type,
     size: file.size,
+    duration: opts?.duration,
   });
 
   const ff = await getFFmpeg();
@@ -177,6 +179,7 @@ export async function extractAudioFromVideo(
   // Hook progress to surface "stuck" situations.
   const onProgress = opts?.onProgress;
   const timeoutMs = opts?.timeoutMs ?? 2 * 60 * 1000;
+  const duration = opts?.duration ?? 0;
 
   const progressHandler = (p: { progress?: number; time?: number }) => {
     const ratio = Math.max(0, Math.min(1, p.progress ?? 0));
@@ -201,23 +204,45 @@ export async function extractAudioFromVideo(
     await ff.writeFile(inputName, await fetchFile(file));
     console.log("Input file written to FFmpeg", { inputName });
 
-    const execPromise = ff.exec([
-      "-i",
-      inputName,
-      "-vn",
-      // Prefer the first audio stream and keep it small for faster processing.
-      "-map",
-      "0:a:0?",
-      "-ac",
-      "1",
-      "-ar",
-      "16000",
-      "-b:a",
-      "64k",
-      "-f",
-      "mp3",
-      outputName,
-    ]);
+    // If duration > 15 minutes (900s), take first 7.5 min and last 7.5 min
+    let ffmpegArgs: string[];
+    if (duration > 900) {
+      console.log(`Video is long (${duration.toFixed(1)}s), trimming first 7.5m and last 7.5m`);
+      const trimDuration = 450; // 7.5 minutes in seconds
+      const startTimePart2 = duration - trimDuration;
+      
+      ffmpegArgs = [
+        "-i", inputName,
+        "-filter_complex", 
+        `[0:a:0]atrim=0:${trimDuration},asetpts=PTS-STARTPTS[a1];[0:a:0]atrim=start=${startTimePart2}:end=${duration},asetpts=PTS-STARTPTS[a2];[a1][a2]concat=n=2:v=0:a=1[out]`,
+        "-map", "[out]",
+        "-ac", "1",
+        "-ar", "16000",
+        "-b:a", "64k",
+        "-f", "mp3",
+        outputName
+      ];
+    } else {
+      ffmpegArgs = [
+        "-i",
+        inputName,
+        "-vn",
+        // Prefer the first audio stream and keep it small for faster processing.
+        "-map",
+        "0:a:0?",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-b:a",
+        "64k",
+        "-f",
+        "mp3",
+        outputName,
+      ];
+    }
+
+    const execPromise = ff.exec(ffmpegArgs);
 
     const timeoutPromise = new Promise<never>((_, reject) => {
       const t = setTimeout(() => {
@@ -357,12 +382,13 @@ export async function generateThumbnails(
   transcription: string,
   frames?: string[],
   videoTitle?: string,
-  onUpdate?: (thumbnails: string[]) => void
+  onUpdate?: (thumbnails: string[]) => void,
+  isViral?: boolean
 ): Promise<{ thumbnails: string[]; prompt: string }> {
   // Step 1: Generate thumbnail prompts with Gemini
   console.log('Step 1: Generating thumbnail prompts...');
   const { data: promptsData, error: promptsError } = await supabase.functions.invoke('generate-thumbnail-prompts', {
-    body: { transcription, frames, videoTitle }
+    body: { transcription, frames, videoTitle, isViral }
   });
 
   if (promptsError) throw new Error(promptsError.message);
@@ -376,7 +402,11 @@ export async function generateThumbnails(
   console.log('Step 2: Generating 2x2 grid...');
   // Step 2: Generate 2x2 grid with Gemini
   const { data: gridData, error: gridError } = await supabase.functions.invoke('generate-thumbnails', {
-    body: { thumbnailPrompts, frames }
+    body: { 
+      thumbnailPrompts, 
+      frames,
+      isViral
+    }
   });
 
   if (gridError) throw new Error(gridError.message);
@@ -428,10 +458,11 @@ export async function generateTitles(
 }
 
 export async function processVideoContent(
-  input: { type: "url" | "file"; value: string | File },
+  input: { type: "url" | "file"; value: string | File; isViral?: boolean },
   callbacks: ProcessingCallbacks
 ): Promise<GenerationResult> {
   const { onProgress, onTranscriptionUpdate, onThumbnailUpdate, onTitleUpdate, onFramesUpdate, onAudioUpdate } = callbacks;
+  const isViral = input.isViral;
   
   // Step 0: Extract frames and audio from video
   onProgress(0, "Extracting frames and audio...");
@@ -439,10 +470,13 @@ export async function processVideoContent(
   let audioBase64: string;
   let mimeType = 'audio/webm';
   let extractedFrames: string[] = [];
+  let videoDuration = 0;
 
   if (input.type === "file" && input.value instanceof File) {
     // Extract frames progressively
-    extractedFrames = await extractFramesFromVideo(input.value, 6);
+    const extractionResult = await extractFramesFromVideo(input.value, 6);
+    extractedFrames = extractionResult.frames;
+    videoDuration = extractionResult.duration;
 
     // Update frames one by one for visual effect
     if (onFramesUpdate) {
@@ -455,6 +489,7 @@ export async function processVideoContent(
     // Extract ONLY the audio track (not the whole video)
     let lastPctShown = -1;
     const extracted = await extractAudioFromVideo(input.value, {
+      duration: videoDuration,
       timeoutMs: 2 * 60 * 1000,
       onProgress: (ratio) => {
         const pct = Math.round(ratio * 100);
@@ -491,7 +526,7 @@ export async function processVideoContent(
 
   // Step 3: Generate thumbnails
   onProgress(3, "Creating thumbnails...");
-  const thumbnailResult = await generateThumbnails(transcription, extractedFrames, undefined, onThumbnailUpdate);
+  const thumbnailResult = await generateThumbnails(transcription, extractedFrames, undefined, onThumbnailUpdate, isViral);
 
   // Small delay to show completion state
   await new Promise(resolve => setTimeout(resolve, 800));

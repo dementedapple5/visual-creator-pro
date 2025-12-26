@@ -48,7 +48,7 @@ serve(async (req) => {
   }
 
   try {
-    const { thumbnailPrompts, frames } = await req.json();
+    const { thumbnailPrompts, frames, isViral } = await req.json();
     
     if (!thumbnailPrompts || !Array.isArray(thumbnailPrompts) || thumbnailPrompts.length !== 4) {
       throw new Error('Invalid thumbnailPrompts: must be an array with exactly 4 items');
@@ -63,6 +63,51 @@ serve(async (req) => {
 
     const referenceFrames = pickReferenceFrames(frames, 5);
     console.log(`Reference frames received: ${Array.isArray(frames) ? frames.length : 0}, usable: ${referenceFrames.length}`);
+
+    const viralStyleGuidelines = `Create a high-impact YouTube thumbnail in a modern viral creator style.
+Use bold, condensed, all-caps sans-serif typography inspired by Anton / Bebas Neue / Impact-style fonts, with thick strokes, tight letter spacing, and strong vertical presence.
+
+Typography must feature:
+- Large headline words (1–4 words max)
+- High contrast colors (matching video theme)
+- Subtle 3D depth or bevel
+- Soft drop shadow + outer glow for separation
+- Occasional outlined text (white or black stroke)
+
+Layout:
+- Subject placed slightly off-center
+- Text on opposite side of the face
+- Clear visual hierarchy (main keyword dominates)
+- No clutter, strong negative space
+
+Subject:
+- Single person with exaggerated facial expression (shock, excitement, fear, confidence)
+- Hands near face or expressive gesture (clenched fists, thumbs up, shocked pose)
+- Clean cutout with strong rim light
+
+Lighting & Color:
+- Cinematic contrast, high saturation
+- Warm key light + cool rim light
+- Background vignette
+- Neon accents and glow particles
+
+Background:
+- Dark gradient or blurred abstract scene
+- Floating icons relevant to topic
+- Subtle bokeh and light flares
+
+Effects:
+- Strong subject glow (orange, blue, or yellow)
+- Professional Photoshop-style compositing
+- Sharpened face, smooth skin, high clarity
+
+Overall feel:
+- Click-driven
+- High energy
+- Educational-but-viral YouTube creator aesthetic
+- Looks like a top 1% CTR thumbnail
+
+Aspect ratio 16:9, ultra sharp, optimized for mobile viewing.`;
 
     // Build prompt for 2x2 grid
     const getThumbnailPrompt = (position: string) => {
@@ -86,6 +131,14 @@ serve(async (req) => {
         ? ` Place the title/subtitle at ${p.textPosition.trim().replace("-", " ")} (single clear placement, high contrast).`
         : "";
 
+      const viralGuidelinesText =
+        isViral
+          ? ` Viral style guidelines (MANDATORY): ${typeof p.viralStyleGuidelines === "string" && p.viralStyleGuidelines.trim()
+              ? p.viralStyleGuidelines.trim()
+              : viralStyleGuidelines
+            }`
+          : "";
+
       let elements = "";
       if (Array.isArray(p.elements) && p.elements.length > 0) {
         const items = p.elements
@@ -102,7 +155,7 @@ serve(async (req) => {
         }
       }
 
-      return `${p.description}${visualStyle}${background}${faceExpression}${textStyle}${textPosition}${elements}${overlay}`;
+      return `${p.description}${visualStyle}${background}${faceExpression}${textStyle}${textPosition}${elements}${overlay}${viralGuidelinesText}`;
     };
 
     const gridPrompt = `You are creating a single image that contains a 2x2 grid of YouTube thumbnails. The grid should be arranged as follows:
@@ -116,14 +169,15 @@ BOTTOM ROW:
 - Right: ${getThumbnailPrompt('bottom-right')}
 
 Requirements:
+- CRITICAL: Do NOT add any borders, gaps, lines, or separators between the grid cells. The 4 thumbnails must be perfectly adjacent to each other so they can be cropped cleanly.
 - Create a single image with a 2x2 grid layout
 - Each cell should be a complete 16:9 thumbnail matching its description
 - The 4 thumbnails should be visually distinct but cohesive
 - Use the reference frames to match the subject/style when applicable. The faces and subjects should be faithful to the reference frames.
+${isViral ? `- CRITICAL: Apply these viral style guidelines to ALL 4 thumbnails:\n${viralStyleGuidelines}\n` : ''}
 - Each thumbnail should be high quality, eye-catching, and YouTube-optimized
 - IMPORTANT: Include each title/subtitle text EXACTLY ONCE per thumbnail (if subtitle is provided). Do not repeat the same text in different parts of a single thumbnail. Place it in a single, clear, high-contrast location.
 - The final image should be exactly 3840x2160 pixels (2x width and 2x height of 1920x1080)
-- Ensure clean borders between grid cells
 - All 4 thumbnails should respect the video content shown in reference frames`;
 
     console.log('Generating grid image...');
@@ -134,6 +188,9 @@ Requirements:
     ];
 
     // Add reference frames as inline images
+    contentParts.push({
+      text: "Video Content Reference Frames:"
+    });
     for (const img of referenceFrames) {
       contentParts.push({
         inlineData: {
