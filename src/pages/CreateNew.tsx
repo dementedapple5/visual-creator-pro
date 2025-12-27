@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot, X, Lock } from "lucide-react";
+import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot, X, Lock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
@@ -1409,9 +1409,20 @@ const CreateNew = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
-                          No avatars available. Upload one in your Profile.
-                        </p>
+                        <div className="flex items-center justify-between py-2">
+                          <p className="text-sm text-muted-foreground">
+                            No avatars available. Upload one in your Profile.
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                            onClick={() => navigate("/avatars")}
+                            title="Go to Avatars"
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </CollapsibleSection>
 

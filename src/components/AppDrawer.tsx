@@ -374,13 +374,13 @@ export const AppDrawer = () => {
                       disabled={isDisabled}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-300 ${
                         isDisabled
-                          ? "opacity-50 cursor-not-allowed text-muted-foreground"
+                          ? "opacity-50 cursor-not-allowed text-muted-foreground grayscale"
                           : isActive
                           ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
                           : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                       }`}
                     >
-                      <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
+                      <Icon className={`w-5 h-5 ${isActive && !isDisabled ? "text-purple-400" : ""}`} />
                       <span>{item.label}</span>
                     </button>
                     {isCreate && isLimitReached && (
@@ -405,14 +405,18 @@ export const AppDrawer = () => {
                   return (
                     <button
                       key={item.path}
-                      onClick={() => handleNavigation(item.path)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all duration-300 ${isActive
+                      onClick={() => !isRestricted && handleNavigation(item.path)}
+                      disabled={isRestricted}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all duration-300 ${
+                        isRestricted
+                          ? "opacity-50 cursor-not-allowed text-muted-foreground grayscale"
+                          : isActive
                           ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
                           : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
+                        <Icon className={`w-5 h-5 ${isActive && !isRestricted ? "text-purple-400" : ""}`} />
                         <span>{item.label}</span>
                       </div>
                       {isRestricted && (
