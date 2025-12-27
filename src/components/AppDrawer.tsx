@@ -31,7 +31,6 @@ const contentMenuItems = [
   { icon: User, label: "Avatars", path: "/avatars" },
   { icon: Package, label: "Elements", path: "/products" },
   { icon: ImageIcon, label: "Backgrounds", path: "/backgrounds" },
-  { icon: Type, label: "Titles", path: "/titles" },
   { icon: PenTool, label: "Font Styles", path: "/font-styles" },
 ];
 
@@ -401,7 +400,7 @@ export const AppDrawer = () => {
                   const isActive = location.pathname === item.path;
                   const Icon = item.icon;
                   const isRestricted = !subscription.subscribed && !subscription.is_super_admin &&
-                    ["/products", "/backgrounds", "/titles", "/font-styles"].includes(item.path);
+                    ["/products", "/backgrounds", "/font-styles"].includes(item.path);
                   
                   return (
                     <button

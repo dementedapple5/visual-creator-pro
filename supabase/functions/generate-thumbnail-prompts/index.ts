@@ -200,7 +200,7 @@ Lighting & Color:
 - Neon accents and glow particles
 
 Background:
-- Dark gradient or blurred abstract scene
+- Dark gradient or blurred abstract scene matching reference frames.
 - Floating icons relevant to topic
 - Subtle bokeh and light flares
 

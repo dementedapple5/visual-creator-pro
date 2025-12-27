@@ -4,7 +4,6 @@ import { Film, FileText, Wand2, Grid3X3 } from "lucide-react";
 const steps = [
   { icon: Film, label: "Analyzing video", description: "Extracting key frames" },
   { icon: FileText, label: "Transcribing", description: "Processing audio" },
-  { icon: Wand2, label: "Generating titles", description: "Creating catchy copy" },
   { icon: Grid3X3, label: "Creating thumbnails", description: "Designing visuals" },
 ];
 

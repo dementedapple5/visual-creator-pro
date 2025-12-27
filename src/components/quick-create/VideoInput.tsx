@@ -176,7 +176,7 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
             Processing...
           </span>
         ) : (
-          "Generate thumbnails and titles"
+          "Generate thumbnails"
         )}
       </motion.button>
     </div>

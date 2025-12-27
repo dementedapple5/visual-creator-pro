@@ -29,7 +29,7 @@ const productionPlans = [
     productId: null,
     tier: "free" as const,
     features: [
-      "1 credit/day",
+      "5 one-time credits",
       "Email support"
     ]
   },
@@ -104,7 +104,7 @@ const testPlans = [
     productId: null,
     tier: "free" as const,
     features: [
-      "1 credit/day",
+      "5 one-time credits",
       "Email support"
     ]
   },
@@ -185,6 +185,7 @@ const Profile = () => {
     is_daily_limit: boolean;
     billing_period_start: string | null;
     billing_period_end: string | null;
+    billing_interval?: "day" | "month" | "year" | "forever" | null;
   }>({ 
     subscribed: false, 
     is_super_admin: false,
@@ -192,10 +193,11 @@ const Profile = () => {
     subscription_end: null,
     plan_name: "Free",
     plan_tier: "free",
-    monthly_limit: 1,
-    is_daily_limit: true,
+    monthly_limit: 5,
+    is_daily_limit: false,
     billing_period_start: null,
     billing_period_end: null,
+    billing_interval: "forever",
   });
   const [checkingSubscription, setCheckingSubscription] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("yearly");
@@ -596,7 +598,7 @@ const Profile = () => {
                     <span className="font-semibold">Free Tier</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    You're currently on the free plan
+                    You're currently on the free plan with 5 one-time credits
                   </p>
                 </CardContent>
               </Card>
@@ -644,7 +646,7 @@ const Profile = () => {
                             <span className="text-3xl font-bold text-foreground">
                               {plan.monthlyPrice}
                             </span>
-                            <span className="text-muted-foreground">/month</span>
+                            {!isFree && <span className="text-muted-foreground">/month</span>}
                           </>
                         ) : (
                           <>

@@ -47,7 +47,6 @@ interface Product {
 }
 
 type SavedBackground = Tables<"backgrounds">;
-type SavedTitle = Tables<"titles">;
 type FontStyle = Tables<"font_styles">;
 
 const POSITIONS = [
@@ -255,7 +254,6 @@ const CreateNew = () => {
   const [products, setProducts] = useState<Product[]>([]);
   // Saved presets
   const [savedBackgrounds, setSavedBackgrounds] = useState<SavedBackground[]>([]);
-  const [savedTitles, setSavedTitles] = useState<SavedTitle[]>([]);
   const [fontStyles, setFontStyles] = useState<FontStyle[]>([]);
 
   // Form states
@@ -318,7 +316,6 @@ const CreateNew = () => {
     fetchAvatars();
     fetchProducts();
     fetchSavedBackgrounds();
-    fetchSavedTitles();
     fetchFontStyles();
   }, []);
 
@@ -511,20 +508,6 @@ const CreateNew = () => {
     }
   };
 
-  const fetchSavedTitles = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("titles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setSavedTitles((data as SavedTitle[]) || []);
-    } catch (error) {
-      console.error("Error fetching titles:", error);
-    }
-  };
-
   const fetchFontStyles = async () => {
     try {
       const { data, error } = await supabase
@@ -581,29 +564,6 @@ const CreateNew = () => {
     }
 
     toast.success("Background applied");
-  };
-
-  const applySavedTitle = (savedTitle: SavedTitle) => {
-    setTitle(savedTitle.title);
-    setSubtitle(savedTitle.subtitle || "");
-    setTextPositions(savedTitle.text_position ? [savedTitle.text_position] : []);
-    setActiveTab("title");
-
-    // Check if this title uses an image-based font style
-    if (savedTitle.font_style_id) {
-      setUseImageFontStyle(true);
-      setSelectedFontStyleId(savedTitle.font_style_id);
-      setTextStyles([]); // Reset text styles since we're using image
-      setCustomTextStyle("");
-    } else {
-      setUseImageFontStyle(false);
-      setSelectedFontStyleId("");
-      // text_style could be comma-separated if multiple styles were saved
-      setTextStyles(savedTitle.text_style ? savedTitle.text_style.split(",").map(s => s.trim()) : []);
-      setCustomTextStyle(savedTitle.custom_text_style || "");
-    }
-
-    toast.success("Title applied");
   };
 
   const renderSavedBackgroundPreview = (background: SavedBackground) => {
@@ -1817,53 +1777,6 @@ const CreateNew = () => {
                           aiDescription="AI will vary text positions across the 9 thumbnails"
                           customPlaceholder="Add custom position..."
                         />
-                      </CollapsibleSection>
-                    )}
-
-                    {savedTitles.length > 0 && (
-                      <CollapsibleSection
-                        title="Saved Titles"
-                        subtitle="Quick access to your saved title presets"
-                      >
-                        <div className="space-y-3">
-                          <div className="space-y-2">
-                            {savedTitles.map((saved) => (
-                              <div
-                                key={saved.id}
-                                className="rounded-lg border border-border p-3 bg-secondary/40 space-y-1"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="font-medium text-sm truncate">{saved.name}</p>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 px-3 text-xs"
-                                    onClick={() => applySavedTitle(saved)}
-                                  >
-                                    Use
-                                  </Button>
-                                </div>
-                                <p className="text-sm font-semibold truncate">{saved.title}</p>
-                                {saved.subtitle && (
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {saved.subtitle}
-                                  </p>
-                                )}
-                                <p className="text-[11px] text-muted-foreground">
-                                  Style: {saved.text_style} • Position: {saved.text_position}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => navigate("/titles")}
-                          >
-                            View all titles
-                          </Button>
-                        </div>
                       </CollapsibleSection>
                     )}
                   </TabsContent>

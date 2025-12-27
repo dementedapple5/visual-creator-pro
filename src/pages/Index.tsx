@@ -27,7 +27,7 @@ const subscriptionPlans = [
     productId: null,
     desc: "Perfect for trying out Vizion",
     features: [
-      "1 credit/day",
+      "5 one-time credits",
       "Email support"
     ]
   },
@@ -363,7 +363,7 @@ const Index = () => {
               Power up your channel with Vizion
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              Everything you need to build viral thumbnails—avatars, backgrounds, titles, and elements—all in one place.
+              Everything you need to build viral thumbnails—avatars, backgrounds, and elements—all in one place.
             </p>
           </div>
 

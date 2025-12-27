@@ -12,6 +12,7 @@ export interface SubscriptionData {
   is_daily_limit: boolean;
   billing_period_start: string | null;
   billing_period_end: string | null;
+  billing_interval: "day" | "month" | "year" | "forever" | null;
 }
 
 const DEFAULT_SUBSCRIPTION: SubscriptionData = {
@@ -21,10 +22,11 @@ const DEFAULT_SUBSCRIPTION: SubscriptionData = {
   subscription_end: null,
   plan_name: "Free",
   plan_tier: "free",
-  monthly_limit: 1,
-  is_daily_limit: true,
+  monthly_limit: 5,
+  is_daily_limit: false,
   billing_period_start: null,
   billing_period_end: null,
+  billing_interval: "forever",
 };
 
 export const useSubscription = () => {

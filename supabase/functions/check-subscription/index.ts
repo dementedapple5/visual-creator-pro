@@ -92,18 +92,20 @@ serve(async (req) => {
 
     // Check if user is super admin
     let isSuperAdmin = false;
+    let profileCreatedAt = null;
     if (supabaseServiceClient) {
       const { data: profile, error: profileError } = await supabaseServiceClient
         .from("profiles")
-        .select("is_super_admin")
+        .select("is_super_admin, created_at")
         .eq("id", user.id)
         .single();
       
       if (!profileError && profile) {
         isSuperAdmin = !!profile.is_super_admin;
-        logStep("Super admin status checked", { isSuperAdmin });
+        profileCreatedAt = profile.created_at;
+        logStep("Profile fetched", { isSuperAdmin, profileCreatedAt });
       } else if (profileError) {
-        logStep("Warning: could not fetch profile to check super admin status", { error: profileError.message });
+        logStep("Warning: could not fetch profile", { error: profileError.message });
       }
     }
 
@@ -136,11 +138,11 @@ serve(async (req) => {
         is_super_admin: false,
         plan_name: "Free",
         plan_tier: "free",
-        monthly_limit: 1,
-        is_daily_limit: true, // Free tier is 1/day, not 1/month
-        billing_period_start: null,
+        monthly_limit: 5,
+        is_daily_limit: false, // Changed from true to false for one-time credits
+        billing_period_start: profileCreatedAt,
         billing_period_end: null,
-        billing_interval: "day",
+        billing_interval: "forever",
         next_charge_at: null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -175,12 +177,12 @@ serve(async (req) => {
     let productId = null;
     let priceId = null;
     let subscriptionEnd = null;
-    let subscriptionStart = null;
+    let subscriptionStart = profileCreatedAt; // Default to user creation date
     let planName = "Free";
     let planTier = "free";
-    let monthlyLimit = 1;
-    let isDailyLimit = true;
-    let billingInterval: "day" | "month" | "year" | null = null;
+    let monthlyLimit = 5;
+    let isDailyLimit = false;
+    let billingInterval: "day" | "month" | "year" | "forever" | null = "forever";
     let nextChargeAt: string | null = null;
     let subscriptionRowId: string | null = null;
 

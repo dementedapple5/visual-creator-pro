@@ -17,7 +17,6 @@ import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import ThumbnailDetail from "./pages/ThumbnailDetail";
 import Backgrounds from "./pages/Backgrounds";
-import Titles from "./pages/Titles";
 import FontStyles from "./pages/FontStyles";
 import QuickCreate from "./pages/QuickCreate";
 import NotFound from "./pages/NotFound";
@@ -64,16 +63,6 @@ const App = () => (
                 <AppLayout>
                   <SubscriptionGuard>
                     <Backgrounds />
-                  </SubscriptionGuard>
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/titles"
-              element={
-                <AppLayout>
-                  <SubscriptionGuard>
-                    <Titles />
                   </SubscriptionGuard>
                 </AppLayout>
               }

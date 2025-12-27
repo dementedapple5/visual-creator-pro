@@ -4,7 +4,6 @@ import { fetchFile } from "@ffmpeg/util";
 
 export interface GenerationResult {
   thumbnails: string[];
-  titles: string[];
   transcription: string;
   prompt?: string;
 }
@@ -13,7 +12,6 @@ export interface ProcessingCallbacks {
   onProgress: (step: number, message: string) => void;
   onTranscriptionUpdate?: (text: string) => void;
   onThumbnailUpdate?: (thumbnails: string[]) => void;
-  onTitleUpdate?: (titles: string[]) => void;
   onFramesUpdate?: (frames: string[]) => void;
   onAudioUpdate?: (audioDataUrl: string) => void;
 }
@@ -461,7 +459,7 @@ export async function processVideoContent(
   input: { type: "url" | "file"; value: string | File; isViral?: boolean },
   callbacks: ProcessingCallbacks
 ): Promise<GenerationResult> {
-  const { onProgress, onTranscriptionUpdate, onThumbnailUpdate, onTitleUpdate, onFramesUpdate, onAudioUpdate } = callbacks;
+  const { onProgress, onTranscriptionUpdate, onThumbnailUpdate, onFramesUpdate, onAudioUpdate } = callbacks;
   const isViral = input.isViral;
   
   // Step 0: Extract frames and audio from video
@@ -520,12 +518,8 @@ export async function processVideoContent(
     onTranscriptionUpdate(transcription);
   }
 
-  // Step 2: Generate titles
-  onProgress(2, "Generating titles...");
-  const titles = await generateTitles(transcription, onTitleUpdate);
-
-  // Step 3: Generate thumbnails
-  onProgress(3, "Creating thumbnails...");
+  // Step 2: Generate thumbnails
+  onProgress(2, "Creating thumbnails...");
   const thumbnailResult = await generateThumbnails(transcription, extractedFrames, undefined, onThumbnailUpdate, isViral);
 
   // Small delay to show completion state
@@ -533,7 +527,6 @@ export async function processVideoContent(
 
   return {
     thumbnails: thumbnailResult.thumbnails,
-    titles,
     transcription,
     prompt: thumbnailResult.prompt
   };
