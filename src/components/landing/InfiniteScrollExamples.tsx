@@ -3,7 +3,7 @@ import { useRef, useEffect } from "react";
 const examples = [
     "ex_1.png",
     "ex_2.png",
-    "ex_3.png",
+    "ex_3.jpeg",
     "ex_4.png",
     "ex_5.png",
     "ex_6.png",

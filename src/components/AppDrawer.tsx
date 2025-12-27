@@ -1,4 +1,4 @@
-import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, Type, History, PenTool, Lock, Zap } from "lucide-react";
+import { Home, Package, Sparkles, User, LogOut, Check, Image as ImageIcon, History, PenTool, Lock, Zap } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -374,13 +374,13 @@ export const AppDrawer = () => {
                       disabled={isDisabled}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-300 ${
                         isDisabled
-                          ? "opacity-50 cursor-not-allowed text-muted-foreground grayscale"
+                          ? "opacity-50 cursor-not-allowed text-muted-foreground"
                           : isActive
                           ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
                           : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                       }`}
                     >
-                      <Icon className={`w-5 h-5 ${isActive && !isDisabled ? "text-purple-400" : ""}`} />
+                      <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
                       <span>{item.label}</span>
                     </button>
                     {isCreate && isLimitReached && (
@@ -405,18 +405,14 @@ export const AppDrawer = () => {
                   return (
                     <button
                       key={item.path}
-                      onClick={() => !isRestricted && handleNavigation(item.path)}
-                      disabled={isRestricted}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all duration-300 ${
-                        isRestricted
-                          ? "opacity-50 cursor-not-allowed text-muted-foreground grayscale"
-                          : isActive
+                      onClick={() => handleNavigation(item.path)}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all duration-300 ${isActive
                           ? "bg-secondary text-foreground shadow-lg shadow-purple-500/10 border border-border"
                           : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className={`w-5 h-5 ${isActive && !isRestricted ? "text-purple-400" : ""}`} />
+                        <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
                         <span>{item.label}</span>
                       </div>
                       {isRestricted && (

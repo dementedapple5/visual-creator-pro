@@ -48,7 +48,7 @@ export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
                 <div className="bg-primary/20 p-1.5 rounded-full shrink-0">
                   <Lock className="h-4 w-4 text-primary" />
                 </div>
-                <span>Custom Font Styles & Titles</span>
+                <span>Custom Font Styles</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="bg-primary/20 p-1.5 rounded-full shrink-0">

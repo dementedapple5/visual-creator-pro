@@ -60,6 +60,7 @@ const QuickCreate = () => {
   const [processingStep, setProcessingStep] = useState(0);
   const [processingMessage, setProcessingMessage] = useState("");
   const [thumbnails, setThumbnails] = useState<string[]>([]);
+  const [titles, setTitles] = useState<string[]>([]);
   const [transcription, setTranscription] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
@@ -67,6 +68,7 @@ const QuickCreate = () => {
   // Preview states during processing
   const [transcriptionPreview, setTranscriptionPreview] = useState("");
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
+  const [titlePreviews, setTitlePreviews] = useState<string[]>([]);
   const [framesPreviews, setFramesPreviews] = useState<string[]>([]);
   const [audioPreview, setAudioPreview] = useState<string | null>(null);
 
@@ -136,6 +138,7 @@ const QuickCreate = () => {
     setProcessingMessage("Preparing...");
     setTranscriptionPreview("");
     setThumbnailPreviews([]);
+    setTitlePreviews([]);
     setFramesPreviews([]);
     setAudioPreview(null);
 
@@ -157,6 +160,9 @@ const QuickCreate = () => {
         onThumbnailUpdate: (thumbs) => {
           setThumbnailPreviews(thumbs);
         },
+        onTitleUpdate: (newTitles) => {
+          setTitlePreviews(newTitles);
+        }
       });
 
       // 2. Update generation record to completed
@@ -177,6 +183,7 @@ const QuickCreate = () => {
       }
 
       setThumbnails(result.thumbnails);
+      setTitles(result.titles);
       setTranscription(result.transcription);
       setPrompt(result.prompt || "");
       setAppState("results");
@@ -205,10 +212,12 @@ const QuickCreate = () => {
     setProcessingStep(0);
     setProcessingMessage("");
     setThumbnails([]);
+    setTitles([]);
     setTranscription("");
     setPrompt("");
     setTranscriptionPreview("");
     setThumbnailPreviews([]);
+    setTitlePreviews([]);
     setFramesPreviews([]);
     setAudioPreview(null);
   };
@@ -316,6 +325,22 @@ const QuickCreate = () => {
                   >
                     Thumbnails
                   </motion.span>
+                  <motion.span
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    className="text-primary hero-font-secondary italic my-2 text-4xl sm:text-6xl"
+                  >
+                    &
+                  </motion.span>
+                  <motion.span
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.7, ease: "easeOut" }}
+                    className="hero-font-primary"
+                  >
+                    titles
+                  </motion.span>
                   
                   <div className="mt-6 text-muted-foreground hero-font-primary text-3xl sm:text-5xl font-medium tracking-tight h-[1.2em]">
                     <TypewriterText texts={["in seconds", "effortlessly", "with AI"]} />
@@ -345,6 +370,7 @@ const QuickCreate = () => {
                 {[
                   "Analyze your content",
                   "4 unique thumbnails",
+                  "Optimized titles",
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
@@ -373,6 +399,7 @@ const QuickCreate = () => {
                 currentStep={processingStep}
                 transcriptionPreview={transcriptionPreview}
                 thumbnailPreviews={thumbnailPreviews}
+                titlePreviews={titlePreviews}
                 framesPreviews={framesPreviews}
                 audioPreview={audioPreview}
               />
@@ -389,6 +416,7 @@ const QuickCreate = () => {
             >
               <ResultsView
                 thumbnails={thumbnails}
+                titles={titles}
                 transcription={transcription}
                 onReset={handleReset}
                 onSave={handleSave}

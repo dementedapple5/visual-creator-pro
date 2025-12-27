@@ -2,17 +2,19 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles, Save } from "lucide-react";
 import { ThumbnailCard } from "./ThumbnailCard";
+import { TitleCard } from "./TitleCard";
 import { Button } from "@/components/ui/button";
 
 interface ResultsViewProps {
   thumbnails: string[];
+  titles: string[];
   transcription?: string;
   onReset: () => void;
   onSave?: (index?: number) => void;
   isSaving?: boolean;
 }
 
-export function ResultsView({ thumbnails, transcription, onReset, onSave, isSaving }: ResultsViewProps) {
+export function ResultsView({ thumbnails, titles, transcription, onReset, onSave, isSaving }: ResultsViewProps) {
   const handleDownload = (index: number) => {
     const src = thumbnails[index];
     if (!src) return;
@@ -81,6 +83,22 @@ export function ResultsView({ thumbnails, transcription, onReset, onSave, isSavi
               onSave={() => onSave?.(index)}
               isSaving={isSaving}
             />
+          ))}
+        </div>
+      </motion.section>
+
+      {/* Titles Section */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <h2 className="text-xl font-semibold text-foreground mb-6">
+          Title suggestions
+        </h2>
+        <div className="space-y-3">
+          {titles.map((title, index) => (
+            <TitleCard key={index} title={title} index={index} />
           ))}
         </div>
       </motion.section>

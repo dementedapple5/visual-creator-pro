@@ -8,6 +8,7 @@ interface ProcessingPanelProps {
   currentStep: number;
   transcriptionPreview: string;
   thumbnailPreviews: string[];
+  titlePreviews: string[];
   framesPreviews: string[];
   audioPreview: string | null;
 }
@@ -16,6 +17,7 @@ export function ProcessingPanel({
   currentStep,
   transcriptionPreview,
   thumbnailPreviews,
+  titlePreviews,
   framesPreviews,
   audioPreview,
 }: ProcessingPanelProps) {
@@ -296,6 +298,32 @@ export function ProcessingPanel({
                       </motion.div>
                     ))}
                   </div>
+
+                  {/* Title previews */}
+                  {titlePreviews.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-2 mt-4"
+                    >
+                      <div className="text-sm font-medium text-foreground">
+                        Title suggestions
+                      </div>
+                      {titlePreviews.map((title, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="p-3 bg-muted/30 rounded-xl border border-border w-full hover:bg-muted/50 transition-colors"
+                        >
+                          <p className="text-xs text-foreground leading-relaxed break-words">
+                            {title}
+                          </p>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
