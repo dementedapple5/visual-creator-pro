@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://vizion.app/</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vizion.app/?lang=en" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://vizion.app/?lang=es" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vizion.app/" />
+    <image:image>
+      <image:loc>https://vizion.app/favicon.png</image:loc>
+      <image:title>Vizion - AI-Powered YouTube Thumbnail Generator</image:title>
+      <image:caption>Create stunning YouTube thumbnails with AI</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Auth Page -->
+  <url>
+    <loc>https://vizion.app/auth</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vizion.app/auth?lang=en" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://vizion.app/auth?lang=es" />
+  </url>
+  
+  <!-- Dashboard (may require authentication, but included for SEO) -->
+  <url>
+    <loc>https://vizion.app/dashboard</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Create Pages -->
+  <url>
+    <loc>https://vizion.app/create</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://vizion.app/quick-create</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- Generations -->
+  <url>
+    <loc>https://vizion.app/generations</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Avatars -->
+  <url>
+    <loc>https://vizion.app/avatars</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Backgrounds -->
+  <url>
+    <loc>https://vizion.app/backgrounds</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Font Styles -->
+  <url>
+    <loc>https://vizion.app/font-styles</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Products -->
+  <url>
+    <loc>https://vizion.app/products</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Profile -->
+  <url>
+    <loc>https://vizion.app/profile</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+</urlset>

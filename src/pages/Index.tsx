@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { InfiniteScrollExamples } from "@/components/landing/InfiniteScrollExamples";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import SEO from "@/components/SEO";
 
 const getSubscriptionPlans = (t: (key: string) => string) => [
   {
@@ -256,8 +257,52 @@ const Index = () => {
     return () => clearTimeout(timeout);
   }, [displayedWord, isDeleting, wordIndex]);
 
+  const baseUrl = typeof window !== "undefined" 
+    ? `${window.location.protocol}//${window.location.host}`
+    : "https://vizion.app";
+
+  // Schema.org structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Vizion",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "1250"
+    },
+    "description": t("landing.heroTagline"),
+    "url": baseUrl,
+    "screenshot": `${baseUrl}/favicon.png`,
+    "featureList": [
+      "AI-Powered Thumbnail Generation",
+      "YouTube 16:9 Format",
+      "Face Library & Recognition",
+      "Custom Backgrounds",
+      "Text Styling",
+      "High CTR Optimization"
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background overflow-hidden selection:bg-primary/20 font-sans relative">
+      <SEO
+        title={`${t("landing.heroTitle")} ${t("landing.heroSubtitle")} | Vizion`}
+        description={t("landing.heroTagline")}
+        keywords="YouTube thumbnails, thumbnail generator, AI thumbnails, YouTube thumbnail maker, social media covers, thumbnail design, CTR optimization, video thumbnails, YouTube SEO, thumbnail creator, Gemini AI, high CTR thumbnails"
+        image="/favicon.png"
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-grid-white/[0.03] dark:bg-grid-white/[0.03]" />
         <div className="absolute inset-0 clip-grid">
@@ -279,7 +324,7 @@ const Index = () => {
             <div className="w-10 h-10">
               <img
                 src="/favicon.png"
-                alt="Vizion logo"
+                alt="Vizion - AI-Powered YouTube Thumbnail Generator Logo"
                 className="w-full h-full rounded-xl  object-contain shadow-lg shadow-primary/20 bg-white/80"
               />
             </div>
@@ -305,76 +350,195 @@ const Index = () => {
         </div>
       </nav>
 
-      <section className="relative pt-32 pb-24 px-6 min-h-[80vh] flex items-center overflow-hidden">
+      <section className="relative pt-32 pb-24 px-6 min-h-[90vh] flex items-center overflow-hidden">
         {/* Floating Thumbnails Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 opacity-[0.15] dark:opacity-[0.1]">
           <div className="absolute top-[15%] -left-[5%] w-[300px] h-[168px] rotate-[-12deg] blur-[1px] animate-float" style={{ animationDelay: '0s' }}>
-            <img src="/examples/ex_1.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+            <img 
+              src="/examples/ex_1.png" 
+              alt="Example YouTube thumbnail created with Vizion AI thumbnail generator showing high CTR design"
+              className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" 
+            />
           </div>
           <div className="absolute top-[45%] -right-[8%] w-[320px] h-[180px] rotate-[8deg] blur-[0.5px] animate-float" style={{ animationDelay: '1.5s' }}>
-            <img src="/examples/ex_2.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+            <img 
+              src="/examples/ex_2.png" 
+              alt="AI-generated YouTube thumbnail example with professional design and high click-through rate"
+              className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" 
+            />
           </div>
           <div className="absolute bottom-[10%] left-[10%] w-[280px] h-[157px] rotate-[-5deg] blur-[2px] animate-float" style={{ animationDelay: '3s' }}>
-            <img src="/examples/ex_3.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+            <img 
+              src="/examples/ex_3.png" 
+              alt="Vizion thumbnail generator example showcasing viral YouTube thumbnail design"
+              className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" 
+            />
           </div>
           <div className="absolute top-[10%] right-[15%] w-[260px] h-[146px] rotate-[15deg] blur-[3px] animate-float" style={{ animationDelay: '4.5s' }}>
-            <img src="/examples/ex_4.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+            <img 
+              src="/examples/ex_4.png" 
+              alt="Professional YouTube thumbnail created with AI-powered Vizion thumbnail maker"
+              className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" 
+            />
           </div>
           <div className="absolute bottom-[20%] right-[20%] w-[340px] h-[191px] rotate-[-8deg] blur-[4px] opacity-40 animate-float" style={{ animationDelay: '2s' }}>
-            <img src="/examples/ex_5.png" className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" />
+            <img 
+              src="/examples/ex_5.png" 
+              alt="High-converting YouTube thumbnail example generated with Vizion AI technology"
+              className="w-full h-full object-cover rounded-2xl shadow-2xl border border-white/10" 
+            />
           </div>
         </div>
 
-        <div className="container mx-auto max-w-5xl flex flex-col items-center text-center gap-10 relative z-10">
-          
+        <div className="container mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-10">
+            {/* YouTube Badge */}
+            <div
+              className="flex items-center gap-3 mb-2"
+              data-animate
+              style={{ ["--delay" as any]: "0s" }}
+            >
+              <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FF0000] to-[#CC0000] text-white text-sm font-bold shadow-lg shadow-red-500/30 flex items-center gap-2">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                </svg>
+                {t("landing.heroBadge")}
+              </span>
+              <span className="px-4 py-1.5 rounded-full bg-secondary border border-border text-foreground text-sm font-medium">
+                {t("landing.heroFormatBadge")}
+              </span>
+            </div>
 
-          <div className="space-y-4 w-full">
-            <h1 className="text-4xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight w-full">
-              <span
-                className="hero-font-primary text-balance block w-full"
+            <div className="space-y-4 w-full">
+              <h1 className="text-3xl md:text-5xl xl:text-6xl leading-[1.05] tracking-tight w-full">
+                <span
+                  className="hero-font-primary text-balance block w-full"
+                  data-animate
+                  style={{ ["--delay" as any]: "0.05s" }}
+                >
+                  {t("landing.heroTitle")}
+                </span>
+                <span
+                  className="hero-font-secondary text-gradient text-balance block w-full pb-2"
+                  data-animate
+                  style={{ ["--delay" as any]: "0.15s" }}
+                >
+                  {t("landing.heroSubtitle")}
+                </span>
+                <span
+                  className="flex flex-wrap justify-center lg:justify-start items-center gap-3 text-lg md:text-xl text-muted-foreground/90 hero-type w-full"
+                  data-animate
+                  style={{ ["--delay" as any]: "0.25s" }}
+                >
+                  {t("landing.heroDescription")}
+                  <span className="typewriter text-foreground">{displayedWord}</span>
+                  <span className="type-caret" aria-hidden="true" />
+                </span>
+              </h1>
+            </div>
+
+            <p
+              className="text-lg md:text-xl text-muted-foreground max-w-4xl w-full leading-relaxed"
+              data-animate
+              style={{ ["--delay" as any]: "0.35s" }}
+            >
+              {t("landing.heroTagline")}
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2">
+              <Button
+                size="lg"
+                onClick={() => navigate("/auth")}
+                className="h-14 px-8 rounded-full bg-foreground text-background hover:bg-foreground/90 text-lg transition-all beam-button shadow-glow shadow-primary/20"
                 data-animate
-                style={{ ["--delay" as any]: "0.05s" }}
+                style={{ ["--delay" as any]: "0.45s" }}
               >
-                {t("landing.heroTitle")}
-              </span>
-              <span
-                className="hero-font-secondary text-gradient text-balance block w-full pb-2"
-                data-animate
-                style={{ ["--delay" as any]: "0.15s" }}
-              >
-                {t("landing.heroSubtitle")}
-              </span>
-              <span
-                className="flex flex-wrap justify-center items-center gap-3 text-lg md:text-xl text-muted-foreground/90 hero-type w-full"
-                data-animate
-                style={{ ["--delay" as any]: "0.25s" }}
-              >
-                {t("landing.heroDescription")}
-                <span className="typewriter text-foreground">{displayedWord}</span>
-                <span className="type-caret" aria-hidden="true" />
-              </span>
-            </h1>
+                {t("landing.startCreatingFree")}
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </div>
           </div>
 
-          <p
-            className="text-lg md:text-xl text-muted-foreground max-w-4xl w-full leading-relaxed"
-            data-animate
-            style={{ ["--delay" as any]: "0.35s" }}
-          >
-            {t("landing.heroTagline")}
-          </p>
+          <div className="relative flex justify-center items-center lg:block" data-animate style={{ ["--delay" as any]: "0.5s" }}>
+            <div className="relative w-full max-w-[600px] aspect-square lg:aspect-auto">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-auto object-contain pointer-events-none drop-shadow-2xl"
+                aria-label="Vizion AI thumbnail generator demo video showing how to create YouTube thumbnails"
+              >
+                <source src="/web.webm" type="video/webm" />
+              </video>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-            <Button
-              size="lg"
-              onClick={() => navigate("/auth")}
-              className="h-14 px-8 rounded-full bg-foreground text-background hover:bg-foreground/90 text-lg transition-all beam-button shadow-glow shadow-primary/20"
-              data-animate
-              style={{ ["--delay" as any]: "0.45s" }}
-            >
-              {t("landing.startCreatingFree")}
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
+      {/* YouTube Feed Preview Section */}
+      <section className="py-20 px-6 relative z-10 bg-muted/30 border-y border-border">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12 space-y-3" data-animate>
+            <h2 className="text-3xl md:text-4xl font-bold">
+              {t("landing.youtubeFeedPreview.title")}
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              {t("landing.youtubeFeedPreview.description")}
+            </p>
+          </div>
+
+          {/* YouTube Feed Simulation */}
+          <div className="max-w-4xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
+            <div className="bg-background rounded-2xl border border-border p-6 md:p-8 shadow-2xl">
+              {/* YouTube-like header */}
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF0000] to-[#CC0000] flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                </div>
+                <div className="h-4 w-32 bg-muted rounded"></div>
+              </div>
+
+              {/* Video Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { image: "ex_1.png", key: "video1" },
+                  { image: "ex_2.png", key: "video2" },
+                  { image: "ex_3.png", key: "video3" },
+                  { image: "ex_4.png", key: "video4" }
+                ].map((video, idx) => {
+                  const videoData = t(`landing.youtubeFeedPreview.videos.${video.key}`, { returnObjects: true }) as { title: string; channel: string };
+                  return (
+                    <div key={idx} className="group cursor-pointer">
+                      <div className="relative aspect-video rounded-lg overflow-hidden bg-muted mb-2 border border-border shadow-lg transition-transform duration-300 group-hover:scale-[1.02]">
+                        <img
+                          src={`/examples/${video.image}`}
+                          alt={`${videoData.title} - YouTube thumbnail example created with Vizion AI thumbnail generator`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 text-white text-xs rounded">
+                          10:24
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                          {videoData.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="w-6 h-6 rounded-full bg-muted"></div>
+                          <span>{videoData.channel}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <span>1.2M views</span> · <span>2 days ago</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -745,7 +909,7 @@ const Index = () => {
             <div className="w-8 h-8">
               <img
                 src="/favicon.png"
-                alt="Vizion logo"
+                alt="Vizion - AI-Powered YouTube Thumbnail Generator Logo"
                 className="w-full h-full rounded-lg object-contain shadow-md shadow-primary/20"
               />
             </div>

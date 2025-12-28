@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const examples = [
     "ex_1.png",
@@ -12,12 +13,14 @@ const examples = [
 ];
 
 export const InfiniteScrollExamples = () => {
+    const { t } = useTranslation();
+    
     return (
         <div className="w-full py-24 overflow-hidden bg-background/50 backdrop-blur-sm relative border-y border-border">
             <div className="container mx-auto px-6 mb-12 text-center relative z-20">
-                <h2 className="text-3xl md:text-5xl font-bold mb-6 text-foreground">Made with Vizion</h2>
+                <h2 className="text-3xl md:text-5xl font-bold mb-6 text-foreground">{t("landing.examplesTitle")}</h2>
                 <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                    From viral hits to brand builders, see what creators are shipping.
+                    {t("landing.examplesDescription")}
                 </p>
             </div>
 

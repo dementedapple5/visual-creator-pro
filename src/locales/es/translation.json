@@ -65,7 +65,33 @@
       "youtube169": "YouTube 16:9",
       "variations": "Variaciones",
       "viralCovers": "Portadas virales"
-    }
+    },
+    "heroBadge": "Miniaturas de YouTube",
+    "heroFormatBadge": "Formato 16:9",
+    "youtubeFeedPreview": {
+      "title": "Ve cómo se ven tus miniaturas en YouTube",
+      "description": "Tus miniaturas aparecerán exactamente así en el feed de YouTube, optimizadas para maximizar clics.",
+      "videos": {
+        "video1": {
+          "title": "5 Historias Terroríficas Basadas en Hechos Reales",
+          "channel": "Historias de Terror"
+        },
+        "video2": {
+          "title": "Review DJI Osmo Action 6 - ¿Mejor que iPhone?",
+          "channel": "Tech Reviews"
+        },
+        "video3": {
+          "title": "Cómo Cocinar la Lasaña Perfecta",
+          "channel": "Cocina Master"
+        },
+        "video4": {
+          "title": "Mi Primera Victory Royale - ¡No Me Lo Puedo Creer!",
+          "channel": "Gaming Pro"
+        }
+      }
+    },
+    "examplesTitle": "Miniaturas de YouTube Creadas con Vizion",
+    "examplesDescription": "Miniaturas reales creadas por creadores usando Vizion, optimizadas para el algoritmo de YouTube."
   },
   "features": {
     "yourIdentityAutomated": {
@@ -494,8 +520,17 @@
     "letAIDecide": "Dejar que la IA Decida",
     "aiVaryExpressions": "La IA variará las expresiones en las 9 miniaturas",
     "aiVaryPositions": "La IA variará las posiciones del avatar en las 9 miniaturas",
+    "aiVaryPositions1": "La IA elegirá la mejor posición del avatar para la miniatura",
+    "aiVaryPositions4": "La IA variará las posiciones del avatar en las 4 miniaturas",
+    "aiVaryPositions9": "La IA variará las posiciones del avatar en las 9 miniaturas",
     "aiVaryElementPositions": "La IA variará las posiciones de los elementos en las 9 miniaturas",
+    "aiVaryElementPositions1": "La IA elegirá la mejor posición de los elementos para la miniatura",
+    "aiVaryElementPositions4": "La IA variará las posiciones de los elementos en las 4 miniaturas",
+    "aiVaryElementPositions9": "La IA variará las posiciones de los elementos en las 9 miniaturas",
     "aiVaryTextPositions": "La IA variará las posiciones del texto en las 9 miniaturas",
+    "aiVaryTextPositions1": "La IA elegirá la mejor posición del texto para la miniatura",
+    "aiVaryTextPositions4": "La IA variará las posiciones del texto en las 4 miniaturas",
+    "aiVaryTextPositions9": "La IA variará las posiciones del texto en las 9 miniaturas",
     "aiVaryTextStyles": "La IA variará los estilos de texto en las 9 miniaturas",
     "aiVaryTextStyles1": "La IA elegirá el mejor estilo de texto para la miniatura",
     "aiVaryTextStyles4": "La IA variará los estilos de texto en las 4 miniaturas",

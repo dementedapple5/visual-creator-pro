@@ -1786,7 +1786,19 @@ const CreateNew = () => {
                             onChange={setAvatarPositions}
                             showAiDecide
                             aiLabel={t("common.letAIDecide")}
-                            aiDescription={t("createNew.aiVaryPositions")}
+                            aiDescription={
+                              (() => {
+                                const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                                const thumbnailCount = selectedMode?.thumbnailCount || 1;
+                                if (thumbnailCount === 1) {
+                                  return t("createNew.aiVaryPositions1");
+                                } else if (thumbnailCount === 4) {
+                                  return t("createNew.aiVaryPositions4");
+                                } else {
+                                  return t("createNew.aiVaryPositions9");
+                                }
+                              })()
+                            }
                           />
                         </CollapsibleSection>
                       </>
@@ -1952,7 +1964,19 @@ const CreateNew = () => {
                                   onChange={(next) => setElementPositions((prev) => ({ ...prev, [id]: next }))}
                                   showAiDecide
                                   aiLabel={t("common.letAIDecide")}
-                                  aiDescription={t("createNew.aiVaryElementPositions")}
+                                  aiDescription={
+                                    (() => {
+                                      const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                                      const thumbnailCount = selectedMode?.thumbnailCount || 1;
+                                      if (thumbnailCount === 1) {
+                                        return t("createNew.aiVaryElementPositions1");
+                                      } else if (thumbnailCount === 4) {
+                                        return t("createNew.aiVaryElementPositions4");
+                                      } else {
+                                        return t("createNew.aiVaryElementPositions9");
+                                      }
+                                    })()
+                                  }
                                 />
                               </div>
                             );
@@ -1967,7 +1991,19 @@ const CreateNew = () => {
                                 onChange={(next) => setElementPositions((prev) => ({ ...prev, [element]: next }))}
                                 showAiDecide
                                 aiLabel={t("common.letAIDecide")}
-                                aiDescription={t("createNew.aiVaryElementPositions")}
+                                aiDescription={
+                                  (() => {
+                                    const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                                    const thumbnailCount = selectedMode?.thumbnailCount || 1;
+                                    if (thumbnailCount === 1) {
+                                      return t("createNew.aiVaryElementPositions1");
+                                    } else if (thumbnailCount === 4) {
+                                      return t("createNew.aiVaryElementPositions4");
+                                    } else {
+                                      return t("createNew.aiVaryElementPositions9");
+                                    }
+                                  })()
+                                }
                               />
                             </div>
                           ))}
@@ -2137,7 +2173,19 @@ const CreateNew = () => {
                           onChange={setTextPositions}
                           showAiDecide
                           aiLabel={t("common.letAIDecide")}
-                          aiDescription={t("createNew.aiVaryTextPositions")}
+                          aiDescription={
+                            (() => {
+                              const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                              const thumbnailCount = selectedMode?.thumbnailCount || 1;
+                              if (thumbnailCount === 1) {
+                                return t("createNew.aiVaryTextPositions1");
+                              } else if (thumbnailCount === 4) {
+                                return t("createNew.aiVaryTextPositions4");
+                              } else {
+                                return t("createNew.aiVaryTextPositions9");
+                              }
+                            })()
+                          }
                         />
                       </CollapsibleSection>
                     )}
@@ -2445,10 +2493,14 @@ const CreateNew = () => {
                     {isLoading ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        {croppingGrid ? t("createNew.generation.processingVariations") : t("createNew.generation.generating", { 
-                          count: GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount || 1,
-                          type: GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount === 1 ? t("createNew.generation.thumbnail") : t("createNew.generation.variations")
-                        })}
+                        {croppingGrid ? t("createNew.generation.processingVariations") : (() => {
+                          const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                          const count = selectedMode?.thumbnailCount || 1;
+                          const type = count === 1 ? t("createNew.generation.thumbnail") : t("createNew.generation.variations");
+                          // Construir el texto directamente para evitar problemas de interpolación
+                          const generatingTemplate = t("createNew.generation.generating", { count: "{count}", type: "{type}" });
+                          return generatingTemplate.replace("{count}", String(count)).replace("{type}", type);
+                        })()}
                       </>
                     ) : (
                       <>

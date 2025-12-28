@@ -65,7 +65,33 @@
       "youtube169": "YouTube 16:9",
       "variations": "Variations",
       "viralCovers": "Viral Covers"
-    }
+    },
+    "heroBadge": "YouTube Thumbnails",
+    "heroFormatBadge": "16:9 Format",
+    "youtubeFeedPreview": {
+      "title": "See how your thumbnails look on YouTube",
+      "description": "Your thumbnails will appear exactly like this in the YouTube feed, optimized for maximum clicks.",
+      "videos": {
+        "video1": {
+          "title": "5 Terrifying Stories Based on Real Events",
+          "channel": "Horror Stories"
+        },
+        "video2": {
+          "title": "DJI Osmo Action 6 Review - Better Than iPhone?",
+          "channel": "Tech Reviews"
+        },
+        "video3": {
+          "title": "How to Cook the Perfect Lasagna",
+          "channel": "Cooking Master"
+        },
+        "video4": {
+          "title": "My First Victory Royale - I Can't Believe It!",
+          "channel": "Gaming Pro"
+        }
+      }
+    },
+    "examplesTitle": "YouTube Thumbnails Made with Vizion",
+    "examplesDescription": "Real thumbnails created by creators using Vizion, optimized for YouTube's algorithm."
   },
   "features": {
     "yourIdentityAutomated": {
@@ -494,8 +520,17 @@
     "letAIDecide": "Let AI Decide",
     "aiVaryExpressions": "AI will vary expressions across the 9 thumbnails",
     "aiVaryPositions": "AI will vary avatar positions across the 9 thumbnails",
+    "aiVaryPositions1": "AI will choose the best avatar position for the thumbnail",
+    "aiVaryPositions4": "AI will vary avatar positions across the 4 thumbnails",
+    "aiVaryPositions9": "AI will vary avatar positions across the 9 thumbnails",
     "aiVaryElementPositions": "AI will vary element positions across the 9 thumbnails",
+    "aiVaryElementPositions1": "AI will choose the best element position for the thumbnail",
+    "aiVaryElementPositions4": "AI will vary element positions across the 4 thumbnails",
+    "aiVaryElementPositions9": "AI will vary element positions across the 9 thumbnails",
     "aiVaryTextPositions": "AI will vary text positions across the 9 thumbnails",
+    "aiVaryTextPositions1": "AI will choose the best text position for the thumbnail",
+    "aiVaryTextPositions4": "AI will vary text positions across the 4 thumbnails",
+    "aiVaryTextPositions9": "AI will vary text positions across the 9 thumbnails",
     "aiVaryTextStyles": "AI will vary text styles across the 9 thumbnails",
     "aiVaryTextStyles1": "AI will choose the best text style for the thumbnail",
     "aiVaryTextStyles4": "AI will vary text styles across the 4 thumbnails",
