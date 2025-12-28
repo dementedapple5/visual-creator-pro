@@ -315,19 +315,19 @@ const QuickCreate = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-12 max-w-4xl mx-auto"
+                className="text-center mb-8 max-w-4xl mx-auto"
               >
                 <motion.div 
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.1 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-8 border border-primary/20 backdrop-blur-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6 border border-primary/20 backdrop-blur-sm"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span className="text-sm font-medium tracking-wide uppercase">{t("quickCreate.badge")}</span>
                 </motion.div>
                 
-                <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground mb-8 tracking-tighter leading-[0.9] flex flex-col items-center">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tighter leading-[0.9] flex flex-col items-center">
                   <motion.span
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -340,7 +340,7 @@ const QuickCreate = () => {
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
-                    className="text-primary hero-font-secondary italic my-2 text-4xl sm:text-6xl"
+                    className="text-primary hero-font-secondary italic my-1.5 text-3xl sm:text-4xl"
                   >
                     {t("quickCreate.heroAnd")}
                   </motion.span>
@@ -353,7 +353,7 @@ const QuickCreate = () => {
                     {t("quickCreate.heroTitles")}
                   </motion.span>
                   
-                  <div className="mt-6 text-muted-foreground hero-font-primary text-3xl sm:text-5xl font-medium tracking-tight h-[1.2em]">
+                  <div className="mt-4 text-muted-foreground hero-font-primary text-2xl sm:text-3xl font-medium tracking-tight h-[1.2em]">
                     <TypewriterText texts={[
                       t("quickCreate.typewriterTexts.inSeconds"),
                       t("quickCreate.typewriterTexts.effortlessly"),
@@ -366,7 +366,7 @@ const QuickCreate = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
-                  className="text-xl text-muted-foreground max-w-xl mx-auto font-light leading-relaxed mb-12"
+                  className="text-lg text-muted-foreground max-w-xl mx-auto font-light leading-relaxed mb-8"
                 >
                   {t("quickCreate.description")}
                 </motion.p>
@@ -379,7 +379,7 @@ const QuickCreate = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
+                className="mt-10 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
               >
                 {[
                   t("quickCreate.features.analyzeContent"),

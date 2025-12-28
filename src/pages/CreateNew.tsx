@@ -10,14 +10,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot, X, Lock } from "lucide-react";
+import { Loader2, Sparkles, Download, Upload, Plus, Type as TypeIcon, Image as ImageIcon, Crown, Grid3X3, Check, ChevronDown, Bot, X, Lock, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { compressAndConvertToJpg, DOWNLOAD_SIZES, DownloadSizeKey, downloadImageWithSize, uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
 import type { Tables } from "@/integrations/supabase/types";
 import { MultiSelectChips } from "@/components/MultiSelectChips";
+import { AvatarPositionSelector } from "@/components/AvatarPositionSelector";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { RadioCardSelector } from "@/components/RadioCardSelector";
 import { useSubscription } from "@/hooks/use-subscription";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -167,6 +179,7 @@ const CreateNew = () => {
   const EXPRESSION_OPTIONS = getExpressionOptions(t);
   const GENERATION_MODES = getGenerationModes(t);
   const [generating, setGenerating] = useState(false);
+  const [generatingHeadshot, setGeneratingHeadshot] = useState(false);
   const [croppingGrid, setCroppingGrid] = useState(false);
   const [generatedThumbnails, setGeneratedThumbnails] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -178,6 +191,13 @@ const CreateNew = () => {
   const [downloading, setDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
+
+  // Avatar naming and headshot flow states
+  const [pendingAvatar, setPendingAvatar] = useState<{ id: string; url: string } | null>(null);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [avatarName, setAvatarName] = useState("");
+  const [showHeadshotDialog, setShowHeadshotDialog] = useState(false);
+  const [headshotUsage, setHeadshotUsage] = useState(0);
 
   // Persistence logic - Load from sessionStorage on mount
   useEffect(() => {
@@ -256,11 +276,15 @@ const CreateNew = () => {
     }
   }, [currentGenerationId]);
 
-  const { isFree } = useSubscription();
+  const { isFree, subscription, refetch: refetchSubscription } = useSubscription();
 
   // Data states
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+
+  const isFreeAvatarLimited =
+    !!subscription && !subscription.subscribed && !subscription.is_super_admin && avatars.length >= 1;
+
   // Saved presets
   const [savedBackgrounds, setSavedBackgrounds] = useState<SavedBackground[]>([]);
   const [savedTitles, setSavedTitles] = useState<SavedTitle[]>([]);
@@ -328,7 +352,45 @@ const CreateNew = () => {
     fetchSavedBackgrounds();
     fetchSavedTitles();
     fetchFontStyles();
-  }, []);
+    fetchHeadshotUsage();
+  }, [subscription?.billing_period_start]);
+
+  const fetchHeadshotUsage = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const start = subscription?.billing_period_start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+      const { count, error } = await supabase
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("mode", "headshot")
+        .eq("status", "completed")
+        .gte("created_at", start);
+
+      if (!error && count !== null) {
+        setHeadshotUsage(count);
+      }
+    } catch (error) {
+      console.error("Error fetching headshot usage:", error);
+    }
+  };
+
+  const getHeadshotLimit = () => {
+    if (subscription?.is_super_admin) return 999999;
+    const tier = subscription?.plan_tier || "free";
+    const limits: Record<string, number> = {
+      starter: 10,
+      pro: 30,
+      enterprise: 100,
+      free: 0
+    };
+    return limits[tier] || 0;
+  };
+
+  const headshotLimitReached = headshotUsage >= getHeadshotLimit();
 
   // Update backgroundValue when colors change
   useEffect(() => {
@@ -424,6 +486,107 @@ const CreateNew = () => {
     }
   };
 
+  const handlePermanentAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setGenerating(true); // Reuse generating state for loading
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      // Check free tier limit
+      if (isFreeAvatarLimited) {
+        toast.error(t("avatars.freeLimitReached"));
+        return;
+      }
+
+      const compressedBlob = await compressAndConvertToJpg(file);
+      const fileName = `${user.id}/${Date.now()}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, compressedBlob, {
+          contentType: "image/jpeg",
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(fileName);
+
+      const { data: insertedAvatar, error: dbError } = await supabase
+        .from("avatars")
+        .insert({ user_id: user.id, image_url: publicUrl })
+        .select("id, image_url")
+        .single();
+
+      if (dbError) throw dbError;
+
+      toast.success(t("createNew.errors.avatarUploaded"));
+      fetchAvatars();
+
+      // Trigger naming flow
+      setPendingAvatar({ id: insertedAvatar?.id || "", url: insertedAvatar?.image_url || publicUrl });
+      setAvatarName("");
+      setShowNameDialog(true);
+    } catch (error) {
+      console.error("Error uploading permanent avatar:", error);
+      toast.error(t("createNew.errors.failedAvatarUpload"));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!pendingAvatar || !avatarName.trim()) {
+      toast.error(t("avatars.errors.enterName"));
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("avatars")
+        .update({ name: avatarName.trim() })
+        .eq("id", pendingAvatar.id);
+
+      if (error) throw error;
+
+      toast.success(t("avatars.errors.namedSuccess"));
+      fetchAvatars();
+      setShowNameDialog(false);
+      setShowHeadshotDialog(true);
+    } catch (error) {
+      console.error("Error naming avatar:", error);
+      toast.error(t("avatars.errors.failedName"));
+    }
+  };
+
+  const handleGenerateHeadshot = async () => {
+    if (!pendingAvatar) return;
+
+    try {
+      setGeneratingHeadshot(true);
+      const { data, error } = await supabase.functions.invoke("generate-headshot", {
+        body: { imageUrl: pendingAvatar.url, avatarId: pendingAvatar.id }
+      });
+
+      if (error) throw error;
+
+      toast.success(t("avatars.errors.headshotGenerated"));
+      fetchAvatars();
+      fetchHeadshotUsage(); // Refresh usage
+    } catch (error: any) {
+      console.error("Error generating headshot:", error);
+      toast.error(error.message || t("avatars.errors.failedHeadshot"));
+    } finally {
+      setGeneratingHeadshot(false);
+      setShowHeadshotDialog(false);
+      setPendingAvatar(null);
+    }
+  };
+
   const handleElementUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const file = event.target.files?.[0];
@@ -479,11 +642,17 @@ const CreateNew = () => {
     }
 
     setTextElements([...textElements, currentTextElement.trim()]);
+    setElementPositions(prev => ({ ...prev, [currentTextElement.trim()]: ["ai-decide"] }));
     setCurrentTextElement("");
   };
 
   const handleRemoveTextElement = (element: string) => {
     setTextElements(textElements.filter(e => e !== element));
+    setElementPositions(prev => {
+      const next = { ...prev };
+      delete next[element];
+      return next;
+    });
   };
 
   const fetchProducts = async () => {
@@ -739,18 +908,24 @@ const CreateNew = () => {
               customAvatarUrl: customAvatarUrl || undefined,
               avatarPositions: selectedAvatar || customAvatarUrl ? safeAvatarPositions : undefined,
               expressions: selectedAvatar || customAvatarUrl ? safeExpressions : undefined,
-              // Map selected products to include their specific positions, names and brands
-              elements: selectedProducts.map(id => {
-                const customEl = customElements.find(el => el.id === id);
-                const product = products.find(p => p.id === id);
-                return {
-                  id: customEl ? undefined : id,
-                  url: customEl ? customEl.url : undefined,
-                  position: (elementPositions[id]?.[0] || "center-right"),
-                  name: product?.title || undefined,
-                  brand: product?.brand || undefined,
-                };
-              }),
+              // Map selected products and text elements to include their specific positions, names and brands
+              elements: [
+                ...selectedProducts.map(id => {
+                  const customEl = customElements.find(el => el.id === id);
+                  const product = products.find(p => p.id === id);
+                  return {
+                    id: customEl ? undefined : id,
+                    url: customEl ? customEl.url : undefined,
+                    position: (elementPositions[id]?.[0] || "center-right"),
+                    name: product?.title || undefined,
+                    brand: product?.brand || undefined,
+                  };
+                }),
+                ...textElements.map(text => ({
+                  position: (elementPositions[text]?.[0] || "center-right"),
+                  name: text,
+                }))
+              ],
               userElements: textElements.length > 0 ? textElements.join(",") : undefined,
               productPositions: productPositions.length ? productPositions : ["ai-decide"],
               title: titleMode === "custom" ? (title || undefined) : undefined,
@@ -1151,6 +1326,93 @@ const CreateNew = () => {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t("avatars.nameYourAvatar")}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="avatar-name">{t("avatars.avatarName")}</Label>
+                <Input
+                  id="avatar-name"
+                  placeholder={t("avatars.avatarNamePlaceholder")}
+                  value={avatarName}
+                  onChange={(e) => setAvatarName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSaveName();
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("avatars.nameMention")}
+                </p>
+              </div>
+              <Button onClick={handleSaveName} className="w-full">
+                {t("avatars.saveName")}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={showHeadshotDialog} onOpenChange={setShowHeadshotDialog}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-500" />
+                {t("avatars.professionalHeadshot")}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {isFree ? (
+                  t("avatars.headshotFreeOnly")
+                ) : headshotLimitReached ? (
+                  t("avatars.headshotLimitReached", { limit: getHeadshotLimit() })
+                ) : (
+                  <>
+                    {t("avatars.headshotDescription")}
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {t("avatars.remainingThisMonth", { count: getHeadshotLimit() - headshotUsage })}
+                    </div>
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={generatingHeadshot}>
+                {isFree || headshotLimitReached ? t("common.cancel") : t("avatars.keepOriginal")}
+              </AlertDialogCancel>
+              {isFree ? (
+                <AlertDialogAction onClick={() => navigate("/profile")}>
+                  {t("avatars.viewPlans")}
+                </AlertDialogAction>
+              ) : headshotLimitReached ? (
+                <AlertDialogAction onClick={() => navigate("/profile")}>
+                  {t("avatars.upgradePlan")}
+                </AlertDialogAction>
+              ) : (
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleGenerateHeadshot();
+                  }}
+                  disabled={generatingHeadshot}
+                  className="bg-rose-500 hover:bg-rose-600"
+                >
+                  {generatingHeadshot ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {t("avatars.generating")}
+                    </>
+                  ) : (
+                    t("avatars.transformToHeadshot")
+                  )}
+                </AlertDialogAction>
+              )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-card/60 shadow-sm backdrop-blur">
@@ -1461,9 +1723,37 @@ const CreateNew = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
-                          {t("createNew.avatar.noAvatars")}
-                        </p>
+                        <Card 
+                          className={`cursor-pointer hover:bg-accent/50 transition-colors border-dashed ${isFreeAvatarLimited ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => {
+                            if (isFreeAvatarLimited) {
+                              toast.error(t("avatars.freeLimitReached"));
+                              return;
+                            }
+                            document.getElementById('permanent-avatar-upload')?.click();
+                          }}
+                        >
+                          <input
+                            id="permanent-avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePermanentAvatarUpload}
+                            className="hidden"
+                            disabled={isFreeAvatarLimited}
+                          />
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-full bg-primary/10">
+                                <Plus className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t("createNew.avatar.noAvatarsTitle")}</p>
+                                <p className="text-xs text-muted-foreground">{t("createNew.avatar.noAvatarsSubtitle")}</p>
+                              </div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          </CardContent>
+                        </Card>
                       )}
                     </CollapsibleSection>
 
@@ -1490,15 +1780,13 @@ const CreateNew = () => {
                           title={t("createNew.avatar.position")}
                           subtitle={t("createNew.avatar.positionSubtitle")}
                         >
-                          <MultiSelectChips
-                            label=""
+                          <AvatarPositionSelector
                             options={POSITION_OPTIONS}
                             value={avatarPositions}
                             onChange={setAvatarPositions}
                             showAiDecide
                             aiLabel={t("common.letAIDecide")}
                             aiDescription={t("createNew.aiVaryPositions")}
-                            customPlaceholder={t("createNew.addCustomPosition")}
                           />
                         </CollapsibleSection>
                       </>
@@ -1644,7 +1932,7 @@ const CreateNew = () => {
                       </div>
                     </CollapsibleSection>
 
-                            {selectedProducts.length > 0 && (
+                            {(selectedProducts.length > 0 || textElements.length > 0) && (
                       <CollapsibleSection
                         title={t("createNew.elements.elementPositions")}
                         subtitle={t("createNew.elements.elementPositionsSubtitle")}
@@ -1658,19 +1946,31 @@ const CreateNew = () => {
                             return (
                               <div key={id} className="space-y-3 p-4 rounded-lg bg-secondary/50 border border-border">
                                 <span className="text-sm font-medium text-foreground">{name}</span>
-                                <MultiSelectChips
-                                  label=""
+                                <AvatarPositionSelector
                                   options={POSITION_OPTIONS}
                                   value={elementPositions[id] || []}
                                   onChange={(next) => setElementPositions((prev) => ({ ...prev, [id]: next }))}
                                   showAiDecide
                                   aiLabel={t("common.letAIDecide")}
                                   aiDescription={t("createNew.aiVaryElementPositions")}
-                                  customPlaceholder={t("createNew.addCustomPosition")}
                                 />
                               </div>
                             );
                           })}
+
+                          {textElements.map(element => (
+                            <div key={`text-${element}`} className="space-y-3 p-4 rounded-lg bg-secondary/50 border border-border">
+                              <span className="text-sm font-medium text-foreground">{element}</span>
+                              <AvatarPositionSelector
+                                options={POSITION_OPTIONS}
+                                value={elementPositions[element] || []}
+                                onChange={(next) => setElementPositions((prev) => ({ ...prev, [element]: next }))}
+                                showAiDecide
+                                aiLabel={t("common.letAIDecide")}
+                                aiDescription={t("createNew.aiVaryElementPositions")}
+                              />
+                            </div>
+                          ))}
                         </div>
                       </CollapsibleSection>
                     )}
@@ -1748,7 +2048,19 @@ const CreateNew = () => {
                             onChange={setTextStyles}
                             showAiDecide
                             aiLabel={t("common.letAIDecide")}
-                            aiDescription={t("createNew.aiVaryTextStyles")}
+                            aiDescription={
+                              (() => {
+                                const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                                const thumbnailCount = selectedMode?.thumbnailCount || 1;
+                                if (thumbnailCount === 1) {
+                                  return t("createNew.aiVaryTextStyles1");
+                                } else if (thumbnailCount === 4) {
+                                  return t("createNew.aiVaryTextStyles4");
+                                } else {
+                                  return t("createNew.aiVaryTextStyles9");
+                                }
+                              })()
+                            }
                             customPlaceholder={t("createNew.addCustomTextStyle")}
                           />
                         ) : (
@@ -1819,15 +2131,13 @@ const CreateNew = () => {
                         title={t("createNew.title.textPosition")}
                         subtitle={t("createNew.title.textPositionSubtitle")}
                       >
-                        <MultiSelectChips
-                          label=""
+                        <AvatarPositionSelector
                           options={POSITION_OPTIONS}
                           value={textPositions}
                           onChange={setTextPositions}
                           showAiDecide
                           aiLabel={t("common.letAIDecide")}
                           aiDescription={t("createNew.aiVaryTextPositions")}
-                          customPlaceholder={t("createNew.addCustomPosition")}
                         />
                       </CollapsibleSection>
                     )}
@@ -1885,7 +2195,19 @@ const CreateNew = () => {
                         onChange={setVisualStyles}
                         showAiDecide
                         aiLabel={t("common.letAIDecide")}
-                        aiDescription={t("createNew.aiVaryVisualStyles")}
+                        aiDescription={
+                          (() => {
+                            const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                            const thumbnailCount = selectedMode?.thumbnailCount || 1;
+                            if (thumbnailCount === 1) {
+                              return t("createNew.aiVaryVisualStyles1");
+                            } else if (thumbnailCount === 4) {
+                              return t("createNew.aiVaryVisualStyles4");
+                            } else {
+                              return t("createNew.aiVaryVisualStyles9");
+                            }
+                          })()
+                        }
                         customPlaceholder={t("createNew.addCustomVisualStyle")}
                       />
                     </CollapsibleSection>
@@ -1899,30 +2221,42 @@ const CreateNew = () => {
                         <button
                           type="button"
                           onClick={() => setBackgroundAiDecide(!backgroundAiDecide)}
-                          className={`w-full px-4 py-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${backgroundAiDecide
-                            ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]"
-                            : "border-border/60 bg-card/50 hover:border-muted-foreground/50"
-                            }`}
+                          className={`w-[calc(100%-8px)] mx-1 px-4 py-3.5 rounded-[4px] border transition-all duration-200 ease-out flex items-start justify-between gap-3 ${
+                            backgroundAiDecide 
+                              ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]" 
+                              : "border-border/60 bg-card/40 hover:bg-card/60 hover:border-muted-foreground/50"
+                          }`}
                         >
                           <div className="text-left space-y-0.5">
                             <div className="font-semibold text-sm">{t("createNew.background.letAIDecide")}</div>
                             <div className="text-xs text-muted-foreground leading-relaxed">
-                              {t("createNew.background.letAIDecideDesc")}
+                              {(() => {
+                                const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                                const thumbnailCount = selectedMode?.thumbnailCount || 1;
+                                if (thumbnailCount === 1) {
+                                  return t("createNew.background.letAIDecideDesc1");
+                                } else if (thumbnailCount === 4) {
+                                  return t("createNew.background.letAIDecideDesc4");
+                                } else {
+                                  return t("createNew.background.letAIDecideDesc9");
+                                }
+                              })()}
                             </div>
                           </div>
-                          <div
-                            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${backgroundAiDecide
-                              ? "border-primary bg-primary"
-                              : "border-muted-foreground/40"
+                          <div className="mt-0.5 flex-shrink-0">
+                            <div
+                              className={`w-5 h-5 rounded-[2px] border-2 flex items-center justify-center transition-all duration-200 ease-out ${
+                                backgroundAiDecide
+                                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                  : "border-muted-foreground/40 bg-transparent"
                               }`}
-                          >
-                            {backgroundAiDecide && (
-                              <div className="w-2 h-2 rounded-full bg-primary-foreground" />
-                            )}
+                            >
+                              <Check className={`w-3.5 h-3.5 transition-all duration-200 ${backgroundAiDecide ? "opacity-100 scale-100" : "opacity-0 scale-75"}`} />
+                            </div>
                           </div>
                         </button>
 
-                        <div className={`mt-5 space-y-4 transition-opacity ${backgroundAiDecide ? "opacity-50 pointer-events-none" : ""}`}>
+                        <div className={`mt-1 space-y-4 transition-opacity ${backgroundAiDecide ? "opacity-50 pointer-events-none" : ""}`}>
                           <Select value={backgroundType} onValueChange={setBackgroundType}>
                             <SelectTrigger>
                               <SelectValue />

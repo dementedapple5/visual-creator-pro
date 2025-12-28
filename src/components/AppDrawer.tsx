@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { calculateRemainingGenerations, getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
+import { getGenerationLimitLabel } from "@/lib/generationLimits";
+import { useSubscription } from "@/hooks/use-subscription";
 
 const getMainMenuItems = (t: (key: string) => string) => [
   { icon: Home, label: t("navigation.dashboard"), path: "/dashboard" },
@@ -179,20 +180,6 @@ const getSubscriptionPlansData = (t: (key: string) => string) => {
   }));
 };
 
-// Type for subscription response from check-subscription function
-interface SubscriptionData {
-  subscribed: boolean;
-  is_super_admin?: boolean;
-  product_id: string | null;
-  subscription_end: string | null;
-  plan_name: string;
-  plan_tier: "free" | "starter" | "pro" | "enterprise";
-  monthly_limit: number;
-  is_daily_limit: boolean;
-  billing_period_start: string | null;
-  billing_period_end: string | null;
-}
-
 export const AppDrawer = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -200,21 +187,15 @@ export const AppDrawer = () => {
   const [open, setOpen] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("yearly");
-  const [loading, setLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
   const [profile, setProfile] = useState<{ username: string | null; email: string | null } | null>(null);
-  const [generationsCount, setGenerationsCount] = useState(0);
-  const [remainingGenerations, setRemainingGenerations] = useState(1);
-  const [subscription, setSubscription] = useState<SubscriptionData>({ 
-    subscribed: false, 
-    product_id: null,
-    subscription_end: null,
-    plan_name: "Free",
-    plan_tier: "free",
-    monthly_limit: 1,
-    is_daily_limit: true,
-    billing_period_start: null,
-    billing_period_end: null,
-  });
+  
+  const { 
+    subscription, 
+    creditsUsed, 
+    remainingCredits, 
+    refetch: refetchSubscription 
+  } = useSubscription();
 
   const mainMenuItems = getMainMenuItems(t);
   const contentMenuItems = getContentMenuItems(t);
@@ -230,16 +211,17 @@ export const AppDrawer = () => {
   const limitLabel = getGenerationLimitLabel(subscription);
 
   useEffect(() => {
-    fetchUserData();
+    fetchProfile();
   }, []);
 
   useEffect(() => {
     if (open) {
-      fetchUserData();
+      fetchProfile();
+      refetchSubscription();
     }
-  }, [open]);
+  }, [open, refetchSubscription]);
 
-  const fetchUserData = async () => {
+  const fetchProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -253,26 +235,6 @@ export const AppDrawer = () => {
     if (profileData) {
       setProfile(profileData);
     }
-
-    // Fetch subscription status first
-    const { data: subscriptionData } = await supabase.functions.invoke("check-subscription");
-    if (subscriptionData && !subscriptionData.error) {
-      setSubscription(subscriptionData);
-    }
-
-    const activeSubscription = subscriptionData && !subscriptionData.error ? subscriptionData : subscription;
-    const countStartDate = getGenerationWindowStart(activeSubscription || {});
-
-    const { data: usageData } = await supabase
-      .from("generations")
-      .select("credits_used")
-      .eq("user_id", user.id)
-      .in("status", ["completed", "processing"])
-      .gte("created_at", countStartDate);
-
-    const usedGenerations = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
-    setGenerationsCount(usedGenerations);
-    setRemainingGenerations(calculateRemainingGenerations(activeSubscription || {}, usedGenerations));
   };
 
   const getInitials = () => {
@@ -298,7 +260,7 @@ export const AppDrawer = () => {
 
   const handleSubscribe = async (priceId: string) => {
     try {
-      setLoading(true);
+      setStripeLoading(true);
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId },
       });
@@ -309,12 +271,15 @@ export const AppDrawer = () => {
         window.open(data.url, "_blank");
         toast.success(t("drawer.openingCheckout"));
         setUpgradeDialogOpen(false);
-        setTimeout(() => fetchUserData(), 3000);
+        setTimeout(() => {
+          refetchSubscription();
+          fetchProfile();
+        }, 3000);
       }
     } catch (error: any) {
       toast.error(error.message || t("drawer.failedCheckout"));
     } finally {
-      setLoading(false);
+      setStripeLoading(false);
     }
   };
 
@@ -374,8 +339,8 @@ export const AppDrawer = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {subscription.is_super_admin 
-                    ? `${generationsCount} ${t("drawer.generated")}`
-                    : `${generationsCount}/${subscription.monthly_limit} ${t("drawer.used")}`}
+                    ? `${creditsUsed} ${t("drawer.generated")}`
+                    : `${creditsUsed}/${subscription.monthly_limit} ${t("drawer.used")}`}
                 </p>
                 {!subscription.subscribed && !subscription.is_super_admin && (
                   <Button
@@ -397,7 +362,7 @@ export const AppDrawer = () => {
                 const isActive = location.pathname === item.path;
                 const Icon = item.icon;
                 const isCreate = item.path === "/create";
-                const isLimitReached = remainingGenerations <= 0;
+                const isLimitReached = remainingCredits <= 0;
                 const isDisabled = isCreate && isLimitReached;
                 
                 return (
@@ -527,17 +492,14 @@ export const AppDrawer = () => {
               
               // Calculate display price
               let displayPrice: string;
-              let priceLabel: string;
               
               if (billingInterval === "monthly") {
                 displayPrice = plan.monthlyPrice;
-                priceLabel = "/month";
               } else {
                 // For yearly, show monthly equivalent
                 const yearlyPriceNum = parseFloat(plan.yearlyPrice.replace("$", ""));
                 const monthlyEquivalent = (yearlyPriceNum / 12).toFixed(2);
                 displayPrice = `$${monthlyEquivalent}`;
-                priceLabel = "/month";
               }
 
               return (
@@ -582,14 +544,14 @@ export const AppDrawer = () => {
 
                     <Button
                       onClick={() => handleSubscribe(priceId)}
-                      disabled={loading}
+                      disabled={stripeLoading}
                       className={`w-full ${
                         isPopular
                           ? "bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white border-0 shadow-lg shadow-purple-500/20"
                           : "bg-primary hover:bg-primary/90 text-primary-foreground"
                       }`}
                     >
-                      {loading ? t("common.processing") : t("common.getStartedButton")}
+                      {stripeLoading ? t("common.processing") : t("common.getStartedButton")}
                     </Button>
                   </div>
                 </div>

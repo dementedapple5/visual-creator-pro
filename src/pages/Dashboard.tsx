@@ -298,16 +298,6 @@ const Dashboard = () => {
               {t("dashboard.subtitle")}
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button
-              onClick={() => navigate("/create")}
-              size="sm"
-              className="shadow-lg shadow-primary/20"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {t("dashboard.newThumbnail")}
-            </Button>
-          </div>
         </div>
 
         {/* Navigation Cards */}

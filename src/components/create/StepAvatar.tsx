@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { compressAndConvertToJpg } from "@/lib/imageUtils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { AvatarPositionSelector } from "@/components/AvatarPositionSelector";
 
 interface StepAvatarProps {
   data: CreateData;
@@ -33,50 +34,7 @@ const POSITIONS = [
 ];
 
 const AvatarCustomization = ({ data, updateData }: { data: CreateData; updateData: (updates: Partial<CreateData>) => void }) => {
-  const [customPosition, setCustomPosition] = useState("");
   const selectedPositions = data.avatarPositions || [];
-  const isAiMode = selectedPositions.includes("ai-decide");
-
-  const handlePositionToggle = (positionId: string) => {
-    if (positionId === "ai-decide") {
-      // Toggle AI mode - clears other selections
-      if (isAiMode) {
-        updateData({ avatarPositions: [] });
-      } else {
-        updateData({ avatarPositions: ["ai-decide"] });
-      }
-      return;
-    }
-
-    // If AI mode is active, switch to manual selection
-    if (isAiMode) {
-      updateData({ avatarPositions: [positionId] });
-      return;
-    }
-
-    const isSelected = selectedPositions.includes(positionId);
-    
-    if (isSelected) {
-      updateData({ avatarPositions: selectedPositions.filter(p => p !== positionId) });
-    } else {
-      updateData({ avatarPositions: [...selectedPositions, positionId] });
-    }
-  };
-
-  const addCustomPosition = () => {
-    if (customPosition.trim() && !selectedPositions.includes(customPosition.trim())) {
-      if (isAiMode) {
-        updateData({ avatarPositions: [customPosition.trim()] });
-      } else {
-        updateData({ avatarPositions: [...selectedPositions, customPosition.trim()] });
-      }
-      setCustomPosition("");
-    }
-  };
-
-  const removePosition = (positionId: string) => {
-    updateData({ avatarPositions: selectedPositions.filter(p => p !== positionId) });
-  };
 
   return (
     <div className="space-y-6 p-6 bg-card border border-border rounded-lg transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-top-2">
@@ -85,84 +43,14 @@ const AvatarCustomization = ({ data, updateData }: { data: CreateData; updateDat
       <div className="space-y-3">
         <Label>Positions (select multiple for variations)</Label>
         
-        {/* AI Decide Option */}
-        <button
-          onClick={() => handlePositionToggle("ai-decide")}
-          className={`w-full p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-            isAiMode
-              ? "border-primary bg-primary/10"
-              : "border-border hover:border-primary/50"
-          }`}
-        >
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isAiMode ? "bg-primary" : "bg-gradient-to-br from-violet-500 to-fuchsia-500"
-          }`}>
-            {isAiMode ? <Check className="w-4 h-4 text-primary-foreground" /> : <Sparkles className="w-4 h-4 text-white" />}
-          </div>
-          <div className="text-left">
-            <div className="font-medium text-sm">Let AI Decide</div>
-            <div className="text-xs text-muted-foreground">AI will choose optimal positions</div>
-          </div>
-        </button>
-
-        {/* Position Chips */}
-        <div className={`flex flex-wrap gap-2 ${isAiMode ? "opacity-50 pointer-events-none" : ""}`}>
-          {POSITIONS.map((position) => {
-            const isSelected = selectedPositions.includes(position.id);
-            return (
-              <button
-                key={position.id}
-                onClick={() => handlePositionToggle(position.id)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  isSelected
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted hover:bg-muted/80 text-foreground"
-                }`}
-              >
-                {isSelected && <Check className="w-3 h-3 inline mr-1" />}
-                {position.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Custom Position Input */}
-        <div className={`flex gap-2 ${isAiMode ? "opacity-50 pointer-events-none" : ""}`}>
-          <Input
-            placeholder="Add custom position..."
-            value={customPosition}
-            onChange={(e) => setCustomPosition(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addCustomPosition()}
-            className="flex-1"
-          />
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={addCustomPosition}
-            disabled={!customPosition.trim()}
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Selected Custom Positions */}
-        {selectedPositions.filter(p => p !== "ai-decide" && !POSITIONS.find(pos => pos.id === p)).length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {selectedPositions
-              .filter(p => p !== "ai-decide" && !POSITIONS.find(pos => pos.id === p))
-              .map((posId) => (
-                <span
-                  key={posId}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-sm"
-                >
-                  {posId}
-                  <button onClick={() => removePosition(posId)} className="hover:text-destructive">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-          </div>
-        )}
+        <AvatarPositionSelector
+          options={POSITIONS.map(p => ({ value: p.id, label: p.label }))}
+          value={selectedPositions}
+          onChange={(next) => updateData({ avatarPositions: next })}
+          showAiDecide
+          aiLabel="Let AI Decide"
+          aiDescription="AI will choose optimal positions"
+        />
       </div>
 
       <div>

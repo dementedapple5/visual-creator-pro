@@ -162,6 +162,13 @@ CRITICAL: Maintain the overall composition and style of the original thumbnail w
     else if (isGridMode) {
       const gridSize = gridCount === 4 ? 2 : 3;
       const gridDescription = gridCount === 4 ? "2x2 grid (2 columns, 2 rows)" : "3x3 grid (3 columns, 3 rows)";
+      // Keep this compact: long prompts are a common cause of image failures/timeouts.
+      const viralVisualGuidelines =
+        `Viral YouTube look (visual): high contrast, warm key + cool rim light, dark/blur background, ` +
+        `bokeh/flares, clean cutout, strong rim/subject glow, subtle 3D depth, no clutter, mobile-sharp 16:9.`;
+      const viralTextGuidelines =
+        `Viral YouTube text: bold condensed ALL-CAPS (Anton/Bebas/Impact vibe), 1–4 word headline, ` +
+        `high contrast, subtle 3D + shadow + glow, readable on mobile.`;
 
       prompt = `Generate a ${gridDescription.toUpperCase()} GRID IMAGE containing ${gridCount} DISTINCT ${platformType} thumbnail variations.
 
@@ -190,15 +197,17 @@ VARIATION INSTRUCTIONS FOR THE ${gridCount} THUMBNAILS:`;
       }
 
       // Visual styles
-      if (visualStyles.includes("ai-decide")) {
-        prompt += `\n- Vary VISUAL STYLES across thumbnails (epic, dramatic, vibrant, professional, creative, minimalist)`;
-      } else if (visualStyles.length > 0) {
-        prompt += `\n- Use these VISUAL STYLES across thumbnails: ${visualStyles.join(", ")}`;
+      const nonAiGridVisualStyles = visualStyles.filter((v) => v !== "ai-decide");
+      if (nonAiGridVisualStyles.length > 0) {
+        prompt += `\n- Use these VISUAL STYLES across thumbnails: ${nonAiGridVisualStyles.join(", ")}`;
+      } else if (visualStyles.includes("ai-decide")) {
+        prompt += `\n- VISUAL STYLE (AI DECIDE): Apply this viral visual spec to all thumbnails: ${viralVisualGuidelines}`;
       }
 
       // Text styles
       if (textStyles.includes("ai-decide")) {
-        prompt += `\n- Vary TEXT STYLES across thumbnails (bold & large, elegant script, modern sans, handwritten, futuristic, classic serif)`;
+        // If user wants AI to decide text style, constrain it to a proven viral spec.
+        prompt += `\n- TEXT STYLE (AI DECIDE): Apply this viral typography spec across thumbnails: ${viralTextGuidelines}`;
       } else if (textStyles.length > 0 && !textStyles.includes("Image Reference")) {
         prompt += `\n- Use these TEXT STYLES across thumbnails: ${textStyles.join(", ")}`;
       }
@@ -260,149 +269,210 @@ CRITICAL INSTRUCTIONS:
       // Define textStyles in the outer scope so it's available for both grid and single mode sections
       const textStyles = thumbnailData.textStyles || (thumbnailData.textStyle ? [thumbnailData.textStyle] : []);
 
-      // Visual style (only for single mode, grid mode handles this in variations)
-      if (!isGridMode && thumbnailData.visualStyle) {
-        const styles: Record<string, string> = {
-          epic: "Epic and bold with dramatic lighting and strong contrast",
-          dramatic: "Cinematic and dramatic with high contrast",
-          vibrant: "Vibrant, colorful, and energetic",
-          professional: "Clean, professional, and polished",
-          creative: "Artistic, creative, and unique",
-          minimalist: "Simple, minimalist, and elegant",
-        };
-        prompt += `Style: ${styles[thumbnailData.visualStyle] || thumbnailData.visualStyle}. `;
-      }
+      // Reuse the same compact viral style spec used by QuickCreate (kept short on purpose)
+      const viralVisualGuidelines =
+        `Viral YouTube look (visual): high contrast, warm key + cool rim light, dark/blur background, ` +
+        `bokeh/flares, clean cutout, strong rim/subject glow, subtle 3D depth, no clutter, mobile-sharp 16:9.`;
+      const viralTextGuidelines =
+        `Viral YouTube text: bold condensed ALL-CAPS (Anton/Bebas/Impact vibe), 1–4 word headline, ` +
+        `high contrast, subtle 3D + shadow + glow, readable on mobile.`;
+
+      // In single-thumbnail mode, the frontend often sends plural arrays (e.g. textPositions)
+      // even when only one option is selected. Normalize to a single value so the prompt
+      // always includes the requested expression/positions.
+      const pickFirstNonAi = (arr?: string[]) =>
+        arr?.find((v) => typeof v === "string" && v.trim() && v !== "ai-decide");
+      const singleExpression = thumbnailData.expression || pickFirstNonAi(thumbnailData.expressions);
+      const singleAvatarPosition = thumbnailData.avatarPosition || pickFirstNonAi(thumbnailData.avatarPositions);
+      const singleTextPosition = thumbnailData.textPosition || pickFirstNonAi(thumbnailData.textPositions);
+      const nonAiVisualStyles = (thumbnailData.visualStyles || []).filter((v) => typeof v === "string" && v.trim() && v !== "ai-decide");
+      const wantsAiVisualStyle =
+        // Only treat as AI-decide if there is NO explicit style selected.
+        !thumbnailData.visualStyle &&
+        nonAiVisualStyles.length === 0 &&
+        (thumbnailData.visualStyle === "ai-decide" ||
+          (Array.isArray(thumbnailData.visualStyles) && thumbnailData.visualStyles.includes("ai-decide")));
+      const singleVisualStyle =
+        // Prefer explicit single field first (unless it's ai-decide)
+        (thumbnailData.visualStyle && thumbnailData.visualStyle !== "ai-decide" ? thumbnailData.visualStyle : undefined) ||
+        pickFirstNonAi(thumbnailData.visualStyles);
 
       // Background (applies to all thumbnails in grid)
       if (thumbnailData.backgroundType && thumbnailData.backgroundValue) {
         if (thumbnailData.backgroundType === "preset") {
-          prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue} setting. `;
+          prompt += `\n\nBACKGROUND: ${thumbnailData.backgroundValue} setting.`;
         } else if (thumbnailData.backgroundType === "color" || thumbnailData.backgroundType === "solid") {
-          prompt += `\n\nBackground for all thumbnails: solid ${thumbnailData.backgroundValue} color. `;
+          prompt += `\n\nBACKGROUND: solid ${thumbnailData.backgroundValue} color.`;
         } else if (thumbnailData.backgroundType === "gradient") {
           const colors = thumbnailData.backgroundValue.split(",");
           if (colors.length >= 2) {
-            prompt += `\n\nBackground for all thumbnails: a gradient from ${colors[0]} to ${colors[1]}. `;
+            prompt += `\n\nBACKGROUND: a gradient from ${colors[0]} to ${colors[1]}.`;
           } else {
-            prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue} gradient. `;
+            prompt += `\n\nBACKGROUND: ${thumbnailData.backgroundValue} gradient.`;
           }
         } else if (thumbnailData.backgroundType === "prompt" || thumbnailData.backgroundType === "custom-prompt") {
-          prompt += `\n\nBackground for all thumbnails: ${thumbnailData.backgroundValue}. `;
+          prompt += `\n\nBACKGROUND: ${thumbnailData.backgroundValue}.`;
         } else if (thumbnailData.backgroundType === "avatar" || thumbnailData.backgroundType === "avatar-bg") {
-          prompt += `\n\nCRITICAL: Keep and preserve the EXACT original background from the avatar image in all thumbnails. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image. `;
+          prompt += `\n\nBACKGROUND: CRITICAL - Keep and preserve the EXACT original background from the avatar image. Do NOT change, modify, or replace the background in any way. The background must remain identical to the source avatar image.`;
         } else if (thumbnailData.backgroundType === "custom" || thumbnailData.backgroundType === "image") {
-          prompt += `\n\nBackground for all thumbnails: use the provided background image. Dont modify the image in any way, keep it as is. Keep everything intact even if there are people in the background image.`;
+          prompt += `\n\nBACKGROUND: Use the provided background image. Do not modify the image in any way, keep it as is. Keep everything intact even if there are people in the background image.`;
         }
       }
 
-      // Elements/Products context (name and brand for better AI understanding)
-      if (thumbnailData.elements && thumbnailData.elements.length > 0) {
-        const elementsWithInfo = thumbnailData.elements.filter(el => el.name || el.brand);
-        if (elementsWithInfo.length > 0) {
-          prompt += `\n\nELEMENTS/PRODUCTS IN THE THUMBNAIL:`;
-          elementsWithInfo.forEach((element, index) => {
-            const elementInfo: string[] = [];
-            if (element.name) elementInfo.push(element.name);
-            if (element.brand) elementInfo.push(`by ${element.brand}`);
-            if (elementInfo.length > 0) {
-              prompt += `\n- Element ${index + 1}: ${elementInfo.join(' ')}`;
-            }
-          });
-          prompt += `\n\nMake sure these products/elements are prominently featured and recognizable in the thumbnail. `;
+      // Visual style (only for single mode, grid mode handles this in variations)
+      if (!isGridMode) {
+        if (wantsAiVisualStyle) {
+          // IMPORTANT: this is visual-only so we don't override user-selected typography.
+          prompt += `\n\nVISUAL STYLE (AI DECIDE): Apply this viral visual spec: ${viralVisualGuidelines}`;
+        } else if (singleVisualStyle) {
+          const styles: Record<string, string> = {
+            epic: "Epic and bold with dramatic lighting and strong contrast",
+            dramatic: "Cinematic and dramatic with high contrast",
+            vibrant: "Vibrant, colorful, and energetic",
+            professional: "Clean, professional, and polished",
+            creative: "Artistic, creative, and unique",
+            minimalist: "Simple, minimalist, and elegant",
+          };
+          prompt += `\n\nVISUAL STYLE: ${styles[singleVisualStyle] || singleVisualStyle}.`;
         }
-      } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
-        // Legacy support: fetch product details for context
+      }
+
+      // Avatar section (expression + position) - grouped together for clarity
+      if (!isGridMode && (thumbnailData.avatarId || thumbnailData.customAvatarUrl)) {
+        const hasExpression = singleExpression && singleExpression !== "ai-decide";
+        const hasPosition = singleAvatarPosition && singleAvatarPosition !== "ai-decide";
+        
+        if (hasExpression || hasPosition) {
+          prompt += `\n\nAVATAR/PERSON REQUIREMENTS:`;
+          if (hasExpression) {
+            prompt += `\n- Facial expression: ${singleExpression} (CRITICAL - the person must show this exact expression)`;
+          }
+          if (hasPosition) {
+            const position = singleAvatarPosition!.replace(/-/g, ' ');
+            prompt += `\n- Position: ${position} (CRITICAL - the avatar must be positioned exactly at ${position}, this is non-negotiable)`;
+          }
+        }
+      }
+
+      // Text section (content + styling + position) - grouped together
+      if (!isGridMode) {
+        const hasTitle = thumbnailData.title && thumbnailData.titleMode !== 'ai';
+        const hasSubtitle = thumbnailData.subtitle && thumbnailData.subtitleMode !== 'ai';
+        const hasTextPosition = singleTextPosition && singleTextPosition !== "ai-decide";
+        
+        if (hasTitle || hasSubtitle || hasTextPosition) {
+          prompt += `\n\nTEXT REQUIREMENTS:`;
+          
+          if (hasTitle) {
+            // Check if using image-based font style reference
+            if (thumbnailData.fontStyleImageUrl) {
+              prompt += `\n- Main title: "${thumbnailData.title}" styled EXACTLY like the font/text style shown in the provided font reference image. Match the font style, weight, effects, colors, and overall aesthetic from the reference image.`;
+            } else if (!textStyles.includes("ai-decide") && textStyles.length > 0) {
+              const textStyleDescriptions: Record<string, string> = {
+                "Bold & Large": "large, bold, and impactful",
+                "Elegant Script": "elegant script style",
+                "Modern Sans": "modern, clean sans-serif",
+                "Handwritten": "handwritten style",
+                "Futuristic": "futuristic style with modern effects",
+                "Classic Serif": "classic serif typography"
+              };
+              const primaryStyle = textStyles[0];
+              const textStyleDesc = textStyleDescriptions[primaryStyle] || primaryStyle;
+              prompt += `\n- Main title: "${thumbnailData.title}" in ${textStyleDesc} typography.`;
+            } else {
+              prompt += `\n- Main title: "${thumbnailData.title}".`;
+              // If user chose "let AI decide" for text style, add the viral typography spec here (text-only).
+              if (textStyles.includes("ai-decide")) {
+                prompt += `\n- Typography (AI decide): ${viralTextGuidelines}`;
+              }
+            }
+          }
+          
+          if (hasSubtitle) {
+            prompt += `\n- Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title.`;
+          }
+          
+          if (hasTextPosition) {
+            const position = singleTextPosition!.replace(/-/g, ' ');
+            prompt += `\n- Text position: ${position} (CRITICAL - the text must be positioned exactly at ${position}, this is non-negotiable)`;
+          }
+        }
+      } else {
+        // Grid mode: just include text content if specified
+        if (thumbnailData.title && thumbnailData.titleMode !== 'ai') {
+          if (thumbnailData.fontStyleImageUrl) {
+            prompt += `\n\nTEXT: Include "${thumbnailData.title}" styled EXACTLY like the font/text style shown in the provided font reference image. Match the font style, weight, effects, colors, and overall aesthetic from the reference image.`;
+          } else {
+            prompt += `\n\nTEXT: Include "${thumbnailData.title}"${thumbnailData.subtitle && thumbnailData.subtitleMode !== 'ai' ? ` with subtitle "${thumbnailData.subtitle}"` : ''}.`;
+          }
+        }
+      }
+
+      // Elements section (list + positions) - consolidated to avoid repetition
+      let elementsToInclude: Array<{ name: string; brand?: string; position?: string }> = [];
+      
+      // Collect elements from the elements array (primary source - has complete info including positions)
+      if (thumbnailData.elements && thumbnailData.elements.length > 0) {
+        thumbnailData.elements.forEach((element) => {
+          // Include elements that have a name (text elements and products)
+          if (element.name) {
+            elementsToInclude.push({
+              name: element.name,
+              brand: element.brand,
+              position: element.position
+            });
+          }
+        });
+      }
+      
+      // Legacy/fallback: add user-defined text elements only if not already in elements array
+      // (userElements is typically redundant since textElements are already in elements array)
+      if (thumbnailData.userElements && elementsToInclude.length === 0) {
+        const userElementList = thumbnailData.userElements.split(',').map(el => el.trim()).filter(Boolean);
+        userElementList.forEach((elementName) => {
+          elementsToInclude.push({ name: elementName });
+        });
+      }
+      
+      // Legacy support: fetch product details if productIds provided (only if no elements found yet)
+      if (elementsToInclude.length === 0 && thumbnailData.productIds && thumbnailData.productIds.length > 0) {
         const { data: productDetails } = await supabase
           .from("products")
           .select("id, title, brand")
           .in("id", thumbnailData.productIds);
 
         if (productDetails && productDetails.length > 0) {
-          const productsWithInfo = productDetails.filter(p => p.title || p.brand);
-          if (productsWithInfo.length > 0) {
-            prompt += `\n\nELEMENTS/PRODUCTS IN THE THUMBNAIL:`;
-            productsWithInfo.forEach((product, index) => {
-              const productInfo: string[] = [];
-              if (product.title) productInfo.push(product.title);
-              if (product.brand) productInfo.push(`by ${product.brand}`);
-              if (productInfo.length > 0) {
-                prompt += `\n- Element ${index + 1}: ${productInfo.join(' ')}`;
-              }
-            });
-            prompt += `\n\nMake sure these products/elements are prominently featured and recognizable in the thumbnail. `;
-          }
-        }
-      }
-
-      // Add user-defined text elements
-      if (thumbnailData.userElements) {
-        prompt += `\n\nINCLUDE THESE SPECIFIC ELEMENTS: ${thumbnailData.userElements}. Make sure they are visible and integrated into the scene. `;
-      }
-
-      // Text styling (applies to all thumbnails)
-      if (thumbnailData.title && thumbnailData.titleMode !== 'ai') {
-        // Check if using image-based font style reference
-        if (thumbnailData.fontStyleImageUrl) {
-          prompt += `Include the text "${thumbnailData.title}" styled EXACTLY like the font/text style shown in the provided font reference image. Match the font style, weight, effects, colors, and overall aesthetic from the reference image. `;
-        } else if (!textStyles.includes("ai-decide") && textStyles.length > 0) {
-          // Use specific text styles if not in AI decide mode
-          const textStyleDescriptions: Record<string, string> = {
-            "Bold & Large": "large, bold, and impactful",
-            "Elegant Script": "elegant script style",
-            "Modern Sans": "modern, clean sans-serif",
-            "Handwritten": "handwritten style",
-            "Futuristic": "futuristic style with modern effects",
-            "Classic Serif": "classic serif typography"
-          };
-          // Use the first style for the base description when multiple are selected
-          const primaryStyle = textStyles[0];
-          const textStyleDesc = textStyleDescriptions[primaryStyle] || primaryStyle;
-          prompt += `Include the text "${thumbnailData.title}" in ${textStyleDesc} typography in all thumbnails. `;
-        } else {
-          // AI will decide or no specific style - just include the title
-          prompt += `Include the text "${thumbnailData.title}" with varied typography styles across thumbnails. `;
-        }
-      }
-
-      if (thumbnailData.subtitle && thumbnailData.subtitleMode !== 'ai') {
-        prompt += `Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title. `;
-      }
-
-      // Single mode specific positioning (grid mode handles positions in variations)
-      if (!isGridMode) {
-        // Add text positioning
-        if (thumbnailData.textPosition) {
-          prompt += `Position the text at ${thumbnailData.textPosition.replace('-', ' ')}. `;
-        }
-
-        // Expression for avatar
-        if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.expression) {
-          prompt += `The person should have a ${thumbnailData.expression} facial expression. `;
-        }
-
-        // Avatar positioning
-        if ((thumbnailData.avatarId || thumbnailData.customAvatarUrl) && thumbnailData.avatarPosition) {
-          prompt += `Position the avatar at ${thumbnailData.avatarPosition.replace('-', ' ')}. this is unnegotiable, the avatar must be in the position specified.`;
-        }
-
-        // Elements positioning
-        if (thumbnailData.elements && thumbnailData.elements.length > 0) {
-          thumbnailData.elements.forEach((element, index) => {
-            const position = element.position.replace('-', ' ');
-            // Build element description with name and brand if available
-            let elementDesc = `element ${index + 1}`;
-            if (element.name || element.brand) {
-              const parts: string[] = [];
-              if (element.name) parts.push(element.name);
-              if (element.brand) parts.push(`(${element.brand})`);
-              elementDesc = parts.join(' ');
+          productDetails.forEach((product) => {
+            if (product.title) {
+              elementsToInclude.push({
+                name: product.title,
+                brand: product.brand || undefined,
+                position: thumbnailData.productPosition || undefined
+              });
             }
-            prompt += `Position ${elementDesc} at ${position}. `;
           });
-        } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0 && thumbnailData.productPosition) {
-          // Legacy support
-          prompt += `Position the product(s) at ${thumbnailData.productPosition.replace('-', ' ')}. `;
         }
+      }
+      
+      // Build elements section if we have any elements
+      if (elementsToInclude.length > 0) {
+        prompt += `\n\nELEMENTS/PRODUCTS TO INCLUDE:`;
+        elementsToInclude.forEach((element) => {
+          let elementLabel: string;
+          if (element.brand) {
+            elementLabel = `${element.name} (by ${element.brand})`;
+          } else {
+            elementLabel = element.name;
+          }
+          
+          if (!isGridMode && element.position && element.position !== "ai-decide") {
+            const position = element.position.replace(/-/g, ' ');
+            prompt += `\n- ${elementLabel} - Position at ${position} (CRITICAL - must be positioned exactly at ${position}, this is non-negotiable)`;
+          } else {
+            prompt += `\n- ${elementLabel}`;
+          }
+        });
+        prompt += `\nMake sure all elements/products are prominently featured and recognizable in the thumbnail.`;
       }
     }
 

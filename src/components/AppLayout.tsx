@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { AppDrawer } from "./AppDrawer";
+import { CreditsBadge } from "./CreditsBadge";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -15,6 +16,11 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       </div>
 
       <AppDrawer />
+      
+      <div className="fixed top-4 right-4 z-50">
+        <CreditsBadge />
+      </div>
+
       <main className="pl-0 pt-16 relative z-10">{children}</main>
     </div>
   );
