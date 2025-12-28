@@ -186,7 +186,7 @@ serve(async (req) => {
             },
           ],
           generationConfig: {
-            responseModalities: ["TEXT", "IMAGE"],
+            responseModalities: ["IMAGE"],
             imageConfig: {
               aspectRatio: "1:1",
               imageSize: "2K",

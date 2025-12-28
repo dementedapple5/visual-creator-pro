@@ -15,10 +15,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles } from "lucide-react";
+import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { downloadImageWithSize, DOWNLOAD_SIZES } from "@/lib/imageUtils";
 import {
   Pagination,
   PaginationContent,
@@ -87,6 +88,7 @@ const Dashboard = () => {
   // const [loading, setLoading] = useState(true); // Replaced by useQuery
   const [pendingGenerations, setPendingGenerations] = useState<Generation[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const previousPendingCountRef = useRef(0);
 
   const { data: { thumbnails, count } = { thumbnails: [], count: 0 }, isLoading: loading } = useQuery({
@@ -211,6 +213,32 @@ const Dashboard = () => {
       console.error("Error fetching pending generations:", error);
     }
   }, []);
+
+  const handleDownload = async (thumbnail: Thumbnail) => {
+    try {
+      setDownloadingIds((prev) => new Set(prev).add(thumbnail.id));
+      
+      // Default to YouTube size for dashboard quick download
+      const option = DOWNLOAD_SIZES.youtube;
+      
+      await downloadImageWithSize(thumbnail.image_url, {
+        width: option.width,
+        height: option.height,
+        fileName: `${thumbnail.title || "thumbnail"}-${option.width}x${option.height}.png`,
+      });
+      
+      toast.success("Download started");
+    } catch (error) {
+      console.error("Error downloading thumbnail:", error);
+      toast.error("Failed to download thumbnail");
+    } finally {
+      setDownloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(thumbnail.id);
+        return next;
+      });
+    }
+  };
 
   // Check if a thumbnail has a pending iteration
   const hasPendingIteration = (thumbnailId: string) => {
@@ -558,17 +586,36 @@ const Dashboard = () => {
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-border/40 mt-auto">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/thumbnail/${thumbnail.id}`);
-                          }}
-                          variant="secondary"
-                          size="sm"
-                          className="h-9 px-4 rounded bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
-                        >
-                          View Details
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/thumbnail/${thumbnail.id}`);
+                            }}
+                            variant="secondary"
+                            size="sm"
+                            className="h-9 px-4 rounded bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                          >
+                            View Details
+                          </Button>
+                          
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(thumbnail);
+                            }}
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 rounded border-border/40 hover:bg-secondary/80"
+                            disabled={downloadingIds.has(thumbnail.id)}
+                          >
+                            {downloadingIds.has(thumbnail.id) ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
 
                         <span className="text-xs font-medium text-muted-foreground/60">
                           {formatDate(thumbnail.created_at)}

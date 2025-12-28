@@ -609,7 +609,7 @@ CRITICAL INSTRUCTIONS:
                 },
               ],
               generationConfig: {
-                responseModalities: ["TEXT", "IMAGE"],
+                responseModalities: ["IMAGE"],
                 imageConfig: {
                   aspectRatio: aspectRatio,
                   imageSize: resolution as "1K" | "2K" | "4K", // Use resolution from request

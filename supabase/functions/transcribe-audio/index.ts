@@ -1,10 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const logger = createLogger("transcribe-audio");
 
 // Process base64 in chunks to prevent memory issues
 function processBase64Chunks(base64String: string, chunkSize = 32768): Uint8Array {
@@ -60,23 +59,28 @@ serve(async (req) => {
 
   try {
     const { audio, mimeType = 'video/mp4' } = await req.json();
+    logger.info("Starting audio transcription", { mimeType, base64Length: audio?.length });
     
     if (!audio) {
+      logger.error("No audio data provided");
       throw new Error('No audio data provided');
     }
 
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
+      logger.error("OPENAI_API_KEY not configured");
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    console.log('Processing audio for transcription');
-    console.log('MIME type:', mimeType);
-    console.log('Base64 length:', audio.length);
-    
     // Process base64 to binary using chunks to prevent memory issues
-    const binaryAudio = processBase64Chunks(audio);
-    console.log('Binary audio size:', binaryAudio.length, 'bytes');
+    let binaryAudio;
+    try {
+      binaryAudio = processBase64Chunks(audio);
+      logger.info('Binary audio processed', { size: binaryAudio.length });
+    } catch (e) {
+      logger.error("Failed to process base64 chunks", e);
+      throw new Error("Invalid audio data format");
+    }
     
     // Get appropriate file extension
     const fileExt = getFileExtension(mimeType);
@@ -88,7 +92,7 @@ serve(async (req) => {
     formData.append('file', blob, fileName);
     formData.append('model', 'whisper-1');
 
-    console.log('Sending to OpenAI Whisper API, file:', fileName, 'size:', blob.size);
+    logger.info('Sending to OpenAI Whisper API', { fileName, size: blob.size });
     
     // Send to OpenAI Whisper
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -101,13 +105,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error status:', response.status);
-      console.error('OpenAI API error:', errorText);
+      logger.error('OpenAI API error', { status: response.status, error: errorText });
       throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
     }
 
     const result = await response.json();
-    console.log('Transcription complete, text length:', result.text?.length);
+    logger.info('Transcription complete', { textLength: result.text?.length });
 
     return new Response(
       JSON.stringify({ text: result.text }),
@@ -115,10 +118,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Transcription error:', error);
+    logger.error('Transcription failed', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

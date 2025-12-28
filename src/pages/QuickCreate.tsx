@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Sparkles } from "lucide-react";
@@ -71,6 +71,7 @@ const QuickCreate = () => {
   const [titlePreviews, setTitlePreviews] = useState<string[]>([]);
   const [framesPreviews, setFramesPreviews] = useState<string[]>([]);
   const [audioPreview, setAudioPreview] = useState<string | null>(null);
+  const submitInFlightRef = useRef(false);
 
   useEffect(() => {
     checkUser();
@@ -84,6 +85,11 @@ const QuickCreate = () => {
   };
 
   const handleSubmit = async (input: { type: "url" | "file"; value: string | File; isViral: boolean }) => {
+    // Prevent duplicate submits (double click, lag, etc.)
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+
+    try {
     // Check credits before starting
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -204,6 +210,9 @@ const QuickCreate = () => {
 
       toast.error(error instanceof Error ? error.message : "Error processing video");
       setAppState("input");
+    }
+    } finally {
+      submitInFlightRef.current = false;
     }
   };
 
@@ -358,7 +367,7 @@ const QuickCreate = () => {
                 </motion.p>
               </motion.div>
 
-              <VideoInput onSubmit={handleSubmit} />
+              <VideoInput onSubmit={handleSubmit} isLoading={appState === "processing"} />
 
               {/* Features */}
               <motion.div

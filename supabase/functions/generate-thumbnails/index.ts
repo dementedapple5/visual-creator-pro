@@ -1,9 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const logger = createLogger("generate-thumbnails");
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  // Avoid stack overflow on large images by chunking
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
 
 function parseDataUrlImage(dataUrl: string): { mimeType: string; data: string } | null {
   // Expected: data:<mime>;base64,<data>
@@ -49,65 +60,36 @@ serve(async (req) => {
 
   try {
     const { thumbnailPrompts, frames, isViral } = await req.json();
+    logger.info("Starting thumbnail grid generation", { isViral, promptCount: thumbnailPrompts?.length });
     
     if (!thumbnailPrompts || !Array.isArray(thumbnailPrompts) || thumbnailPrompts.length !== 4) {
+      logger.error("Invalid thumbnailPrompts", { thumbnailPrompts });
       throw new Error('Invalid thumbnailPrompts: must be an array with exactly 4 items');
     }
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    if (!REPLICATE_API_KEY) {
+      logger.error("REPLICATE_API_KEY not configured");
+      throw new Error("REPLICATE_API_KEY not configured");
     }
 
-    console.log('Generating 2x2 thumbnail grid...');
+    const referenceFrames = pickReferenceFrames(frames, 6);
+    logger.info(`Reference frames processed`, { total: Array.isArray(frames) ? frames.length : 0, usable: referenceFrames.length });
 
-    const referenceFrames = pickReferenceFrames(frames, 5);
-    console.log(`Reference frames received: ${Array.isArray(frames) ? frames.length : 0}, usable: ${referenceFrames.length}`);
+    // Keep this compact: long prompts are a common cause of Gemini image failures/timeouts.
+    const viralStyleGuidelines =
+      `Viral YouTube thumbnail: bold condensed ALL-CAPS (Anton/Bebas/Impact vibe), ` +
+      `1–4 word headline, high contrast, subtle 3D+shadow+glow, subject off-center + text opposite face, ` +
+      `warm key/cool rim, dark/blur BG, bokeh/flares, clean cutout + strong rim/subject glow, no clutter, mobile-sharp 16:9.`;
 
-    const viralStyleGuidelines = `Create a high-impact YouTube thumbnail in a modern viral creator style.
-Use bold, condensed, all-caps sans-serif typography inspired by Anton / Bebas Neue / Impact-style fonts, with thick strokes, tight letter spacing, and strong vertical presence.
-
-Typography must feature:
-- Large headline words (1–4 words max)
-- High contrast colors (matching video theme)
-- Subtle 3D depth or bevel
-- Soft drop shadow + outer glow for separation
-- Occasional outlined text (white or black stroke)
-
-Layout:
-- Subject placed slightly off-center
-- Text on opposite side of the face
-- Clear visual hierarchy (main keyword dominates)
-- No clutter, strong negative space
-
-Subject:
-- Single person with exaggerated facial expression (shock, excitement, fear, confidence)
-- Hands near face or expressive gesture (clenched fists, thumbs up, shocked pose)
-- Clean cutout with strong rim light
-
-Lighting & Color:
-- Cinematic contrast, high saturation
-- Warm key light + cool rim light
-- Background vignette
-- Neon accents and glow particles
-
-Background:
-- Dark gradient or blurred abstract scene
-- Floating icons relevant to topic
-- Subtle bokeh and light flares
-
-Effects:
-- Strong subject glow (orange, blue, or yellow)
-- Professional Photoshop-style compositing
-- Sharpened face, smooth skin, high clarity
-
-Overall feel:
-- Click-driven
-- High energy
-- Educational-but-viral YouTube creator aesthetic
-- Looks like a top 1% CTR thumbnail
-
-Aspect ratio 16:9, ultra sharp, optimized for mobile viewing.`;
+    const compact = (input: unknown, max = 220) => {
+      const s = typeof input === "string" ? input.replace(/\s+/g, " ").trim() : "";
+      if (!s) return "";
+      if (s.length <= max) return s;
+      const sliced = s.slice(0, max);
+      const lastSpace = sliced.lastIndexOf(" ");
+      return (lastSpace > 60 ? sliced.slice(0, lastSpace) : sliced).trim();
+    };
 
     // Build prompt for 2x2 grid
     const getThumbnailPrompt = (position: string) => {
@@ -123,42 +105,42 @@ Aspect ratio 16:9, ultra sharp, optimized for mobile viewing.`;
             ? `. Include this text overlay: "${title}"`
             : '';
 
-      const visualStyle = typeof p.visualStyle === "string" && p.visualStyle.trim() ? ` Visual style: ${p.visualStyle.trim()}.` : "";
-      const textStyle = typeof p.textStyle === "string" && p.textStyle.trim() ? ` Text style: ${p.textStyle.trim()}.` : "";
-      const background = typeof p.background === "string" && p.background.trim() ? ` Background: ${p.background.trim()}.` : "";
-      const faceExpression = typeof p.faceExpression === "string" && p.faceExpression.trim() ? ` Face expression: ${p.faceExpression.trim()}.` : "";
+      const visualStyle = compact(p.visualStyle, 140);
+      const textStyle = compact(p.textStyle, 160);
+      const background = compact(p.background, 160);
+      const faceExpression = compact(p.faceExpression, 100);
       const textPosition = typeof p.textPosition === "string" && p.textPosition.trim()
-        ? ` Place the title/subtitle at ${p.textPosition.trim().replace("-", " ")} (single clear placement, high contrast).`
+        ? ` Text at ${compact(p.textPosition, 70).replace("-", " ")} (single placement, high contrast).`
         : "";
-
-      const viralGuidelinesText =
-        isViral
-          ? ` Viral style guidelines (MANDATORY): ${typeof p.viralStyleGuidelines === "string" && p.viralStyleGuidelines.trim()
-              ? p.viralStyleGuidelines.trim()
-              : viralStyleGuidelines
-            }`
-          : "";
 
       let elements = "";
       if (Array.isArray(p.elements) && p.elements.length > 0) {
         const items = p.elements
           .map((e: any) => {
-            const desc = typeof e?.description === "string" ? e.description.trim() : "";
-            const type = typeof e?.type === "string" ? e.type.trim() : "";
-            const pos = typeof e?.position === "string" ? e.position.trim() : "";
+            const desc = compact(e?.description, 80);
+            const type = compact(e?.type, 24);
+            const pos = compact(e?.position, 32);
             const parts = [type, desc].filter(Boolean).join(": ");
             return pos ? `${parts} (${pos})` : parts;
           })
           .filter(Boolean);
         if (items.length > 0) {
-          elements = ` Extra elements/assets: ${items.join("; ")}.`;
+          elements = ` Elements: ${items.slice(0, 2).join("; ")}.`;
         }
       }
 
-      return `${p.description}${visualStyle}${background}${faceExpression}${textStyle}${textPosition}${elements}${overlay}${viralGuidelinesText}`;
+      const desc = compact(p.description, 420);
+      const styleBits = [
+        visualStyle ? `Style: ${visualStyle}.` : "",
+        background ? `BG: ${background}.` : "",
+        faceExpression ? `Expr: ${faceExpression}.` : "",
+        textStyle ? `Type: ${textStyle}.` : "",
+      ].filter(Boolean).join(" ");
+
+      return `${desc}${styleBits ? ` ${styleBits}` : ""}${textPosition ? ` ${textPosition}` : ""}${elements ? ` ${elements}` : ""}${overlay}`;
     };
 
-    const gridPrompt = `You are creating a single image that contains a 2x2 grid of YouTube thumbnails. The grid should be arranged as follows:
+    const gridPrompt = `Create ONE 2x2 grid image of YouTube thumbnails (4 distinct variants). Layout:
 
 TOP ROW:
 - Left: ${getThumbnailPrompt('top-left')}
@@ -168,39 +150,18 @@ BOTTOM ROW:
 - Left: ${getThumbnailPrompt('bottom-left')}
 - Right: ${getThumbnailPrompt('bottom-right')}
 
-Requirements:
-- CRITICAL: Do NOT add any borders, gaps, lines, or separators between the grid cells. The 4 thumbnails must be perfectly adjacent to each other so they can be cropped cleanly.
-- Create a single image with a 2x2 grid layout
-- Each cell should be a complete 16:9 thumbnail matching its description
-- The 4 thumbnails should be visually distinct but cohesive
-- Use the reference frames to match the subject/style when applicable. The faces and subjects should be faithful to the reference frames.
-${isViral ? `- CRITICAL: Apply these viral style guidelines to ALL 4 thumbnails:\n${viralStyleGuidelines}\n` : ''}
-- Each thumbnail should be high quality, eye-catching, and YouTube-optimized
-- IMPORTANT: Include each title/subtitle text EXACTLY ONCE per thumbnail (if subtitle is provided). Do not repeat the same text in different parts of a single thumbnail. Place it in a single, clear, high-contrast location.
-- The final image should be exactly 3840x2160 pixels (2x width and 2x height of 1920x1080)
-- All 4 thumbnails should respect the video content shown in reference frames`;
+Requirements (strict):
+- NO borders/gaps/lines between cells (perfectly adjacent).
+- Each cell is a complete 16:9 thumbnail, YouTube-optimized, faithful to reference frames.
+- Place the title/subtitle text EXACTLY ONCE per thumbnail (single clear high-contrast location).
+- Final image size: 3840x2160 (2x2 of 1920x1080).
+${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}`;
 
-    console.log('Generating grid image...');
-    
-    // Build content parts array for Gemini API (matching reference implementation)
-    const contentParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
-      { text: gridPrompt }
-    ];
+    console.log("Generating grid image via Replicate...");
 
-    // Add reference frames as inline images
-    contentParts.push({
-      text: "Video Content Reference Frames:"
-    });
-    for (const img of referenceFrames) {
-      contentParts.push({
-        inlineData: {
-          mimeType: img.mimeType,
-          data: img.data
-        }
-      });
-    }
+    const referenceFrameDataUrls = referenceFrames.map((img) => `data:${img.mimeType};base64,${img.data}`);
 
-    // Retry logic for Gemini API calls
+    // Retry logic for Replicate API calls
     const maxRetries = 3;
     const baseDelay = 2000; // 2 seconds
     let lastError: Error | null = null;
@@ -208,91 +169,101 @@ ${isViral ? `- CRITICAL: Apply these viral style guidelines to ALL 4 thumbnails:
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        console.log(`Attempt ${attempt + 1} of ${maxRetries} to call Gemini API`);
+        logger.info(`Replicate API call attempt ${attempt + 1}`, { maxRetries });
 
         response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent`,
+          "https://api.replicate.com/v1/models/google/nano-banana-pro/predictions",
           {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': GEMINI_API_KEY,
+              Authorization: `Bearer ${REPLICATE_API_KEY}`,
+              "Content-Type": "application/json",
+              // Block until complete for a simpler server contract
+              Prefer: "wait",
             },
             body: JSON.stringify({
-              contents: [
-                {
-                  parts: contentParts,
-                },
-              ],
-              generationConfig: {
-                responseModalities: ["TEXT", "IMAGE"],
-                imageConfig: {
-                  aspectRatio: "16:9",
-                  imageSize: "4K",
-                },
+              input: {
+                prompt: gridPrompt,
+                resolution: "2K",
+                ...(referenceFrameDataUrls.length > 0 ? { image_input: referenceFrameDataUrls } : {}),
+                // The output is the full 2x2 grid (3840x2160), which is 16:9 overall.
+                aspect_ratio: "16:9",
+                output_format: "png",
+                safety_filter_level: "block_only_high",
               },
-            })
-          }
+            }),
+          },
         );
 
         if (response.ok) {
-          console.log("Gemini API call successful");
+          logger.info("Replicate API call successful");
           break; // Success, exit retry loop
         }
 
         const errorText = await response.text();
-        console.error(`Gemini API error on attempt ${attempt + 1}:`, response.status, errorText);
-        
-        // Handle specific error codes
+        logger.error(`Replicate API error on attempt ${attempt + 1}`, { status: response.status, error: errorText });
+
+        // Handle retryable status codes
         if (response.status === 429 || response.status === 503 || response.status === 500) {
           if (attempt < maxRetries - 1) {
             const delay = baseDelay * Math.pow(2, attempt);
-            console.log(`Retrying after ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            logger.info(`Retrying after ${delay}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
             continue;
           }
         }
 
-        lastError = new Error(`Gemini API error: ${response.status} ${errorText}`);
-        break; // Don't retry on 400, 403, etc.
-
+        lastError = new Error(`Replicate API error: ${response.status} ${errorText}`);
+        break; // Don't retry on 400, 401, 403, etc.
       } catch (error) {
-        console.error(`Network error on attempt ${attempt + 1}:`, error);
+        logger.error(`Network error on attempt ${attempt + 1}`, error);
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, attempt);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
       }
     }
 
     if (!response || !response.ok) {
-      throw lastError || new Error('Failed to generate image after multiple attempts');
+      throw lastError || new Error("Failed to generate image after multiple attempts");
     }
 
-    const result = await response.json();
-    
-    // Extract image from response
-    let gridImage: string | null = null;
-    const parts = result.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      // API can return either inlineData (camelCase) or inline_data (snake_case) depending on client
-      const inline = part.inlineData ?? part.inline_data;
-      const mimeType = inline?.mimeType ?? inline?.mime_type;
-      const data = inline?.data;
-      if (typeof mimeType === "string" && mimeType.startsWith("image/") && typeof data === "string") {
-        gridImage = `data:${mimeType};base64,${data}`;
-        break;
-      }
+    const prediction = await response.json();
+    const status = prediction?.status;
+    if (status && status !== "succeeded") {
+      logger.error("Replicate prediction did not succeed", { status, id: prediction?.id, error: prediction?.error, logs: prediction?.logs });
+      throw new Error(`Replicate prediction failed with status: ${status}`);
     }
 
-    if (!gridImage) {
-      throw new Error('No image received from Gemini API');
+    const output = prediction?.output;
+    const outputUrl =
+      typeof output === "string"
+        ? output
+        : Array.isArray(output) && typeof output[0] === "string"
+          ? output[0]
+          : null;
+
+    if (!outputUrl) {
+      logger.error("No output URL received from Replicate", { id: prediction?.id, status: prediction?.status, output: prediction?.output });
+      throw new Error("No image output received from Replicate");
     }
 
-    console.log('Generated 2x2 grid image successfully');
+    // Convert the output image URL into a data URL to keep the existing frontend contract unchanged.
+    const imageRes = await fetch(outputUrl);
+    if (!imageRes.ok) {
+      const errText = await imageRes.text();
+      logger.error("Failed to download Replicate output image", { status: imageRes.status, error: errText });
+      throw new Error(`Failed to download output image: ${imageRes.status}`);
+    }
+
+    const contentType = imageRes.headers.get("content-type") || "image/png";
+    const bytes = await imageRes.arrayBuffer();
+    const gridImage = `data:${contentType};base64,${arrayBufferToBase64(bytes)}`;
+
+    logger.info('Generated 2x2 grid image successfully');
 
     return new Response(
       JSON.stringify({ gridImage, prompt: gridPrompt }),
@@ -300,10 +271,13 @@ ${isViral ? `- CRITICAL: Apply these viral style guidelines to ALL 4 thumbnails:
     );
 
   } catch (error) {
-    console.error('Thumbnail generation error:', error);
+    logger.error('Thumbnail generation failed', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

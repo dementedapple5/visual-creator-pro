@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const logger = createLogger("analyze-video");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,16 +11,23 @@ serve(async (req) => {
   }
 
   try {
+    const { jobId } = await req.json();
+    logger.setContext({ jobId });
+    logger.info("Starting video analysis");
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const openAiKey = Deno.env.get("OPENAI_API_KEY");
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!;
 
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Missing Supabase configuration");
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { jobId } = await req.json();
-
     // Fetch job details
+    logger.info("Fetching job details");
     const { data: job, error: jobError } = await supabase
       .from("smart_create_jobs")
       .select("*")
@@ -29,16 +35,18 @@ serve(async (req) => {
       .single();
 
     if (jobError || !job) {
+      logger.error("Job not found", jobError);
       throw new Error("Job not found");
     }
 
-    console.log(`Analyzing job ${jobId}, source: ${job.source_type}`);
+    logger.setContext({ sourceType: job.source_type });
+    logger.info(`Analyzing job source: ${job.source_type}`);
 
     let transcript = "";
 
     // 1. Transcribe Audio if available
     if (openAiKey && job.source_url && job.source_type === "audio_upload") {
-      console.log("Starting transcription...");
+      logger.info("Starting transcription...");
       
       // Download audio file from storage
       const { data: fileData, error: downloadError } = await supabase.storage
@@ -46,7 +54,7 @@ serve(async (req) => {
         .download(job.source_url);
 
       if (downloadError) {
-        console.error("Error downloading audio:", downloadError);
+        logger.error("Error downloading audio", downloadError);
         throw downloadError;
       }
 
@@ -56,6 +64,7 @@ serve(async (req) => {
       formData.append("model", "whisper-1");
 
       // Call OpenAI Whisper API
+      logger.info("Calling OpenAI Whisper API");
       const whisperResponse = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: {
@@ -66,21 +75,21 @@ serve(async (req) => {
 
       if (!whisperResponse.ok) {
         const errorText = await whisperResponse.text();
-        console.error("Whisper API error:", errorText);
+        logger.error("Whisper API error", { status: whisperResponse.status, error: errorText });
         throw new Error(`Whisper API failed: ${errorText}`);
       }
 
       const whisperData = await whisperResponse.json();
       transcript = whisperData.text;
-      console.log("Transcription complete, length:", transcript.length);
+      logger.info("Transcription complete", { length: transcript.length });
     } else {
-      console.log("Skipping transcription (missing key or audio source)");
+      logger.info("Skipping transcription (missing key or audio source)");
       // Fallback mock transcript for testing without paying
       transcript = "This is a video about how to create amazing YouTube thumbnails using AI tools. I will show you step by step how to use Gemini and other tools to boost your click through rate.";
     }
 
     // 2. Generate Suggestions with Gemini
-    console.log("Generating suggestions with Gemini...");
+    logger.info("Generating suggestions with Gemini...");
     
     const prompt = `
     Analyze the following video transcript and generate 3 distinct YouTube thumbnail concepts.
@@ -107,7 +116,7 @@ serve(async (req) => {
     `;
 
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${geminiApiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,7 +128,9 @@ serve(async (req) => {
     );
 
     if (!geminiResponse.ok) {
-      throw new Error(`Gemini API failed: ${await geminiResponse.text()}`);
+      const errorText = await geminiResponse.text();
+      logger.error("Gemini API failed", { status: geminiResponse.status, error: errorText });
+      throw new Error(`Gemini API failed: ${errorText}`);
     }
 
     const geminiData = await geminiResponse.json();
@@ -129,7 +140,7 @@ serve(async (req) => {
     try {
       suggestionsData = JSON.parse(rawText);
     } catch (e) {
-      console.error("Failed to parse Gemini JSON:", rawText);
+      logger.error("Failed to parse Gemini JSON", e, { rawText });
       // Fallback
       suggestionsData = [
         { title: "Watch This First", subtitle: "Important Update", visualStyle: "dramatic" },
@@ -139,6 +150,7 @@ serve(async (req) => {
     }
 
     // Insert suggestions
+    logger.info("Inserting suggestions", { count: suggestionsData.length });
     const suggestionsToInsert = suggestionsData.map((s: any) => ({
       job_id: jobId,
       frame_url: "", // No frame yet, user picks locally
@@ -152,23 +164,36 @@ serve(async (req) => {
       .from("smart_create_suggestions")
       .insert(suggestionsToInsert);
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      logger.error("Error inserting suggestions", insertError);
+      throw insertError;
+    }
 
     // Update job status
-    await supabase
+    logger.info("Updating job status to completed");
+    const { error: updateError } = await supabase
       .from("smart_create_jobs")
       .update({ status: "completed" })
       .eq("id", jobId);
 
+    if (updateError) {
+      logger.error("Error updating job status", updateError);
+      throw updateError;
+    }
+
+    logger.info("Video analysis completed successfully");
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("Error in analyze-video:", error);
+    logger.error("Unhandled error in analyze-video", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error instanceof Error ? error.stack : undefined 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
