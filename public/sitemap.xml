@@ -5,15 +5,15 @@
   
   <!-- Homepage -->
   <url>
-    <loc>https://vizion.app/</loc>
+    <loc>https://vizionai.app/</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://vizion.app/?lang=en" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://vizion.app/?lang=es" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://vizion.app/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://vizionai.app/?lang=en" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://vizionai.app/?lang=es" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vizionai.app/" />
     <image:image>
-      <image:loc>https://vizion.app/favicon.png</image:loc>
+      <image:loc>https://vizionai.app/favicon.png</image:loc>
       <image:title>Vizion - AI-Powered YouTube Thumbnail Generator</image:title>
       <image:caption>Create stunning YouTube thumbnails with AI</image:caption>
     </image:image>
@@ -21,17 +21,17 @@
   
   <!-- Auth Page -->
   <url>
-    <loc>https://vizion.app/auth</loc>
+    <loc>https://vizionai.app/auth</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://vizion.app/auth?lang=en" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://vizion.app/auth?lang=es" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://vizionai.app/auth?lang=en" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://vizionai.app/auth?lang=es" />
   </url>
   
   <!-- Dashboard (may require authentication, but included for SEO) -->
   <url>
-    <loc>https://vizion.app/dashboard</loc>
+    <loc>https://vizionai.app/dashboard</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -39,14 +39,14 @@
   
   <!-- Create Pages -->
   <url>
-    <loc>https://vizion.app/create</loc>
+    <loc>https://vizionai.app/create</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   
   <url>
-    <loc>https://vizion.app/quick-create</loc>
+    <loc>https://vizionai.app/quick-create</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -54,7 +54,7 @@
   
   <!-- Generations -->
   <url>
-    <loc>https://vizion.app/generations</loc>
+    <loc>https://vizionai.app/generations</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
@@ -62,7 +62,7 @@
   
   <!-- Avatars -->
   <url>
-    <loc>https://vizion.app/avatars</loc>
+    <loc>https://vizionai.app/avatars</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -70,7 +70,7 @@
   
   <!-- Backgrounds -->
   <url>
-    <loc>https://vizion.app/backgrounds</loc>
+    <loc>https://vizionai.app/backgrounds</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -78,7 +78,7 @@
   
   <!-- Font Styles -->
   <url>
-    <loc>https://vizion.app/font-styles</loc>
+    <loc>https://vizionai.app/font-styles</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -86,7 +86,7 @@
   
   <!-- Products -->
   <url>
-    <loc>https://vizion.app/products</loc>
+    <loc>https://vizionai.app/products</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -94,7 +94,7 @@
   
   <!-- Profile -->
   <url>
-    <loc>https://vizion.app/profile</loc>
+    <loc>https://vizionai.app/profile</loc>
     <lastmod>2024-01-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

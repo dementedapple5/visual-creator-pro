@@ -23,10 +23,10 @@ const SEO = ({
   const { i18n } = useTranslation();
   const currentLang = i18n.language || "en";
   
-  // Get base URL (you should replace this with your actual domain)
+  // Get base URL
   const baseUrl = typeof window !== "undefined" 
     ? `${window.location.protocol}//${window.location.host}`
-    : "https://vizion.app";
+    : "https://vizionai.app";
   
   const canonicalUrl = `${baseUrl}${location.pathname}`;
   const fullImageUrl = image.startsWith("http") ? image : `${baseUrl}${image}`;
