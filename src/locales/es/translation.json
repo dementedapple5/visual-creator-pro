@@ -91,7 +91,21 @@
       }
     },
     "examplesTitle": "Miniaturas de YouTube Creadas con Vizion",
-    "examplesDescription": "Miniaturas reales creadas por creadores usando Vizion, optimizadas para el algoritmo de YouTube."
+    "examplesDescription": "Miniaturas reales creadas por creadores usando Vizion, optimizadas para el algoritmo de YouTube.",
+    "quickCreateScroll": {
+      "step1": {
+        "title": "Sube Tu Video",
+        "subtitle": "Simplemente arrastra y suelta tu video o pega una URL. Activa el modo viral para miniaturas optimizadas por IA diseñadas para maximizar los clics."
+      },
+      "step2": {
+        "title": "Procesamiento IA en Tiempo Real",
+        "subtitle": "Observa cómo nuestra IA analiza el contenido de tu video, extrae fotogramas clave, transcribe el audio y genera miniaturas optimizadas—todo en menos de 3 minutos."
+      },
+      "step3": {
+        "title": "Obtén 4 Miniaturas y Títulos Únicos",
+        "subtitle": "Recibe cuatro variaciones distintas de miniaturas con títulos optimizados, listas para descargar y usar. Guarda tus favoritas en tu biblioteca al instante."
+      }
+    }
   },
   "features": {
     "yourIdentityAutomated": {

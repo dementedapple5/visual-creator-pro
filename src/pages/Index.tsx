@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   Play,
-  Quote,
   Check,
   Sparkles,
   Camera,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { InfiniteScrollExamples } from "@/components/landing/InfiniteScrollExamples";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import QuickCreateScroll from "@/components/landing/QuickCreateScroll";
 import SEO from "@/components/SEO";
 
 const getSubscriptionPlans = (t: (key: string) => string) => [
@@ -234,7 +234,6 @@ const Index = () => {
   }, []);
 
   const subscriptionPlans = getSubscriptionPlans(t);
-  const bentoFeatures = getBentoFeatures(t);
 
   useEffect(() => {
     const currentWord = rotatingWords[wordIndex];
@@ -259,7 +258,7 @@ const Index = () => {
 
   const baseUrl = typeof window !== "undefined" 
     ? `${window.location.protocol}//${window.location.host}`
-    : "https://vizion.app";
+    : "https://vizionai.app";
 
   // Schema.org structured data for SEO
   const structuredData = {
@@ -547,245 +546,16 @@ const Index = () => {
 
       <HowItWorks />
 
-      <section className="py-28 px-6 relative z-10">
-        <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-16 space-y-3">
-            <h2 className="text-3xl md:text-5xl font-bold" data-animate>
-              {t("landing.powerUpTitle")}
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              {t("landing.powerUpDescription")}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-            {bentoFeatures.map((feature, idx) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className={`relative overflow-hidden rounded-3xl border border-border bg-card/40 backdrop-blur-xl p-6 flex flex-col gap-4 ${feature.span}`}
-                  data-animate
-                  style={{ ["--delay" as any]: `${0.05 * idx}s` }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-foreground" />
-                      <h3 className="text-xl font-semibold text-foreground">{feature.title}</h3>
-                    </div>
-                    <span className="px-3 py-1 rounded-full bg-secondary text-xs text-foreground whitespace-nowrap">{feature.badge}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
-                  {feature.steps && (
-                    <div className="space-y-3">
-                      {feature.steps.map((step, stepIdx) => (
-                        <div key={step.title} className="flex gap-3 items-start">
-                          <span className="h-7 w-7 rounded-full bg-secondary/50 border border-border text-foreground/80 text-xs flex items-center justify-center">
-                            {stepIdx + 1}
-                          </span>
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-foreground">{step.title}</p>
-                            {step.detail && <p className="text-xs text-muted-foreground leading-relaxed">{step.detail}</p>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {feature.stats && (
-                    <div className="grid grid-cols-2 gap-3">
-                      {feature.stats.map((stat) => (
-                        <div key={stat.label} className="rounded-2xl border border-border bg-muted/50 p-3">
-                          <p className="text-xs text-muted-foreground">{stat.label}</p>
-                          <p className="text-base font-semibold text-foreground">{stat.value}</p>
-                          {stat.sub && <p className="text-[11px] text-muted-foreground mt-1 leading-tight">{stat.sub}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {feature.swatches && (
-                    <div className="flex flex-wrap gap-2">
-                      {feature.swatches.map((swatch) => {
-                        const background =
-                          swatch.colors.length > 1 || swatch.colors[0].startsWith("linear-gradient")
-                            ? swatch.colors[0].startsWith("linear-gradient")
-                              ? swatch.colors[0]
-                              : `linear-gradient(135deg, ${swatch.colors.join(",")})`
-                            : swatch.colors[0];
-
-                        return (
-                          <div key={swatch.label} className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-2">
-                            <span className="h-6 w-6 rounded-lg border border-border" style={{ background }} />
-                            <span className="text-xs text-foreground/80">{swatch.label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {feature.sample && (
-                    <div className="rounded-2xl border border-border bg-muted/50 p-4 space-y-2">
-                      <p className="text-sm font-semibold text-foreground">{feature.sample.title}</p>
-                      <p className="text-xs text-foreground/70">{feature.sample.subtitle}</p>
-                      {feature.sample.tags && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {feature.sample.tags.map((tag) => (
-                            <span key={tag} className="text-[11px] px-2.5 py-1 rounded-full bg-secondary border border-border text-foreground/80">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {feature.chips && (
-                    <div className="flex flex-wrap gap-2">
-                      {feature.chips.map((chip) => (
-                        <span key={chip} className="text-xs px-3 py-1 rounded-full bg-secondary border border-border text-foreground/80">
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {feature.footnote && <p className="text-xs text-muted-foreground leading-relaxed">{feature.footnote}</p>}
-                </div>
-              );
-            })}
-          </div>
+      <section className="relative z-10">
+        <div className="text-center py-16 px-6 space-y-3">
+          <h2 className="text-3xl md:text-5xl font-bold" data-animate>
+            {t("landing.powerUpTitle")}
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
+            {t("landing.powerUpDescription")}
+          </p>
         </div>
-      </section>
-
-      <section className="py-28 bg-muted/20 border-y border-border backdrop-blur-sm relative overflow-hidden">
-        <div className="absolute inset-0 bg-fine-grid opacity-100 dark:opacity-100" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background pointer-events-none" />
-
-        <div className="relative z-10">
-          <div className="text-center mb-16 px-6">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6" data-animate>
-              {t("landing.lovedByCreators")}
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              {t("landing.lovedByCreatorsDescription")}
-            </p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
-
-            <div className="overflow-hidden" data-animate style={{ ["--delay" as any]: "0.2s" }}>
-              <div className="flex gap-6 animate-scroll-left" style={{ width: 'max-content' }}>
-                {[
-                  {
-                    text: t("testimonials.testimonial1.text"),
-                    author: t("testimonials.testimonial1.author"),
-                    role: t("testimonials.testimonial1.role"),
-                    avatar: "SJ"
-                  },
-                  {
-                    text: t("testimonials.testimonial2.text"),
-                    author: t("testimonials.testimonial2.author"),
-                    role: t("testimonials.testimonial2.role"),
-                    avatar: "MC"
-                  },
-                  {
-                    text: t("testimonials.testimonial3.text"),
-                    author: t("testimonials.testimonial3.author"),
-                    role: t("testimonials.testimonial3.role"),
-                    avatar: "JL"
-                  },
-                  {
-                    text: t("testimonials.testimonial4.text"),
-                    author: t("testimonials.testimonial4.author"),
-                    role: t("testimonials.testimonial4.role"),
-                    avatar: "DP"
-                  },
-                  {
-                    text: t("testimonials.testimonial5.text"),
-                    author: t("testimonials.testimonial5.author"),
-                    role: t("testimonials.testimonial5.role"),
-                    avatar: "EW"
-                  },
-                  {
-                    text: t("testimonials.testimonial6.text"),
-                    author: t("testimonials.testimonial6.author"),
-                    role: t("testimonials.testimonial6.role"),
-                    avatar: "AR"
-                  }
-                ].map((testimonial, i) => (
-                  <div key={`first-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-muted/50 transition-all duration-300 hover:scale-[1.02] cursor-default group">
-                    <Quote className="w-8 h-8 text-primary mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-lg text-foreground/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
-                        {testimonial.avatar}
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground">{testimonial.author}</p>
-                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {[
-                  {
-                    text: t("testimonials.testimonial1.text"),
-                    author: t("testimonials.testimonial1.author"),
-                    role: t("testimonials.testimonial1.role"),
-                    avatar: "SJ"
-                  },
-                  {
-                    text: t("testimonials.testimonial2.text"),
-                    author: t("testimonials.testimonial2.author"),
-                    role: t("testimonials.testimonial2.role"),
-                    avatar: "MC"
-                  },
-                  {
-                    text: t("testimonials.testimonial3.text"),
-                    author: t("testimonials.testimonial3.author"),
-                    role: t("testimonials.testimonial3.role"),
-                    avatar: "JL"
-                  },
-                  {
-                    text: t("testimonials.testimonial4.text"),
-                    author: t("testimonials.testimonial4.author"),
-                    role: t("testimonials.testimonial4.role"),
-                    avatar: "DP"
-                  },
-                  {
-                    text: t("testimonials.testimonial5.text"),
-                    author: t("testimonials.testimonial5.author"),
-                    role: t("testimonials.testimonial5.role"),
-                    avatar: "EW"
-                  },
-                  {
-                    text: t("testimonials.testimonial6.text"),
-                    author: t("testimonials.testimonial6.author"),
-                    role: t("testimonials.testimonial6.role"),
-                    avatar: "AR"
-                  }
-                ].map((testimonial, i) => (
-                  <div key={`second-${i}`} className="flex-shrink-0 w-[400px] glass-panel p-8 rounded-2xl hover:bg-muted/50 transition-all duration-300 hover:scale-[1.02] cursor-default group">
-                    <Quote className="w-8 h-8 text-primary mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-lg text-foreground/90 mb-6 leading-relaxed">"{testimonial.text}"</p>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
-                        {testimonial.avatar}
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground">{testimonial.author}</p>
-                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <QuickCreateScroll />
       </section>
 
       <section className="py-28 px-6 relative">

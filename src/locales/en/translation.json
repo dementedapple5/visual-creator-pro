@@ -91,7 +91,21 @@
       }
     },
     "examplesTitle": "YouTube Thumbnails Made with Vizion",
-    "examplesDescription": "Real thumbnails created by creators using Vizion, optimized for YouTube's algorithm."
+    "examplesDescription": "Real thumbnails created by creators using Vizion, optimized for YouTube's algorithm.",
+    "quickCreateScroll": {
+      "step1": {
+        "title": "Upload Your Video",
+        "subtitle": "Simply drag and drop your video or paste a URL. Toggle the viral mode switch for AI-optimized thumbnails designed to maximize clicks."
+      },
+      "step2": {
+        "title": "AI Processing in Real-Time",
+        "subtitle": "Watch as our AI analyzes your video content, extracts key frames, transcribes audio, and generates optimized thumbnails—all in under 3 minutes."
+      },
+      "step3": {
+        "title": "Get 4 Unique Thumbnails & Titles",
+        "subtitle": "Receive four distinct thumbnail variations with optimized titles, ready to download and use. Save your favorites to your library instantly."
+      }
+    }
   },
   "features": {
     "yourIdentityAutomated": {

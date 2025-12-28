@@ -78,7 +78,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 #### Google Search Console
 1. Verifica tu propiedad
-2. Envía el sitemap: `https://vizion.app/sitemap.xml`
+2. Envía el sitemap: `https://vizionai.app/sitemap.xml`
 3. Monitorea errores de indexación
 
 #### Google Analytics 4
