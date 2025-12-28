@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Check, Moon, Sun, Monitor } from "lucide-react";
+import { Check, Moon, Sun, Monitor, Languages } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTranslation } from "react-i18next";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Detect if running on localhost
 const isLocalhost = import.meta.env.DEV || 
@@ -163,10 +171,14 @@ const testPlans = [
 ];
 
 // Use test plans on localhost, production plans otherwise
-const subscriptionPlans = isLocalhost ? testPlans : productionPlans;
+const getSubscriptionPlans = (isLocalhost: boolean) => {
+  const plans = isLocalhost ? testPlans : productionPlans;
+  return plans;
+};
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -202,6 +214,22 @@ const Profile = () => {
   const [checkingSubscription, setCheckingSubscription] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("yearly");
   const { theme, setTheme } = useTheme();
+  const { i18n } = useTranslation();
+  
+  // Get subscription plans and translate features
+  const subscriptionPlans = useMemo(() => {
+    const plans = getSubscriptionPlans(isLocalhost);
+    return plans.map(plan => ({
+      ...plan,
+      name: t(`plans.${plan.tier}.name`),
+      features: [
+        plan.tier === "free" ? t("plans.free.features.oneTimeCredits") : t(`plans.${plan.tier}.features.credits`),
+        plan.tier !== "free" && t(`plans.${plan.tier}.features.headshots`),
+        plan.tier !== "free" && t(`plans.${plan.tier}.features.customization`),
+        t(`plans.${plan.tier}.features.${plan.tier === "free" ? "emailSupport" : "support"}`)
+      ].filter(Boolean) as string[]
+    }));
+  }, [t, isLocalhost]);
 
   useEffect(() => {
     checkUser();
@@ -231,7 +259,7 @@ const Profile = () => {
 
   const handleUpdateUsername = async () => {
     if (!username.trim()) {
-      toast.error("Username cannot be empty");
+      toast.error(t("profile.errors.usernameEmpty"));
       return;
     }
 
@@ -244,9 +272,9 @@ const Profile = () => {
 
       if (error) throw error;
 
-      toast.success("Username updated successfully");
+      toast.success(t("profile.errors.usernameUpdated"));
     } catch (error: any) {
-      toast.error(error.message || "Failed to update username");
+      toast.error(error.message || t("profile.errors.usernameUpdateFailed"));
     } finally {
       setUpdatingUsername(false);
     }
@@ -271,12 +299,12 @@ const Profile = () => {
 
   const handleUpdatePassword = async () => {
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("profile.errors.passwordsNoMatch"));
       return;
     }
 
     if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error(t("profile.errors.passwordTooShort"));
       return;
     }
 
@@ -288,7 +316,7 @@ const Profile = () => {
 
       if (error) throw error;
 
-      toast.success("Password updated successfully");
+      toast.success(t("profile.errors.passwordUpdated"));
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
@@ -304,7 +332,7 @@ const Profile = () => {
       
       // Validate Price ID format - must be a real Stripe Price ID
       if (!priceId || !priceId.startsWith("price_") || priceId.length < 25) {
-        const errorMsg = `Invalid Price ID: "${priceId}". This looks like a placeholder. Please update testPlans in Profile.tsx with real Stripe test Price IDs from your Stripe Dashboard (Test mode).`;
+        const errorMsg = t("profile.errors.invalidPriceId", { priceId });
         console.error(errorMsg);
         toast.error(errorMsg);
         return;
@@ -312,7 +340,7 @@ const Profile = () => {
       
       // Check if it's a placeholder
       if (priceId.includes("TEST_") && !priceId.match(/^price_[a-zA-Z0-9]{24,}$/)) {
-        const errorMsg = `Placeholder Price ID detected: "${priceId}". Please replace it with a real Stripe test Price ID. Get it from Stripe Dashboard > Products (Test mode) > Your Product > Copy Price ID.`;
+        const errorMsg = t("profile.errors.placeholderPriceId", { priceId });
         console.error(errorMsg);
         toast.error(errorMsg);
         return;
@@ -335,7 +363,7 @@ const Profile = () => {
         console.error("Checkout error:", error);
         
         // Try to extract error message
-        let errorMessage = "Failed to start checkout";
+        let errorMessage = t("profile.errors.failedCheckout");
         
         // Check error.message
         if (error.message) {
@@ -364,20 +392,20 @@ const Profile = () => {
 
       if (data?.url) {
         window.open(data.url, "_blank");
-        toast.success("Opening checkout...");
+        toast.success(t("profile.errors.openingCheckout"));
         setTimeout(() => checkSubscription(), 3000);
       } else if (data?.error) {
         toast.error(data.error);
       } else {
         console.warn("No URL or error in response:", data);
-        toast.error("Unexpected response from checkout. Check console for details.");
+        toast.error(t("profile.errors.unexpectedResponse"));
       }
     } catch (error: any) {
       console.error("Checkout exception:", error);
       const errorMessage = error?.message || 
                           error?.error?.message ||
                           error?.context?.error ||
-                          "Failed to start checkout. Check console for details.";
+                          t("profile.errors.failedStartCheckout");
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -395,7 +423,7 @@ const Profile = () => {
         window.open(data.url, "_blank");
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to open customer portal");
+      toast.error(error.message || t("profile.errors.failedCustomerPortal"));
     } finally {
       setLoading(false);
     }
@@ -408,33 +436,33 @@ const Profile = () => {
           {/* User Info */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-xl">Account Information</CardTitle>
-              <CardDescription>View your account details</CardDescription>
+              <CardTitle className="text-xl">{t("profile.accountInformation")}</CardTitle>
+              <CardDescription>{t("profile.viewAccountDetails")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>{t("profile.email")}</Label>
                 <Input value={email} disabled className="bg-secondary" />
               </div>
               <div className="space-y-2">
-                <Label>Username</Label>
+                <Label>{t("profile.username")}</Label>
                 <div className="flex gap-2">
                   <Input 
                     value={username} 
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your username"
+                    placeholder={t("profile.enterUsername")}
                   />
                   <Button
                     onClick={handleUpdateUsername}
                     disabled={updatingUsername}
                     size="sm"
                   >
-                    Update
+                    {t("profile.update")}
                   </Button>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>User ID</Label>
+                <Label>{t("profile.userId")}</Label>
                 <Input value={user?.id || ""} disabled className="bg-secondary text-xs" />
               </div>
             </CardContent>
@@ -443,28 +471,45 @@ const Profile = () => {
           {/* Theme Switcher */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-xl">Appearance</CardTitle>
-              <CardDescription>Customize how the app looks</CardDescription>
+              <CardTitle className="text-xl">{t("profile.appearance")}</CardTitle>
+              <CardDescription>{t("profile.customizeAppearance")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <Label>Theme</Label>
-                <Tabs value={theme} onValueChange={setTheme} className="w-full max-w-xs">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="light" className="flex items-center gap-2">
-                      <Sun className="h-4 w-4" />
-                      <span className="hidden sm:inline">Light</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="dark" className="flex items-center gap-2">
-                      <Moon className="h-4 w-4" />
-                      <span className="hidden sm:inline">Dark</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="system" className="flex items-center gap-2">
-                      <Monitor className="h-4 w-4" />
-                      <span className="hidden sm:inline">System</span>
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("profile.theme")}</Label>
+                  <Tabs value={theme} onValueChange={setTheme} className="w-full max-w-xs">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="light" className="flex items-center gap-2">
+                        <Sun className="h-4 w-4" />
+                        <span className="hidden sm:inline">{t("profile.light")}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="dark" className="flex items-center gap-2">
+                        <Moon className="h-4 w-4" />
+                        <span className="hidden sm:inline">{t("profile.dark")}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="system" className="flex items-center gap-2">
+                        <Monitor className="h-4 w-4" />
+                        <span className="hidden sm:inline">{t("profile.system")}</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("profile.language")}</Label>
+                  <Select value={i18n.language} onValueChange={(value) => i18n.changeLanguage(value)}>
+                    <SelectTrigger className="w-full max-w-xs">
+                      <div className="flex items-center gap-2">
+                        <Languages className="w-4 h-4" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">{t("profile.english")}</SelectItem>
+                      <SelectItem value="es">{t("profile.spanish")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -472,26 +517,26 @@ const Profile = () => {
           {/* Update Password */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-xl">Update Password</CardTitle>
-              <CardDescription>Change your account password</CardDescription>
+              <CardTitle className="text-xl">{t("profile.updatePassword")}</CardTitle>
+              <CardDescription>{t("profile.changePassword")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>New Password</Label>
+                <Label>{t("profile.newPassword")}</Label>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
+                  placeholder={t("profile.enterNewPassword")}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Confirm Password</Label>
+                <Label>{t("profile.confirmPassword")}</Label>
                 <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
+                  placeholder={t("profile.confirmNewPassword")}
                 />
               </div>
               <Button
@@ -499,7 +544,7 @@ const Profile = () => {
                 disabled={loading || !newPassword || !confirmPassword}
                 size="sm"
               >
-                Update Password
+                {t("profile.updatePassword")}
               </Button>
             </CardContent>
           </Card>
@@ -509,20 +554,20 @@ const Profile = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <h2 className="text-2xl font-semibold">Subscription Plans</h2>
+                  <h2 className="text-2xl font-semibold">{t("profile.subscriptionPlans")}</h2>
                   {isLocalhost && (
                     <span className="text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded-full font-medium">
-                      TEST MODE
+                      {t("profile.testMode")}
                     </span>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Choose the plan that fits your needs
+                  {t("profile.choosePlan")}
                 </p>
               </div>
               {subscription.subscribed && (
                 <Button onClick={handleManageSubscription} disabled={loading} variant="outline" size="sm">
-                  Manage Subscription
+                  {t("profile.manageSubscription")}
                 </Button>
               )}
             </div>
@@ -530,7 +575,7 @@ const Profile = () => {
             {/* Billing Toggle */}
             <div className="flex items-center justify-center gap-3 mb-6">
               <span className={`text-sm ${billingInterval === "monthly" ? "font-semibold" : "text-muted-foreground"}`}>
-                Monthly
+                {t("profile.monthly")}
               </span>
               <button
                 onClick={() => setBillingInterval(billingInterval === "monthly" ? "yearly" : "monthly")}
@@ -545,11 +590,11 @@ const Profile = () => {
                 />
               </button>
               <span className={`text-sm ${billingInterval === "yearly" ? "font-semibold" : "text-muted-foreground"}`}>
-                Yearly
+                {t("profile.yearly")}
               </span>
               {billingInterval === "yearly" && (
                 <span className="text-xs text-primary font-semibold bg-primary/10 px-2 py-1 rounded-full">
-                  Save 20%
+                  {t("profile.save20")}
                 </span>
               )}
             </div>
@@ -559,10 +604,10 @@ const Profile = () => {
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2 mb-2">
                     <Check className="w-5 h-5 text-purple-500" />
-                    <span className="font-semibold text-purple-600 dark:text-purple-400">Super Admin Active</span>
+                    <span className="font-semibold text-purple-600 dark:text-purple-400">{t("profile.superAdminActive")}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    You have full access to all features and unlimited generations.
+                    {t("profile.superAdminDescription")}
                   </p>
                 </CardContent>
               </Card>
@@ -573,17 +618,17 @@ const Profile = () => {
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2 mb-2">
                     <Check className="w-5 h-5 text-primary" />
-                    <span className="font-semibold">Active Subscription</span>
+                    <span className="font-semibold">{t("profile.activeSubscription")}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Current plan: {subscription.plan_name}
+                    {t("profile.currentPlan")} {subscription.plan_name}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Monthly limit: {subscription.monthly_limit} thumbnails
+                    {t("profile.monthlyLimit")} {subscription.monthly_limit} {t("profile.thumbnails")}
                   </p>
                   {subscription.subscription_end && (
                     <p className="text-sm text-muted-foreground">
-                      Renews on: {new Date(subscription.subscription_end).toLocaleDateString()}
+                      {t("profile.renewsOn")} {new Date(subscription.subscription_end).toLocaleDateString()}
                     </p>
                   )}
                 </CardContent>
@@ -595,10 +640,10 @@ const Profile = () => {
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2 mb-2">
                     <Check className="w-5 h-5 text-muted-foreground" />
-                    <span className="font-semibold">Free Tier</span>
+                    <span className="font-semibold">{t("profile.freeTier")}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    You're currently on the free plan with 5 one-time credits
+                    {t("profile.freeTierDescription")}
                   </p>
                 </CardContent>
               </Card>
@@ -627,14 +672,14 @@ const Profile = () => {
                     {plan.popular && !isCurrentPlan && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                         <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
-                          Most Popular
+                          {t("profile.mostPopular")}
                         </span>
                       </div>
                     )}
                     {isCurrentPlan && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                         <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
-                          Your Plan
+                          {t("profile.yourPlan")}
                         </span>
                       </div>
                     )}
@@ -646,7 +691,7 @@ const Profile = () => {
                             <span className="text-3xl font-bold text-foreground">
                               {plan.monthlyPrice}
                             </span>
-                            {!isFree && <span className="text-muted-foreground">/month</span>}
+                            {!isFree && <span className="text-muted-foreground">{t("profile.perMonth")}</span>}
                           </>
                         ) : (
                           <>
@@ -659,10 +704,10 @@ const Profile = () => {
                                   <span className="text-3xl font-bold text-foreground">
                                     ${discountedMonthlyPrice.toFixed(2)}
                                   </span>
-                                  <span className="text-muted-foreground">/month</span>
+                                  <span className="text-muted-foreground">{t("profile.perMonth")}</span>
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-1">
-                                  Billed annually at {plan.yearlyPrice}
+                                  {t("profile.billedAnnually")} {plan.yearlyPrice}
                                 </div>
                               </>
                             ) : (
@@ -670,7 +715,7 @@ const Profile = () => {
                                 <span className="text-3xl font-bold text-foreground">
                                   {plan.monthlyPrice}
                                 </span>
-                                <span className="text-muted-foreground">/month</span>
+                                <span className="text-muted-foreground">{t("profile.perMonth")}</span>
                               </>
                             )}
                           </>
@@ -690,7 +735,7 @@ const Profile = () => {
                         <Button
                           onClick={() => {
                             if (!currentPriceId) {
-                              toast.error(`Test Price ID not configured for ${plan.name}. Please update testPlans in Profile.tsx with your Stripe test Price IDs.`);
+                              toast.error(t("profile.errors.testPriceIdNotConfigured", { planName: plan.name }));
                               return;
                             }
                             handleSubscribe(currentPriceId);
@@ -700,7 +745,7 @@ const Profile = () => {
                           size="sm"
                           disabled={loading || isCurrentPlan || !currentPriceId}
                         >
-                          {isCurrentPlan ? "Current Plan" : !currentPriceId ? "Price ID Missing" : "Subscribe"}
+                          {isCurrentPlan ? t("profile.currentPlanButton") : !currentPriceId ? t("profile.priceIdMissing") : t("profile.subscribe")}
                         </Button>
                       )}
                     </CardContent>

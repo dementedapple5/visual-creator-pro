@@ -1,0 +1,851 @@
+{
+  "common": {
+    "signIn": "Sign In",
+    "getStarted": "Get Started",
+    "logout": "Logout",
+    "profile": "Profile",
+    "user": "User",
+    "free": "Free",
+    "upgradePlan": "Upgrade Plan",
+    "processing": "Processing...",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save": "Save",
+    "mostPopular": "Most Popular",
+    "chooseYourPlan": "Choose Your Plan",
+    "upgradeToUnlock": "Upgrade to unlock more credits and premium features",
+    "getStartedButton": "Get Started",
+    "startNow": "Start Now",
+    "back": "Back",
+    "next": "Next",
+    "cancel": "Cancel",
+    "confirm": "Are you sure you want to clear the generated thumbnails? This will remove them from cache.",
+    "letAIDecide": "Let AI Decide"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "quickCreate": "Quick Create",
+    "create": "Create",
+    "generations": "Generations",
+    "avatars": "Avatars",
+    "elements": "Elements",
+    "backgrounds": "Backgrounds",
+    "fontStyles": "Font Styles",
+    "content": "Content"
+  },
+  "drawer": {
+    "vizion": "VIZION",
+    "generated": "generated",
+    "used": "used",
+    "limitReached": "limit reached. Upgrade to create more.",
+    "signedOut": "Signed out successfully",
+    "openingCheckout": "Opening checkout...",
+    "failedCheckout": "Failed to start checkout"
+  },
+  "landing": {
+    "heroTitle": "Create YouTube thumbnails",
+    "heroSubtitle": "that skyrocket your clicks",
+    "heroDescription": "Expert workflow for",
+    "heroTagline": "The specialized design tool for YouTubers. Upload your face, drag in elements, and generate high-CTR thumbnails in seconds. No generic templates—just results.",
+    "startCreatingFree": "Start Creating Free",
+    "signIn": "Sign In",
+    "getStarted": "Get Started",
+    "powerUpTitle": "Power up your channel with Vizion",
+    "powerUpDescription": "Everything you need to build viral thumbnails—avatars, backgrounds, and elements—all in one place.",
+    "lovedByCreators": "Loved by Creators",
+    "lovedByCreatorsDescription": "Join thousands of content creators who trust Vizion to create stunning thumbnails.",
+    "simplePricing": "Simple Pricing",
+    "simplePricingDescription": "Start for free, upgrade when you grow.",
+    "save20": "Save 20%",
+    "billedAnnually": "Billed annually at",
+    "perMonth": "/month",
+    "rotatingWords": {
+      "thumbnails": "Thumbnails",
+      "ctrHooks": "CTR Hooks",
+      "youtube169": "YouTube 16:9",
+      "variations": "Variations",
+      "viralCovers": "Viral Covers"
+    }
+  },
+  "features": {
+    "yourIdentityAutomated": {
+      "title": "Your identity, automated",
+      "description": "Upload your face once and let AI integrate it into any thumbnail with the perfect expression.",
+      "badge": "Personalization",
+      "footnote": "Compatible with any visual style.",
+      "steps": {
+        "faceLibrary": {
+          "title": "Face library",
+          "detail": "Save your best angles and expressions."
+        },
+        "lightingMatch": {
+          "title": "Lighting match",
+          "detail": "AI adjusts your face to match the thumbnail background."
+        },
+        "noNewShoots": {
+          "title": "No new shoots",
+          "detail": "Reuse your photos without having to pose again."
+        }
+      }
+    },
+    "designThatGetsClicks": {
+      "title": "Design that gets clicks",
+      "description": "Specialized tools for visual hierarchy and contrast to stand out in the YouTube feed.",
+      "badge": "Conversion",
+      "footnote": "Optimized to maximize CTR.",
+      "stats": {
+        "format": {
+          "label": "Format",
+          "value": "Native 16:9",
+          "sub": "Optimal 1280x720 resolution"
+        },
+        "contrast": {
+          "label": "Contrast",
+          "value": "Smart-Edge",
+          "sub": "Highlight key elements"
+        },
+        "readability": {
+          "label": "Readability",
+          "value": "Mobile-First",
+          "sub": "Legible titles on small screens"
+        },
+        "presets": {
+          "label": "Presets",
+          "value": "9 options",
+          "sub": "Creator-proven layouts"
+        }
+      }
+    },
+    "stylesThatHook": {
+      "title": "Styles that hook",
+      "description": "Backgrounds, gradients, and text presets optimized to be read instantly.",
+      "badge": "Visuals",
+      "footnote": "Ever-expanding style library.",
+      "swatches": {
+        "gamingPro": "Gaming Pro",
+        "cleanIRL": "Clean IRL",
+        "aiScenery": "AI Scenery"
+      },
+      "chips": {
+        "aiBackgrounds": "AI Backgrounds",
+        "proFilters": "Pro Filters",
+        "autoContrast": "Auto Contrast",
+        "smartLayers": "Smart Layers"
+      }
+    },
+    "textThatCutsThroughNoise": {
+      "title": "Text that cuts through noise",
+      "description": "Typefaces and layouts with shadows and strokes designed to pop on any background.",
+      "badge": "Impact",
+      "sample": {
+        "title": "WATCH THIS NOW!",
+        "subtitle": "The secret to higher CTR",
+        "tags": {
+          "boldContrast": "Bold & Contrast",
+          "proShadows": "Pro Shadows",
+          "readyToUse": "Ready to use"
+        }
+      }
+    },
+    "smartLayouts": {
+      "title": "Smart Layouts",
+      "description": "Place key elements, screenshots, and products with professional composition guides.",
+      "badge": "Composition",
+      "stats": {
+        "rules": {
+          "label": "Rules",
+          "value": "Thirds & Gold",
+          "sub": "Intelligent visual guides"
+        },
+        "slots": {
+          "label": "Slots",
+          "value": "3 Objects",
+          "sub": "Balanced compositions"
+        }
+      },
+      "chips": {
+        "autoAlign": "Auto-align",
+        "layerOrder": "Layer order",
+        "smartScaling": "Smart Scaling"
+      }
+    },
+    "remixAndScale": {
+      "title": "Remix & Scale",
+      "description": "Don't settle for one. Generate variations and remix until you find the winner.",
+      "badge": "Speed",
+      "footnote": "Generation history saved automatically.",
+      "steps": {
+        "aiRemix": {
+          "title": "AI Remix",
+          "detail": "Change the style or background while keeping your face consistent."
+        },
+        "oneClickExport": {
+          "title": "1-Click Export",
+          "detail": "Download your optimized 1280x720 thumbnail."
+        }
+      },
+      "stats": {
+        "productivity": {
+          "label": "Productivity",
+          "value": "10x Faster",
+          "sub": "From idea to result in 2 minutes"
+        }
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "How Vizion Works",
+    "description": "A professional workflow designed for speed. Go from idea to publish-ready thumbnail in four simple steps.",
+    "step": "Step",
+    "steps": {
+      "startWithIdentity": {
+        "title": "Start with your Identity",
+        "description": "Upload your face once and reuse it freely. Choose expressions that match your video's vibe—excited, serious, or surprised—without taking new photos every time."
+      },
+      "addElements": {
+        "title": "Add your Elements",
+        "description": "Place your product, screenshots, or key visuals. Upload generic assets or branded files to fill the composition."
+      },
+      "hookWithText": {
+        "title": "Hook with Text",
+        "description": "Add punchy titles and subtitles. Select from high-converting text styles and placements that ensure your thumbnail is readable and click-worthy."
+      },
+      "styleAndBackground": {
+        "title": "Style & Background",
+        "description": "Set the scene with gradients, solid colors, or AI-generated backgrounds. Define the overall visual style, then hit generate to bring it all together."
+      }
+    },
+    "benefits": {
+      "professionalPresets": "Professional presets",
+      "timeSavingAutomation": "Time-saving automation",
+      "agencyQualityOutput": "Agency-quality output"
+    }
+  },
+  "plans": {
+    "free": {
+      "name": "Free",
+      "description": "Perfect for trying out Vizion",
+      "features": {
+        "oneTimeCredits": "5 one-time credits",
+        "emailSupport": "Email support"
+      }
+    },
+    "starter": {
+      "name": "Starter",
+      "description": "For casual creators",
+      "features": {
+        "credits": "50 credits/month",
+        "headshots": "10 headshots/month",
+        "customization": "Advanced customization",
+        "support": "Email support"
+      }
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "For serious creators",
+      "features": {
+        "credits": "100 credits/month",
+        "headshots": "30 headshots/month",
+        "customization": "Advanced customization",
+        "support": "Priority support"
+      }
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "description": "For teams and agencies",
+      "features": {
+        "credits": "300 credits/month",
+        "headshots": "100 headshots/month",
+        "customization": "Advanced customization",
+        "support": "24/7 support"
+      }
+    }
+  },
+  "testimonials": {
+    "testimonial1": {
+      "text": "Vizion has completely changed my workflow. I used to spend hours on thumbnails, now it takes minutes.",
+      "author": "Sarah Jenkins",
+      "role": "Tech YouTuber (500k subs)"
+    },
+    "testimonial2": {
+      "text": "The quality of the AI generation is mind-blowing. It understands exactly what I want from a simple prompt.",
+      "author": "Mike Chen",
+      "role": "Gaming Streamer"
+    },
+    "testimonial3": {
+      "text": "Finally, a tool that actually helps me get more clicks. My CTR has increased by 40% since using Vizion.",
+      "author": "Jessica Lee",
+      "role": "Lifestyle Vlogger"
+    },
+    "testimonial4": {
+      "text": "I've tried every thumbnail tool out there. Vizion is the only one that consistently delivers professional results.",
+      "author": "David Park",
+      "role": "Finance Educator"
+    },
+    "testimonial5": {
+      "text": "The speed is incredible. I can iterate through dozens of ideas in the time it used to take me to make one.",
+      "author": "Emma Wilson",
+      "role": "Travel Creator"
+    },
+    "testimonial6": {
+      "text": "My subscribers always comment on how great my thumbnails look now. This tool is a game changer.",
+      "author": "Alex Rivera",
+      "role": "Music Producer"
+    }
+  },
+  "footer": {
+    "copyright": "© 2025 Vizion AI. All rights reserved."
+  },
+  "quickCreate": {
+    "badge": "AI Powered Quick Creation",
+    "heroTitle": "Thumbnails",
+    "heroAnd": "&",
+    "heroTitles": "titles",
+    "typewriterTexts": {
+      "inSeconds": "in seconds",
+      "effortlessly": "effortlessly",
+      "withAI": "with AI"
+    },
+    "description": "Revolutionize your content workflow. Upload your video and watch as AI crafts perfect visuals for you.",
+    "features": {
+      "analyzeContent": "Analyze your content",
+      "fourThumbnails": "4 unique thumbnails",
+      "optimizedTitles": "Optimized titles"
+    },
+    "errors": {
+      "signInFirst": "Please sign in first",
+      "limitReached": "limit reached. Upgrade to create more.",
+      "couldNotStart": "Could not start generation (failed to record credits). Please try again.",
+      "errorProcessing": "Error processing video",
+      "noThumbnailsToSave": "No thumbnails to save",
+      "errorSaving": "Error saving thumbnails"
+    },
+    "success": {
+      "thumbnailSaved": "Thumbnail saved!",
+      "thumbnailsSaved": "Successfully saved {count} thumbnails!",
+      "preparing": "Preparing..."
+    }
+  },
+  "createNew": {
+    "pageTitle": "Create Thumbnail",
+    "subtitle": "Move through the stages to craft your thumbnail without losing context.",
+    "backToDashboard": "Back to dashboard",
+    "playground": "Playground",
+    "livePreview": "Live preview",
+    "canvas": "Canvas",
+    "startWithAvatar": "Start with avatar",
+    "previewWillAppear": "Preview will appear here",
+    "download": "Download",
+    "downloading": "Downloading...",
+    "remixButton": "Remix",
+    "generatedThumbnails": "Generated thumbnails",
+    "clickToSelect": "Click to select",
+    "results": "results",
+    "clearAll": "Clear all",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "saving": "Saving...",
+    "save": "Save",
+    "creationStages": "Creation stages",
+    "navigateStages": "Navigate between Avatar, Elements, Title, and Background.",
+    "tabs": {
+      "avatar": "Avatar",
+      "elements": "Elements",
+      "title": "Title",
+      "background": "Background"
+    },
+    "avatar": {
+      "selection": "Avatar Selection",
+      "selectionSubtitle": "Choose or upload an avatar image to feature in your thumbnail",
+      "noAvatars": "No avatars available. Upload one in your Profile.",
+      "upload": "Upload",
+      "expressions": "Expressions",
+      "expressionsSubtitle": "Select facial expressions for your avatar (max 3)",
+      "position": "Avatar Position",
+      "positionSubtitle": "Control where your avatar appears on the canvas"
+    },
+    "elements": {
+      "textElements": "Text Elements",
+      "textElementsSubtitle": "Add specific objects to include (e.g. 'red car', 'sunflowers')",
+      "addElement": "Add specific element (e.g. red car, neon sign)...",
+      "elementLibrary": "Element Library",
+      "elementLibrarySubtitle": "Select up to 3 elements like products, props, or custom images",
+      "elementPositions": "Element Positions",
+      "elementPositionsSubtitle": "Define placement for each selected element",
+      "customElement": "Custom Element",
+      "element": "Element",
+      "maximumReached": "Maximum 3 elements allowed",
+      "elementAlreadyAdded": "Element already added",
+      "maxTextElements": "Maximum 10 text elements allowed"
+    },
+    "title": {
+      "content": "Title Content",
+      "contentSubtitle": "Write your own title or let AI generate click-worthy variations",
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "fontStyle": "Font Style",
+      "fontStyleSubtitle": "Choose from presets or use an image reference for typography",
+      "textPosition": "Text Position",
+      "textPositionSubtitle": "Control where your text appears on the canvas",
+      "savedTitles": "Saved Titles",
+      "savedTitlesSubtitle": "Quick access to your saved title presets",
+      "use": "Use",
+      "style": "Style",
+      "position": "Position",
+      "aiGenerate": "AI Generate",
+      "aiGenerateDesc": "Click-worthy titles",
+      "manual": "Manual",
+      "manualDesc": "Write your own",
+      "enterTitle": "Enter title...",
+      "enterSubtitle": "Enter subtitle...",
+      "presetStyles": "Preset Styles",
+      "presetStylesDesc": "Select from presets",
+      "imageReference": "Image Reference",
+      "imageReferenceDesc": "Upload a sample",
+      "noFontStyles": "No font styles available yet.",
+      "uploadFontStyles": "Upload Font Styles",
+      "manageFontStyles": "Manage font styles →"
+    },
+    "background": {
+      "visualStyle": "Visual Style",
+      "visualStyleSubtitle": "Define the overall mood and aesthetic of your thumbnails",
+      "background": "Background",
+      "backgroundSubtitle": "Choose a background type: gradient, solid color, image, or custom",
+      "letAIDecide": "Let AI Decide",
+      "letAIDecideDesc": "AI will create varied backgrounds across the 9 thumbnails",
+      "savedBackgrounds": "Saved Backgrounds",
+      "savedBackgroundsSubtitle": "Quick access to your saved background presets",
+      "viewAll": "View all backgrounds",
+      "gradient": "Gradient",
+      "solidColor": "Solid Color",
+      "uploadImage": "Upload Image",
+      "fromAvatar": "From Avatar",
+      "customPrompt": "Custom Prompt",
+      "color1": "Color 1",
+      "color2": "Color 2",
+      "color": "Color",
+      "clickToUpload": "Click to upload",
+      "clickToChange": "Click to change",
+      "pngJpgUpTo10MB": "PNG, JPG up to 10MB",
+      "backgroundFromAvatar": "Background will be generated from the selected avatar",
+      "selectAvatarFirst": "Please select an avatar first to use this option",
+      "backgroundDescription": "Background Description",
+      "describeBackground": "Describe the background you want... (e.g., 'Futuristic city skyline at sunset')"
+    },
+    "generation": {
+      "generate": "Generate",
+      "generateWithCredits": "Generate {mode} ({credits} {creditLabel})",
+      "generating": "Generating {count} {type}...",
+      "processingVariations": "Processing variations...",
+      "selectGenerationMode": "Select generation mode",
+      "thumbnail": "thumbnail",
+      "thumbnails": "thumbnails",
+      "variations": "variations",
+      "credit": "credit",
+      "credits": "credits"
+    },
+    "remix": {
+      "title": "Remix Thumbnail",
+      "description": "Add custom instructions to create a variation of this thumbnail",
+      "placeholder": "E.g., Make the background more vibrant, change text color to blue, add motion blur effect...",
+      "generatingRemix": "Generating Remix...",
+      "generateRemix": "Generate Remix"
+    },
+    "positions": {
+      "topLeft": "Top Left",
+      "topCenter": "Top Center",
+      "topRight": "Top Right",
+      "centerLeft": "Center Left",
+      "center": "Center",
+      "centerRight": "Center Right",
+      "bottomLeft": "Bottom Left",
+      "bottomCenter": "Bottom Center",
+      "bottomRight": "Bottom Right"
+    },
+    "expressions": {
+      "excited": "Excited",
+      "surprised": "Surprised",
+      "happy": "Happy",
+      "serious": "Serious",
+      "confident": "Confident",
+      "thinking": "Thinking"
+    },
+    "visualStyles": {
+      "modernMinimalist": "Modern & Minimalist",
+      "boldDramatic": "Bold & Dramatic",
+      "playfulFun": "Playful & Fun",
+      "professionalClean": "Professional & Clean",
+      "cinematic": "Cinematic",
+      "3dRendered": "3D Rendered"
+    },
+    "textStyles": {
+      "boldLarge": "Bold & Large",
+      "elegantScript": "Elegant Script",
+      "modernSans": "Modern Sans",
+      "handwritten": "Handwritten",
+      "futuristic": "Futuristic",
+      "classicSerif": "Classic Serif"
+    },
+    "letAIDecide": "Let AI Decide",
+    "aiVaryExpressions": "AI will vary expressions across the 9 thumbnails",
+    "aiVaryPositions": "AI will vary avatar positions across the 9 thumbnails",
+    "aiVaryElementPositions": "AI will vary element positions across the 9 thumbnails",
+    "aiVaryTextPositions": "AI will vary text positions across the 9 thumbnails",
+    "aiVaryTextStyles": "AI will vary text styles across the 9 thumbnails",
+    "aiVaryVisualStyles": "AI will vary visual styles across the 9 thumbnails",
+    "aiVaryBackgrounds": "AI will create varied backgrounds across the 9 thumbnails",
+    "addCustomExpression": "Add custom expression...",
+    "addCustomPosition": "Add custom position...",
+    "addCustomTextStyle": "Add custom text style...",
+    "addCustomVisualStyle": "Add custom visual style...",
+    "errors": {
+      "limitReached": "limit reached.",
+      "freeUsersDaily": "Free users get 1 credit per day. Upgrade to create more.",
+      "allCreditsUsed": "You've used all your credits for this billing period.",
+      "freeUsersRemix": "Free users can create 1 thumbnail per day. Upgrade to create more.",
+      "allThumbnailsUsed": "You've used all your thumbnails for this billing period.",
+      "failedGenerate": "Failed to generate thumbnail. Please try again.",
+      "failedDownload": "Failed to download thumbnail",
+      "noThumbnailsSelected": "No thumbnails selected to save",
+      "failedSave": "Failed to save thumbnails",
+      "failedRemix": "Failed to remix thumbnail",
+      "backgroundUploaded": "Background image uploaded",
+      "failedBackgroundUpload": "Failed to upload background image",
+      "avatarUploaded": "Avatar uploaded",
+      "failedAvatarUpload": "Failed to upload avatar",
+      "elementUploaded": "Element uploaded",
+      "failedElementUpload": "Failed to upload element",
+      "backgroundApplied": "Background applied",
+      "titleApplied": "Title applied",
+      "thumbnailGenerated": "Thumbnail generated!",
+      "variationsGenerated": "{count} thumbnail variations generated!",
+      "gridImageCroppingFailed": "Generated grid image (cropping failed)",
+      "remixGenerated": "Remix generated successfully!",
+      "saved": "Saved {count} {thumbnailLabel}!",
+      "downloadStarted": "{label} download started"
+    }
+  },
+  "products": {
+    "title": "Elements",
+    "addElement": "Add Element",
+    "limitReached": " (Limit Reached)",
+    "noElements": "No elements yet",
+    "createFirst": "Create your first element to get started",
+    "createElement": "Create Element",
+    "createNewElement": "Create New Element",
+    "elementTitle": "Element Title *",
+    "enterTitle": "Enter element title",
+    "brand": "Brand (optional)",
+    "enterBrand": "Enter brand name (optional)",
+    "elementImages": "Element Images * (at least 1)",
+    "clickToUpload": "Click to upload images (multiple allowed)",
+    "images": "image",
+    "imagesPlural": "images",
+    "errors": {
+      "failedLoad": "Failed to load elements",
+      "imagesUploaded": "{count} image(s) uploaded",
+      "failedUpload": "Failed to upload images",
+      "addTitleAndImage": "Add a title and at least one image",
+      "freeLimit": "Free tier users can only create 3 elements. Upgrade to add more.",
+      "createdSuccess": "Element created successfully",
+      "failedCreate": "Failed to create element"
+    }
+  },
+  "avatars": {
+    "title": "Your Avatars",
+    "subtitle": "Upload images or capture frames from videos to use in your thumbnails",
+    "uploadImage": "Upload Image",
+    "pngJpgUpTo10MB": "PNG, JPG up to 10MB",
+    "uploadVideo": "Upload Video",
+    "mp4MovCapture": "MP4, MOV to capture frame",
+    "freeLimitReached": "Free tier limit reached",
+    "selectFrame": "Select a frame",
+    "captureCurrentFrame": "Capture Current Frame",
+    "noAvatars": "No avatars uploaded yet",
+    "nameYourAvatar": "Name your Avatar",
+    "avatarName": "Avatar Name",
+    "avatarNamePlaceholder": "e.g. Daniel, Professional Me, etc.",
+    "nameMention": "This name will be used to mention this avatar in prompts using \"@\".",
+    "saveName": "Save Name",
+    "professionalHeadshot": "Professional Headshot",
+    "headshotFreeOnly": "Professional headshots are only available for paid plans. Upgrade now to transform your avatars into studio-quality headshots!",
+    "headshotLimitReached": "You've used all your {limit} professional headshots for this month. Upgrade your plan for more!",
+    "headshotDescription": "Want to turn this avatar into a professional headshot? This will improve face adherence when generating thumbnails further on.",
+    "remainingThisMonth": "Remaining this month: {count}",
+    "keepOriginal": "Keep Original",
+    "viewPlans": "View Plans",
+    "upgradePlan": "Upgrade Plan",
+    "transformToHeadshot": "Transform to Headshot",
+    "generating": "Generating...",
+    "errors": {
+      "failedLoad": "Failed to load avatars",
+      "freeLimit": "Free tier users can only upload 1 avatar. Upgrade to add more.",
+      "uploadedSuccess": "Avatar uploaded successfully",
+      "failedUpload": "Failed to upload avatar",
+      "capturedSuccess": "Avatar captured from video",
+      "failedCapture": "Failed to capture frame",
+      "enterName": "Please enter a name",
+      "namedSuccess": "Avatar named successfully",
+      "failedName": "Failed to name avatar",
+      "headshotGenerated": "Professional headshot generated!",
+      "failedHeadshot": "Failed to generate headshot",
+      "deleted": "Avatar deleted",
+      "failedDelete": "Failed to delete avatar"
+    }
+  },
+  "backgrounds": {
+    "title": "Backgrounds",
+    "subtitle": "Save gradients, colors, prompts, or images to reuse in new thumbnails.",
+    "library": "Library",
+    "saveBackground": "Save a background",
+    "saveBackgroundDescription": "Capture the settings you like and apply them later in the create flow.",
+    "name": "Name",
+    "namePlaceholder": "e.g., Neon gradient",
+    "type": "Type",
+    "gradient": "Gradient",
+    "solidColor": "Solid color",
+    "image": "Image upload",
+    "fromAvatar": "From avatar",
+    "customPrompt": "Custom prompt",
+    "color1": "Color 1",
+    "color2": "Color 2",
+    "color": "Color",
+    "uploadBackgroundImage": "Upload background image",
+    "clickToUpload": "Click to upload",
+    "clickToReplace": "Click to replace",
+    "chooseAvatar": "Choose avatar",
+    "selectAvatar": "Select an avatar",
+    "backgroundPrompt": "Background prompt",
+    "backgroundPromptPlaceholder": "e.g., Futuristic city skyline at dusk",
+    "saveBackgroundButton": "Save background",
+    "saving": "Saving...",
+    "savedBackgrounds": "Saved backgrounds",
+    "savedBackgroundsDescription": "Apply these quickly when creating or editing thumbnails.",
+    "noBackgrounds": "No backgrounds saved yet.",
+    "useInCreate": "Use in create",
+    "noImage": "No image",
+    "avatarNotFound": "Avatar not found",
+    "customPromptBackground": "Custom prompt background",
+    "errors": {
+      "couldNotLoad": "Could not load backgrounds",
+      "addName": "Please add a name for this background",
+      "uploadImage": "Upload an image before saving",
+      "selectAvatar": "Select an avatar to base this background on",
+      "addDescription": "Add a description for this background",
+      "backgroundSaved": "Background saved",
+      "failedSave": "Failed to save background",
+      "backgroundDeleted": "Background deleted",
+      "failedDelete": "Failed to delete background",
+      "backgroundImageUploaded": "Background image uploaded",
+      "failedUpload": "Failed to upload image"
+    }
+  },
+  "fontStyles": {
+    "title": "Font Styles",
+    "subtitle": "Browse and upload font style images to use as references in your thumbnails.",
+    "library": "Library",
+    "loading": "Loading font styles...",
+    "uploadCustomFontStyle": "Upload Custom Font Style",
+    "uploadDescription": "Upload an image showing your desired font/text style. The AI will use it as a visual reference.",
+    "name": "Name",
+    "namePlaceholder": "e.g., Neon Glow Style",
+    "fontStyleImage": "Font Style Image",
+    "clickToUploadFontStyle": "Click to upload font style image",
+    "pngJpgRecommended": "PNG or JPG recommended",
+    "uploadFontStyle": "Upload Font Style",
+    "uploading": "Uploading...",
+    "premadeFontStyles": "Pre-made Font Styles",
+    "yourFontStyles": "Your Font Styles",
+    "noCustomFontStyles": "No custom font styles yet. Upload one above to get started!",
+    "useInCreate": "Use in create",
+    "system": "System",
+    "errors": {
+      "couldNotLoad": "Could not load font styles",
+      "provideNameAndImage": "Please provide a name and select an image",
+      "uploadedSuccess": "Font style uploaded successfully",
+      "failedUpload": "Failed to upload font style",
+      "cannotDeleteSystem": "Cannot delete system font styles",
+      "fontStyleDeleted": "Font style deleted",
+      "failedDelete": "Failed to delete font style"
+    }
+  },
+  "dashboard": {
+    "gallery": "Gallery",
+    "yourThumbnails": "Your Thumbnails",
+    "subtitle": "Browse, search and filter all your creations in one place.",
+    "newThumbnail": "New Thumbnail",
+    "createCardDescription": "Create custom thumbnails with full control",
+    "quickCreateCardDescription": "Generate thumbnails from video instantly",
+    "avatarsCardDescription": "Manage your avatar library",
+    "searchPlaceholder": "Search by title or subtitle",
+    "filters": "Filters",
+    "filtersDescription": "Refine your gallery by avatar, element, or date.",
+    "avatar": "Avatar",
+    "filterByAvatar": "Filter by avatar",
+    "allAvatars": "All avatars",
+    "avatarLabel": "Avatar {{index}}",
+    "element": "Element",
+    "filterByElement": "Filter by element",
+    "allElements": "All elements",
+    "dateRange": "Date range",
+    "selectDateRange": "Select date range",
+    "clearFilters": "Clear filters",
+    "apply": "Apply",
+    "noThumbnails": "No thumbnails yet. Create your first one!",
+    "createThumbnail": "Create Thumbnail",
+    "noResults": "No results match these filters",
+    "noResultsDescription": "Try adjusting your search terms, avatar, element, or date range.",
+    "resetFilters": "Reset filters",
+    "generating": "Generating...",
+    "viewDetails": "View Details",
+    "untitledProject": "Untitled Project",
+    "noDescription": "No description provided",
+    "iterating": "Iterating...",
+    "errors": {
+      "failedLoad": "Failed to load thumbnails",
+      "downloadStarted": "Download started",
+      "failedDownload": "Failed to download thumbnail"
+    }
+  },
+  "generations": {
+    "usage": "Usage",
+    "title": "Generation History",
+    "subtitle": "Track every generation, status, and remaining credits.",
+    "dashboard": "Dashboard",
+    "newGeneration": "New Generation",
+    "used": "Used",
+    "today": "today",
+    "thisPeriod": "this period",
+    "status": "Status",
+    "superAdmin": "Super Admin",
+    "fullAccess": "Full access to all features",
+    "unlimitedCredits": "Unlimited credits",
+    "resetsOn": "Resets on",
+    "plan": "Plan",
+    "freeTier": "Free tier",
+    "timeline": "Timeline",
+    "noGenerations": "No generations yet in this period.",
+    "untitledGeneration": "Untitled generation",
+    "credit": "credit",
+    "credits": "credits",
+    "open": "Open",
+    "prompt": "Prompt",
+    "remix": "Remix",
+    "error": "Error",
+    "notAvailable": "Not available",
+    "errors": {
+      "failedLoad": "Failed to load generations history"
+    }
+  },
+  "thumbnailDetail": {
+    "back": "Back",
+    "versions": "{{count}} version",
+    "versionsPlural": "{{count}} versions",
+    "download": "Download",
+    "downloading": "...",
+    "loading": "Loading...",
+    "selectedVersion": "Selected Version",
+    "created": "Created",
+    "promptUsed": "Prompt used",
+    "baseSettings": "Base Settings",
+    "title": "Title",
+    "untitled": "Untitled",
+    "totalVersions": "Total Versions",
+    "generationConfig": "Generation Config",
+    "assetsUsed": "Assets Used",
+    "thumbnailDetails": "Thumbnail Details",
+    "detailsDescription": "Settings and selected version information",
+    "originalGeneration": "Original generation",
+    "selected": "Selected",
+    "version": "Version {{number}}",
+    "generatingMagic": "Generating Magic...",
+    "context": "Context",
+    "describeChanges": "Describe changes for a new version...",
+    "pressEnter": "Press Enter to send, Shift+Enter for new line",
+    "deleteTitle": "Are you sure?",
+    "deleteDescription": "This action cannot be undone. This will permanently delete your thumbnail and all versions.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "errors": {
+      "failedLoad": "Failed to load thumbnail",
+      "downloadStarted": "{label} download started",
+      "failedDownload": "Failed to download thumbnail",
+      "newVersionGenerated": "New version generated!",
+      "failedGenerate": "Failed to generate new version",
+      "deletedSuccess": "Thumbnail deleted successfully!",
+      "failedDelete": "Failed to delete thumbnail"
+    },
+    "mention": {
+      "all": "All",
+      "avatars": "Avatars",
+      "elements": "Elements",
+      "noItems": "No {type} found",
+      "items": "items",
+      "noAvatars": "No avatars found",
+      "noElements": "No elements found"
+    }
+  },
+  "profile": {
+    "accountInformation": "Account Information",
+    "viewAccountDetails": "View your account details",
+    "email": "Email",
+    "username": "Username",
+    "enterUsername": "Enter your username",
+    "update": "Update",
+    "userId": "User ID",
+    "appearance": "Appearance",
+    "customizeAppearance": "Customize how the app looks",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "language": "Language",
+    "english": "English",
+    "spanish": "Español",
+    "updatePassword": "Update Password",
+    "changePassword": "Change your account password",
+    "newPassword": "New Password",
+    "enterNewPassword": "Enter new password",
+    "confirmPassword": "Confirm Password",
+    "confirmNewPassword": "Confirm new password",
+    "subscriptionPlans": "Subscription Plans",
+    "testMode": "TEST MODE",
+    "choosePlan": "Choose the plan that fits your needs",
+    "manageSubscription": "Manage Subscription",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save20": "Save 20%",
+    "superAdminActive": "Super Admin Active",
+    "superAdminDescription": "You have full access to all features and unlimited generations.",
+    "activeSubscription": "Active Subscription",
+    "currentPlan": "Current plan:",
+    "monthlyLimit": "Monthly limit:",
+    "thumbnails": "thumbnails",
+    "renewsOn": "Renews on:",
+    "freeTier": "Free Tier",
+    "freeTierDescription": "You're currently on the free plan with 5 one-time credits",
+    "mostPopular": "Most Popular",
+    "yourPlan": "Your Plan",
+    "perMonth": "/month",
+    "billedAnnually": "Billed annually at",
+    "currentPlanButton": "Current Plan",
+    "priceIdMissing": "Price ID Missing",
+    "subscribe": "Subscribe",
+    "errors": {
+      "usernameEmpty": "Username cannot be empty",
+      "usernameUpdated": "Username updated successfully",
+      "usernameUpdateFailed": "Failed to update username",
+      "passwordsNoMatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 6 characters",
+      "passwordUpdated": "Password updated successfully",
+      "invalidPriceId": "Invalid Price ID: \"{priceId}\". This looks like a placeholder. Please update testPlans in Profile.tsx with real Stripe test Price IDs from your Stripe Dashboard (Test mode).",
+      "placeholderPriceId": "Placeholder Price ID detected: \"{priceId}\". Please replace it with a real Stripe test Price ID. Get it from Stripe Dashboard > Products (Test mode) > Your Product > Copy Price ID.",
+      "failedCheckout": "Failed to start checkout",
+      "openingCheckout": "Opening checkout...",
+      "unexpectedResponse": "Unexpected response from checkout. Check console for details.",
+      "failedStartCheckout": "Failed to start checkout. Check console for details.",
+      "failedCustomerPortal": "Failed to open customer portal",
+      "testPriceIdNotConfigured": "Test Price ID not configured for {planName}. Please update testPlans in Profile.tsx with your Stripe test Price IDs."
+    }
+  }
+}

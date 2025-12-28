@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,63 +51,63 @@ type SavedBackground = Tables<"backgrounds">;
 type SavedTitle = Tables<"titles">;
 type FontStyle = Tables<"font_styles">;
 
-const POSITIONS = [
-  { value: "top-left", label: "Top Left" },
-  { value: "top-center", label: "Top Center" },
-  { value: "top-right", label: "Top Right" },
-  { value: "center-left", label: "Center Left" },
-  { value: "center", label: "Center" },
-  { value: "center-right", label: "Center Right" },
-  { value: "bottom-left", label: "Bottom Left" },
-  { value: "bottom-center", label: "Bottom Center" },
-  { value: "bottom-right", label: "Bottom Right" },
+const getPositions = (t: (key: string) => string) => [
+  { value: "top-left", label: t("createNew.positions.topLeft") },
+  { value: "top-center", label: t("createNew.positions.topCenter") },
+  { value: "top-right", label: t("createNew.positions.topRight") },
+  { value: "center-left", label: t("createNew.positions.centerLeft") },
+  { value: "center", label: t("createNew.positions.center") },
+  { value: "center-right", label: t("createNew.positions.centerRight") },
+  { value: "bottom-left", label: t("createNew.positions.bottomLeft") },
+  { value: "bottom-center", label: t("createNew.positions.bottomCenter") },
+  { value: "bottom-right", label: t("createNew.positions.bottomRight") },
 ];
 
-const POSITION_OPTIONS = POSITIONS.map((p) => ({ value: p.value, label: p.label }));
+const getPositionOptions = (t: (key: string) => string) => getPositions(t).map((p) => ({ value: p.value, label: p.label }));
 
-const VISUAL_STYLES = [
-  "Modern & Minimalist",
-  "Bold & Dramatic",
-  "Playful & Fun",
-  "Professional & Clean",
-  "Cinematic",
-  "3D Rendered",
+const getVisualStyles = (t: (key: string) => string) => [
+  t("createNew.visualStyles.modernMinimalist"),
+  t("createNew.visualStyles.boldDramatic"),
+  t("createNew.visualStyles.playfulFun"),
+  t("createNew.visualStyles.professionalClean"),
+  t("createNew.visualStyles.cinematic"),
+  t("createNew.visualStyles.3dRendered"),
   "Custom",
 ];
 
-const VISUAL_STYLE_OPTIONS = VISUAL_STYLES
+const getVisualStyleOptions = (t: (key: string) => string) => getVisualStyles(t)
   .filter((s) => s !== "Custom")
   .map((s) => ({ value: s, label: s }));
 
-const TEXT_STYLES = [
-  "Bold & Large",
-  "Elegant Script",
-  "Modern Sans",
-  "Handwritten",
-  "Futuristic",
-  "Classic Serif",
+const getTextStyles = (t: (key: string) => string) => [
+  t("createNew.textStyles.boldLarge"),
+  t("createNew.textStyles.elegantScript"),
+  t("createNew.textStyles.modernSans"),
+  t("createNew.textStyles.handwritten"),
+  t("createNew.textStyles.futuristic"),
+  t("createNew.textStyles.classicSerif"),
   "Custom",
 ];
 
-const TEXT_STYLE_OPTIONS = TEXT_STYLES
+const getTextStyleOptions = (t: (key: string) => string) => getTextStyles(t)
   .filter((s) => s !== "Custom")
   .map((s) => ({ value: s, label: s }));
 
-const EXPRESSIONS = [
-  { id: "excited", label: "Excited" },
-  { id: "surprised", label: "Surprised" },
-  { id: "happy", label: "Happy" },
-  { id: "serious", label: "Serious" },
-  { id: "confident", label: "Confident" },
-  { id: "thinking", label: "Thinking" },
+const getExpressions = (t: (key: string) => string) => [
+  { id: "excited", label: t("createNew.expressions.excited") },
+  { id: "surprised", label: t("createNew.expressions.surprised") },
+  { id: "happy", label: t("createNew.expressions.happy") },
+  { id: "serious", label: t("createNew.expressions.serious") },
+  { id: "confident", label: t("createNew.expressions.confident") },
+  { id: "thinking", label: t("createNew.expressions.thinking") },
 ];
 
-const EXPRESSION_OPTIONS = EXPRESSIONS.map((e) => ({ value: e.id, label: e.label }));
+const getExpressionOptions = (t: (key: string) => string) => getExpressions(t).map((e) => ({ value: e.id, label: e.label }));
 
-const GENERATION_MODES = [
-  { value: "1", label: "1 Thumbnail", thumbnailCount: 1, gridSize: 1, credits: 1 },
-  { value: "4", label: "4 Thumbnails", thumbnailCount: 4, gridSize: 2, credits: 2 },
-  { value: "9", label: "9 Thumbnails", thumbnailCount: 9, gridSize: 3, credits: 4 },
+const getGenerationModes = (t: (key: string) => string) => [
+  { value: "1", label: `1 ${t("createNew.generation.thumbnail")}`, thumbnailCount: 1, gridSize: 1, credits: 1 },
+  { value: "4", label: `4 ${t("createNew.generation.thumbnails")}`, thumbnailCount: 4, gridSize: 2, credits: 2 },
+  { value: "9", label: `9 ${t("createNew.generation.thumbnails")}`, thumbnailCount: 9, gridSize: 3, credits: 4 },
 ] as const;
 
 const GRID_SIZE = 3;
@@ -157,7 +158,14 @@ const cropGridToThumbnails = async (gridImageUrl: string, gridSize: number = 3):
 };
 
 const CreateNew = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  
+  const POSITION_OPTIONS = getPositionOptions(t);
+  const VISUAL_STYLE_OPTIONS = getVisualStyleOptions(t);
+  const TEXT_STYLE_OPTIONS = getTextStyleOptions(t);
+  const EXPRESSION_OPTIONS = getExpressionOptions(t);
+  const GENERATION_MODES = getGenerationModes(t);
   const [generating, setGenerating] = useState(false);
   const [croppingGrid, setCroppingGrid] = useState(false);
   const [generatedThumbnails, setGeneratedThumbnails] = useState<string[]>([]);
@@ -377,10 +385,10 @@ const CreateNew = () => {
 
       setBackgroundImageUrl(publicUrl);
       setBackgroundValue(publicUrl);
-      toast.success("Background image uploaded");
+      toast.success(t("createNew.errors.backgroundUploaded"));
     } catch (error) {
       console.error("Error uploading background:", error);
-      toast.error("Failed to upload background image");
+      toast.error(t("createNew.errors.failedBackgroundUpload"));
     }
   };
 
@@ -409,10 +417,10 @@ const CreateNew = () => {
 
       setCustomAvatarUrl(publicUrl);
       setSelectedAvatar(""); // Clear selected library avatar
-      toast.success("Avatar uploaded");
+      toast.success(t("createNew.errors.avatarUploaded"));
     } catch (error) {
       console.error("Error uploading avatar:", error);
-      toast.error("Failed to upload avatar");
+      toast.error(t("createNew.errors.failedAvatarUpload"));
     }
   };
 
@@ -450,10 +458,10 @@ const CreateNew = () => {
         setElementPositions(prev => ({ ...prev, [newCustomId]: ["center-right"] }));
       }
 
-      toast.success("Element uploaded");
+      toast.success(t("createNew.errors.elementUploaded"));
     } catch (error) {
       console.error("Error uploading element:", error);
-      toast.error("Failed to upload element");
+      toast.error(t("createNew.errors.failedElementUpload"));
     }
   };
 
@@ -461,12 +469,12 @@ const CreateNew = () => {
     if (!currentTextElement.trim()) return;
 
     if (textElements.includes(currentTextElement.trim())) {
-      toast.error("Element already added");
+      toast.error(t("createNew.elements.elementAlreadyAdded"));
       return;
     }
 
     if (textElements.length >= 10) {
-      toast.error("Maximum 10 text elements allowed");
+      toast.error(t("createNew.elements.maxTextElements"));
       return;
     }
 
@@ -580,7 +588,7 @@ const CreateNew = () => {
       setBackgroundImageUrl("");
     }
 
-    toast.success("Background applied");
+    toast.success(t("createNew.errors.backgroundApplied"));
   };
 
   const applySavedTitle = (savedTitle: SavedTitle) => {
@@ -603,7 +611,7 @@ const CreateNew = () => {
       setCustomTextStyle(savedTitle.custom_text_style || "");
     }
 
-    toast.success("Title applied");
+    toast.success(t("createNew.errors.titleApplied"));
   };
 
   const renderSavedBackgroundPreview = (background: SavedBackground) => {
@@ -694,7 +702,7 @@ const CreateNew = () => {
 
       if (!isSuperAdmin && usedGenerations + requiredCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
-        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users get 1 credit per day. Upgrade to create more." : "You've used all your credits for this billing period."}`);
+        toast.error(`${limitType} ${t("createNew.errors.limitReached")} ${limitType === "Daily" ? t("createNew.errors.freeUsersDaily") : t("createNew.errors.allCreditsUsed")}`);
         setGenerating(false);
         return;
       }
@@ -785,7 +793,7 @@ const CreateNew = () => {
         setGeneratedThumbnails([gridImageSource]);
         setSelectedImage(gridImageSource);
         setSelectedImages(new Set());
-        toast.success("Thumbnail generated!");
+        toast.success(t("createNew.errors.thumbnailGenerated"));
       } else {
         // Store grid + crop into thumbnails on client
         setGridImageUrl(gridImageSource);
@@ -795,12 +803,12 @@ const CreateNew = () => {
           setGeneratedThumbnails(cropped);
           setSelectedImage(cropped[0] || null);
           setSelectedImages(new Set());
-          toast.success(`${selectedMode.thumbnailCount} thumbnail variations generated!`);
+          toast.success(t("createNew.errors.variationsGenerated", { count: selectedMode.thumbnailCount }));
         } catch (e) {
           console.warn("Grid cropping failed, falling back to grid image", e);
           setGeneratedThumbnails([gridImageSource]);
           setSelectedImage(gridImageSource);
-          toast.warning("Generated grid image (cropping failed)");
+          toast.warning(t("createNew.errors.gridImageCroppingFailed"));
         } finally {
           setCroppingGrid(false);
         }
@@ -813,7 +821,7 @@ const CreateNew = () => {
       }
     } catch (error) {
       console.error("Error generating thumbnail:", error);
-      toast.error("Failed to generate thumbnail. Please try again.");
+      toast.error(t("createNew.errors.failedGenerate"));
     } finally {
       setGenerating(false);
     }
@@ -832,10 +840,10 @@ const CreateNew = () => {
         height: option.height,
         fileName: `thumbnail-${option.width}x${option.height}.png`,
       });
-      toast.success(`${option.label} download started`);
+      toast.success(t("createNew.errors.downloadStarted", { label: option.label }));
     } catch (error: any) {
       console.error("Error downloading thumbnail:", error);
-      toast.error(error?.message || "Failed to download thumbnail");
+      toast.error(error?.message || t("createNew.errors.failedDownload"));
     } finally {
       setDownloading(false);
     }
@@ -853,7 +861,7 @@ const CreateNew = () => {
   const saveSelected = async () => {
     const urls = selectedImages.size > 0 ? Array.from(selectedImages) : selectedImage ? [selectedImage] : [];
     if (urls.length === 0) {
-      toast.error("No thumbnails selected to save");
+      toast.error(t("createNew.errors.noThumbnailsSelected"));
       return;
     }
 
@@ -925,10 +933,14 @@ const CreateNew = () => {
         }
       }
 
-      toast.success(`Saved ${urls.length} thumbnail${urls.length > 1 ? "s" : ""}!`);
+      toast.success(t("createNew.errors.saved", { 
+        count: urls.length, 
+        thumbnailLabel: urls.length > 1 ? t("createNew.generation.thumbnails") : t("createNew.generation.thumbnail"),
+        plural: urls.length > 1 ? "s" : ""
+      }));
     } catch (e) {
       console.error("Error saving thumbnails:", e);
-      toast.error("Failed to save thumbnails");
+      toast.error(t("createNew.errors.failedSave"));
     } finally {
       setSaving(false);
     }
@@ -962,7 +974,7 @@ const CreateNew = () => {
 
       if (!isSuperAdmin && usedGenerations + remixCredits > monthlyLimit) {
         const limitType = getGenerationLimitLabel(subscriptionData || {});
-        toast.error(`${limitType} limit reached. ${limitType === "Daily" ? "Free users can create 1 thumbnail per day. Upgrade to create more." : "You've used all your thumbnails for this billing period."}`);
+        toast.error(`${limitType} ${t("createNew.errors.limitReached")} ${limitType === "Daily" ? t("createNew.errors.freeUsersRemix") : t("createNew.errors.allThumbnailsUsed")}`);
         setRemixing(false);
         return;
       }
@@ -1075,10 +1087,10 @@ const CreateNew = () => {
       setSelectedImages(new Set());
       setRemixDialogOpen(false);
       setRemixPrompt("");
-      toast.success("Remix generated successfully!");
+      toast.success(t("createNew.errors.remixGenerated"));
     } catch (error: any) {
       console.error("Error remixing thumbnail:", error);
-      toast.error(error.message || "Failed to remix thumbnail");
+      toast.error(error.message || t("createNew.errors.failedRemix"));
     } finally {
       setRemixing(false);
     }
@@ -1089,31 +1101,31 @@ const CreateNew = () => {
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playground</p>
-            <h2 className="text-2xl font-semibold leading-tight">Create Thumbnail</h2>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("createNew.playground")}</p>
+            <h2 className="text-2xl font-semibold leading-tight">{t("createNew.pageTitle")}</h2>
             <p className="text-sm text-muted-foreground">
-              Move through the stages to craft your thumbnail without losing context.
+              {t("createNew.subtitle")}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
-              Back to dashboard
+              {t("createNew.backToDashboard")}
             </Button>
           </div>
         </div>
 
         <Dialog open={remixDialogOpen} onOpenChange={setRemixDialogOpen}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Remix Thumbnail</DialogTitle>
-              <DialogDescription>
-                Add custom instructions to create a variation of this thumbnail
-              </DialogDescription>
-            </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{t("createNew.remix.title")}</DialogTitle>
+            <DialogDescription>
+              {t("createNew.remix.description")}
+            </DialogDescription>
+          </DialogHeader>
             <div className="space-y-4 pt-4">
               <Textarea
-                placeholder="E.g., Make the background more vibrant, change text color to blue, add motion blur effect..."
+                placeholder={t("createNew.remix.placeholder")}
                 value={remixPrompt}
                 onChange={(e) => setRemixPrompt(e.target.value)}
                 rows={4}
@@ -1126,12 +1138,12 @@ const CreateNew = () => {
                 {remixing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating Remix...
+                    {t("createNew.remix.generatingRemix")}
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Generate Remix
+                    {t("createNew.remix.generateRemix")}
                   </>
                 )}
               </Button>
@@ -1144,11 +1156,11 @@ const CreateNew = () => {
             <div className="rounded-xl border border-border bg-card/60 shadow-sm backdrop-blur">
               <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Live preview</p>
-                  <p className="font-semibold">Canvas</p>
+                  <p className="text-xs text-muted-foreground">{t("createNew.livePreview")}</p>
+                  <p className="font-semibold">{t("createNew.canvas")}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setActiveTab("avatar")}>
-                  Start with avatar
+                  {t("createNew.startWithAvatar")}
                 </Button>
               </div>
 
@@ -1253,11 +1265,11 @@ const CreateNew = () => {
                     <div className="text-center relative z-10">
                       {generating ? (
                         <GeneratingMessages />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          Preview will appear here
-                        </p>
-                      )}
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {t("createNew.previewWillAppear")}
+                      </p>
+                    )}
                     </div>
                   )}
                 </div>
@@ -1271,7 +1283,7 @@ const CreateNew = () => {
                       disabled={downloading}
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      {downloading ? "Downloading..." : "Download"}
+                      {downloading ? t("createNew.downloading") : t("createNew.download")}
                     </Button>
                     <Button
                       variant="outline"
@@ -1279,7 +1291,7 @@ const CreateNew = () => {
                       onClick={() => setRemixDialogOpen(true)}
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Remix
+                      {t("createNew.remixButton")}
                     </Button>
                   </div>
                 )}
@@ -1290,17 +1302,17 @@ const CreateNew = () => {
               <div className="rounded-xl border border-border bg-card/50 shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-semibold">Generated thumbnails</p>
-                    <p className="text-xs text-muted-foreground">Click to select</p>
+                    <p className="text-sm font-semibold">{t("createNew.generatedThumbnails")}</p>
+                    <p className="text-xs text-muted-foreground">{t("createNew.clickToSelect")}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">{generatedThumbnails.length} results</span>
+                    <span className="text-xs text-muted-foreground">{generatedThumbnails.length} {t("createNew.results")}</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                       onClick={() => {
-                        if (confirm("Are you sure you want to clear the generated thumbnails? This will remove them from cache.")) {
+                        if (confirm(t("common.confirm"))) {
                           setGeneratedThumbnails([]);
                           setSelectedImage(null);
                           setSelectedImages(new Set());
@@ -1309,7 +1321,7 @@ const CreateNew = () => {
                         }
                       }}
                     >
-                      Clear all
+                      {t("createNew.clearAll")}
                     </Button>
                   </div>
                 </div>
@@ -1350,10 +1362,10 @@ const CreateNew = () => {
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Button variant="outline" size="sm" onClick={() => setSelectedImages(new Set(generatedThumbnails))}>
-                    Select all
+                    {t("createNew.selectAll")}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setSelectedImages(new Set())}>
-                    Deselect all
+                    {t("createNew.deselectAll")}
                   </Button>
                   <Button 
                     size="sm" 
@@ -1361,7 +1373,7 @@ const CreateNew = () => {
                     disabled={isLoading || saving || selectedImages.size === 0}
                     className="relative w-[120px] rounded-[4px] border border-[#F43F5E] bg-transparent text-[#F43F5E] hover:text-white transition-all duration-300 disabled:opacity-50 disabled:border-zinc-800 disabled:text-zinc-500 overflow-hidden group"
                   >
-                    <span className="relative z-10">{saving ? "Saving..." : `Save ${selectedImages.size}`}</span>
+                    <span className="relative z-10">{saving ? t("createNew.saving") : `${t("createNew.save")} ${selectedImages.size}`}</span>
                     {/* Metal reflection fill effect */}
                     <div className="absolute inset-0 z-0 bg-gradient-to-tr from-[#F43F5E] via-[#F43F5E]/80 to-[#F43F5E] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 pointer-events-none bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 translate-x-[-150%] group-hover:animate-shine" />
@@ -1374,18 +1386,18 @@ const CreateNew = () => {
           <div className="rounded-xl border border-border bg-card/70 shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-140px)] flex flex-col overflow-hidden">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
               <div className="p-4 border-b border-border/60 space-y-1">
-                <p className="text-sm font-semibold">Creation stages</p>
+                <p className="text-sm font-semibold">{t("createNew.creationStages")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Navigate between Avatar, Elements, Title, and Background.
+                  {t("createNew.navigateStages")}
                 </p>
               </div>
 
               <div className="px-4 pt-4">
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="avatar">Avatar</TabsTrigger>
-                  <TabsTrigger value="elements">Elements</TabsTrigger>
-                  <TabsTrigger value="title">Title</TabsTrigger>
-                  <TabsTrigger value="background">Background</TabsTrigger>
+                  <TabsTrigger value="avatar">{t("createNew.tabs.avatar")}</TabsTrigger>
+                  <TabsTrigger value="elements">{t("createNew.tabs.elements")}</TabsTrigger>
+                  <TabsTrigger value="title">{t("createNew.tabs.title")}</TabsTrigger>
+                  <TabsTrigger value="background">{t("createNew.tabs.background")}</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -1393,8 +1405,8 @@ const CreateNew = () => {
                 <div className="pr-2 space-y-4">
                   <TabsContent value="avatar" className="space-y-6 mt-0">
                     <CollapsibleSection
-                      title="Avatar Selection"
-                      subtitle="Choose or upload an avatar image to feature in your thumbnail"
+                      title={t("createNew.avatar.selection")}
+                      subtitle={t("createNew.avatar.selectionSubtitle")}
                       defaultOpen={true}
                     >
                       {avatars.length > 0 ? (
@@ -1420,7 +1432,7 @@ const CreateNew = () => {
                             ) : (
                               <>
                                 <Plus className="w-8 h-8 text-muted-foreground mb-1" />
-                                <span className="text-xs text-muted-foreground font-medium">Upload</span>
+                                <span className="text-xs text-muted-foreground font-medium">{t("createNew.avatar.upload")}</span>
                               </>
                             )}
                             {customAvatarUrl && !selectedAvatar && (
@@ -1450,7 +1462,7 @@ const CreateNew = () => {
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          No avatars available. Upload one in your Profile.
+                          {t("createNew.avatar.noAvatars")}
                         </p>
                       )}
                     </CollapsibleSection>
@@ -1458,8 +1470,8 @@ const CreateNew = () => {
                     {(selectedAvatar || customAvatarUrl) && (
                       <>
                         <CollapsibleSection
-                          title="Expressions"
-                          subtitle="Select facial expressions for your avatar (max 3)"
+                          title={t("createNew.avatar.expressions")}
+                          subtitle={t("createNew.avatar.expressionsSubtitle")}
                         >
                           <MultiSelectChips
                             label=""
@@ -1468,15 +1480,15 @@ const CreateNew = () => {
                             onChange={setExpressions}
                             maxSelected={3}
                             showAiDecide
-                            aiLabel="Let AI Decide"
-                            aiDescription="AI will vary expressions across the 9 thumbnails"
-                            customPlaceholder="Add custom expression..."
+                            aiLabel={t("common.letAIDecide")}
+                            aiDescription={t("createNew.aiVaryExpressions")}
+                            customPlaceholder={t("createNew.addCustomExpression")}
                           />
                         </CollapsibleSection>
 
                         <CollapsibleSection
-                          title="Avatar Position"
-                          subtitle="Control where your avatar appears on the canvas"
+                          title={t("createNew.avatar.position")}
+                          subtitle={t("createNew.avatar.positionSubtitle")}
                         >
                           <MultiSelectChips
                             label=""
@@ -1484,9 +1496,9 @@ const CreateNew = () => {
                             value={avatarPositions}
                             onChange={setAvatarPositions}
                             showAiDecide
-                            aiLabel="Let AI Decide"
-                            aiDescription="AI will vary avatar positions across the 9 thumbnails"
-                            customPlaceholder="Add custom position..."
+                            aiLabel={t("common.letAIDecide")}
+                            aiDescription={t("createNew.aiVaryPositions")}
+                            customPlaceholder={t("createNew.addCustomPosition")}
                           />
                         </CollapsibleSection>
                       </>
@@ -1495,14 +1507,14 @@ const CreateNew = () => {
 
                   <TabsContent value="elements" className="space-y-6 mt-0">
                     <CollapsibleSection
-                      title="Text Elements"
-                      subtitle="Add specific objects to include (e.g. 'red car', 'sunflowers')"
+                      title={t("createNew.elements.textElements")}
+                      subtitle={t("createNew.elements.textElementsSubtitle")}
                       defaultOpen={true}
                     >
                       <div className="space-y-3">
                         <div className="flex gap-2 pt-1">
                           <Input
-                            placeholder="Add specific element (e.g. red car, neon sign)..."
+                            placeholder={t("createNew.elements.addElement")}
                             value={currentTextElement}
                             onChange={(e) => setCurrentTextElement(e.target.value)}
                             onKeyDown={(e) => {
@@ -1540,8 +1552,8 @@ const CreateNew = () => {
                       </div>
                     </CollapsibleSection>
                     <CollapsibleSection
-                      title="Element Library"
-                      subtitle="Select up to 3 elements like products, props, or custom images"
+                      title={t("createNew.elements.elementLibrary")}
+                      subtitle={t("createNew.elements.elementLibrarySubtitle")}
                       defaultOpen={true}
                     >
                       <div className="grid grid-cols-3 gap-2">
@@ -1554,7 +1566,7 @@ const CreateNew = () => {
                               className="absolute inset-0 opacity-0 cursor-pointer z-10"
                             />
                             <Plus className="w-8 h-8 text-muted-foreground mb-1" />
-                            <span className="text-xs text-muted-foreground font-medium">Upload</span>
+                            <span className="text-xs text-muted-foreground font-medium">{t("createNew.avatar.upload")}</span>
                           </div>
                         )}
 
@@ -1569,7 +1581,7 @@ const CreateNew = () => {
                                   setSelectedProducts([...selectedProducts, customEl.id]);
                                   setElementPositions(prev => ({ ...prev, [customEl.id]: ["center-right"] }));
                                 } else {
-                                  toast.error("Maximum 3 elements allowed");
+                                  toast.error(t("createNew.elements.maximumReached"));
                                 }
                               }
                             }}
@@ -1580,7 +1592,7 @@ const CreateNew = () => {
                           >
                             <img
                               src={customEl.url}
-                              alt="Custom Element"
+                              alt={t("createNew.elements.customElement")}
                               className="w-full   object-cover"
                             />
                             {selectedProducts.includes(customEl.id) && (
@@ -1602,7 +1614,7 @@ const CreateNew = () => {
                                   setSelectedProducts([...selectedProducts, product.id]);
                                   setElementPositions(prev => ({ ...prev, [product.id]: ["center-right"] }));
                                 } else {
-                                  toast.error("Maximum 3 elements allowed");
+                                  toast.error(t("createNew.elements.maximumReached"));
                                 }
                               }
                             }}
@@ -1632,16 +1644,16 @@ const CreateNew = () => {
                       </div>
                     </CollapsibleSection>
 
-                    {selectedProducts.length > 0 && (
+                            {selectedProducts.length > 0 && (
                       <CollapsibleSection
-                        title="Element Positions"
-                        subtitle="Define placement for each selected element"
+                        title={t("createNew.elements.elementPositions")}
+                        subtitle={t("createNew.elements.elementPositionsSubtitle")}
                       >
                         <div className="space-y-4">
                           {selectedProducts.map(id => {
                             const customEl = customElements.find(el => el.id === id);
                             const product = products.find(p => p.id === id);
-                            const name = customEl ? "Custom Element" : (product?.title || "Element");
+                            const name = customEl ? t("createNew.elements.customElement") : (product?.title || t("createNew.elements.element"));
 
                             return (
                               <div key={id} className="space-y-3 p-4 rounded-lg bg-secondary/50 border border-border">
@@ -1652,9 +1664,9 @@ const CreateNew = () => {
                                   value={elementPositions[id] || []}
                                   onChange={(next) => setElementPositions((prev) => ({ ...prev, [id]: next }))}
                                   showAiDecide
-                                  aiLabel="Let AI Decide"
-                                  aiDescription="AI will vary element positions across the 9 thumbnails"
-                                  customPlaceholder="Add custom position..."
+                                  aiLabel={t("common.letAIDecide")}
+                                  aiDescription={t("createNew.aiVaryElementPositions")}
+                                  customPlaceholder={t("createNew.addCustomPosition")}
                                 />
                               </div>
                             );
@@ -1666,24 +1678,24 @@ const CreateNew = () => {
 
                   <TabsContent value="title" className="space-y-6 mt-0">
                     <CollapsibleSection
-                      title="Title Content"
-                      subtitle="Write your own title or let AI generate click-worthy variations"
+                      title={t("createNew.title.content")}
+                      subtitle={t("createNew.title.contentSubtitle")}
                       defaultOpen={true}
                     >
                       <div className="space-y-5">
                         <div className="space-y-3">
-                          <Label className="text-sm font-medium">Title</Label>
+                          <Label className="text-sm font-medium">{t("createNew.title.title")}</Label>
                           <RadioCardSelector
                             options={[
-                              { value: "ai", label: "AI Generate", description: "Click-worthy titles" },
-                              { value: "custom", label: "Manual", description: "Write your own" },
+                              { value: "ai", label: t("createNew.title.aiGenerate"), description: t("createNew.title.aiGenerateDesc") },
+                              { value: "custom", label: t("createNew.title.manual"), description: t("createNew.title.manualDesc") },
                             ]}
                             value={titleMode}
                             onChange={(v) => setTitleMode(v as "ai" | "custom")}
                           />
                           {titleMode === "custom" && (
                             <Input
-                              placeholder="Enter title..."
+                              placeholder={t("createNew.title.enterTitle")}
                               className="mx-1 w-[calc(100%-8px)]"
                               value={title}
                               onChange={(e) => setTitle(e.target.value)}
@@ -1692,18 +1704,18 @@ const CreateNew = () => {
                         </div>
 
                         <div className="space-y-3">
-                          <Label className="text-sm font-medium">Subtitle</Label>
+                          <Label className="text-sm font-medium">{t("createNew.title.subtitle")}</Label>
                           <RadioCardSelector
                             options={[
-                              { value: "ai", label: "AI Generate", description: "Complement titles" },
-                              { value: "custom", label: "Manual", description: "Write your own" },
+                              { value: "ai", label: t("createNew.title.aiGenerate"), description: t("createNew.title.aiGenerateDesc") },
+                              { value: "custom", label: t("createNew.title.manual"), description: t("createNew.title.manualDesc") },
                             ]}
                             value={subtitleMode}
                             onChange={(v) => setSubtitleMode(v as "ai" | "custom")}
                           />
                           {subtitleMode === "custom" && (
                             <Textarea
-                              placeholder="Enter subtitle..."
+                              placeholder={t("createNew.title.enterSubtitle")}
                               className="mx-1 w-[calc(100%-8px)]"
                               value={subtitle}
                               onChange={(e) => setSubtitle(e.target.value)}
@@ -1715,14 +1727,14 @@ const CreateNew = () => {
                     </CollapsibleSection>
 
                     <CollapsibleSection
-                      title="Font Style"
-                      subtitle="Choose from presets or use an image reference for typography"
+                      title={t("createNew.title.fontStyle")}
+                      subtitle={t("createNew.title.fontStyleSubtitle")}
                     >
                       <div className="space-y-4">
                         <RadioCardSelector
                           options={[
-                            { value: "preset", label: "Preset Styles", description: "Select from presets" },
-                            { value: "image", label: "Image Reference", description: "Upload a sample" },
+                            { value: "preset", label: t("createNew.title.presetStyles"), description: t("createNew.title.presetStylesDesc") },
+                            { value: "image", label: t("createNew.title.imageReference"), description: t("createNew.title.imageReferenceDesc") },
                           ]}
                           value={useImageFontStyle ? "image" : "preset"}
                           onChange={(v) => setUseImageFontStyle(v === "image")}
@@ -1735,9 +1747,9 @@ const CreateNew = () => {
                             value={textStyles}
                             onChange={setTextStyles}
                             showAiDecide
-                            aiLabel="Let AI Decide"
-                            aiDescription="AI will vary text styles across the 9 thumbnails"
-                            customPlaceholder="Add custom text style..."
+                            aiLabel={t("common.letAIDecide")}
+                            aiDescription={t("createNew.aiVaryTextStyles")}
+                            customPlaceholder={t("createNew.addCustomTextStyle")}
                           />
                         ) : (
                           <div className="space-y-3">
@@ -1745,14 +1757,14 @@ const CreateNew = () => {
                               <div className="border border-dashed border-border rounded-lg p-4 text-center">
                                 <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                                 <p className="text-sm text-muted-foreground mb-2">
-                                  No font styles available yet.
+                                  {t("createNew.title.noFontStyles")}
                                 </p>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => navigate("/font-styles")}
                                 >
-                                  Upload Font Styles
+                                  {t("createNew.title.uploadFontStyles")}
                                 </Button>
                               </div>
                             ) : (
@@ -1792,7 +1804,7 @@ const CreateNew = () => {
                                     className="h-auto p-0 text-xs"
                                     onClick={() => navigate("/font-styles")}
                                   >
-                                    Manage font styles →
+                                    {t("createNew.title.manageFontStyles")}
                                   </Button>
                                 </p>
                               </>
@@ -1804,8 +1816,8 @@ const CreateNew = () => {
 
                     {(titleMode === "ai" || subtitleMode === "ai" || title || subtitle) && (
                       <CollapsibleSection
-                        title="Text Position"
-                        subtitle="Control where your text appears on the canvas"
+                        title={t("createNew.title.textPosition")}
+                        subtitle={t("createNew.title.textPositionSubtitle")}
                       >
                         <MultiSelectChips
                           label=""
@@ -1813,17 +1825,17 @@ const CreateNew = () => {
                           value={textPositions}
                           onChange={setTextPositions}
                           showAiDecide
-                          aiLabel="Let AI Decide"
-                          aiDescription="AI will vary text positions across the 9 thumbnails"
-                          customPlaceholder="Add custom position..."
+                          aiLabel={t("common.letAIDecide")}
+                          aiDescription={t("createNew.aiVaryTextPositions")}
+                          customPlaceholder={t("createNew.addCustomPosition")}
                         />
                       </CollapsibleSection>
                     )}
 
                     {savedTitles.length > 0 && (
                       <CollapsibleSection
-                        title="Saved Titles"
-                        subtitle="Quick access to your saved title presets"
+                        title={t("createNew.title.savedTitles")}
+                        subtitle={t("createNew.title.savedTitlesSubtitle")}
                       >
                         <div className="space-y-3">
                           <div className="space-y-2">
@@ -1840,7 +1852,7 @@ const CreateNew = () => {
                                     className="h-7 px-3 text-xs"
                                     onClick={() => applySavedTitle(saved)}
                                   >
-                                    Use
+                                    {t("createNew.title.use")}
                                   </Button>
                                 </div>
                                 <p className="text-sm font-semibold truncate">{saved.title}</p>
@@ -1850,7 +1862,7 @@ const CreateNew = () => {
                                   </p>
                                 )}
                                 <p className="text-[11px] text-muted-foreground">
-                                  Style: {saved.text_style} • Position: {saved.text_position}
+                                  {t("createNew.title.style")}: {saved.text_style} • {t("createNew.title.position")}: {saved.text_position}
                                 </p>
                               </div>
                             ))}
@@ -1862,8 +1874,8 @@ const CreateNew = () => {
 
                   <TabsContent value="background" className="space-y-6 mt-0">
                     <CollapsibleSection
-                      title="Visual Style"
-                      subtitle="Define the overall mood and aesthetic of your thumbnails"
+                      title={t("createNew.background.visualStyle")}
+                      subtitle={t("createNew.background.visualStyleSubtitle")}
                       defaultOpen={true}
                     >
                       <MultiSelectChips
@@ -1872,15 +1884,15 @@ const CreateNew = () => {
                         value={visualStyles}
                         onChange={setVisualStyles}
                         showAiDecide
-                        aiLabel="Let AI Decide"
-                        aiDescription="AI will vary visual styles across the 9 thumbnails"
-                        customPlaceholder="Add custom visual style..."
+                        aiLabel={t("common.letAIDecide")}
+                        aiDescription={t("createNew.aiVaryVisualStyles")}
+                        customPlaceholder={t("createNew.addCustomVisualStyle")}
                       />
                     </CollapsibleSection>
 
                     <CollapsibleSection
-                      title="Background"
-                      subtitle="Choose a background type: gradient, solid color, image, or custom"
+                      title={t("createNew.background.background")}
+                      subtitle={t("createNew.background.backgroundSubtitle")}
                     >
                       <div className="space-y-5">
                         {/* AI Decide Option for Background */}
@@ -1893,9 +1905,9 @@ const CreateNew = () => {
                             }`}
                         >
                           <div className="text-left space-y-0.5">
-                            <div className="font-semibold text-sm">Let AI Decide</div>
+                            <div className="font-semibold text-sm">{t("createNew.background.letAIDecide")}</div>
                             <div className="text-xs text-muted-foreground leading-relaxed">
-                              AI will create varied backgrounds across the 9 thumbnails
+                              {t("createNew.background.letAIDecideDesc")}
                             </div>
                           </div>
                           <div
@@ -1916,18 +1928,18 @@ const CreateNew = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="gradient">Gradient</SelectItem>
-                              <SelectItem value="solid">Solid Color</SelectItem>
-                              <SelectItem value="image">Upload Image</SelectItem>
-                              <SelectItem value="avatar">From Avatar</SelectItem>
-                              <SelectItem value="custom-prompt">Custom Prompt</SelectItem>
+                              <SelectItem value="gradient">{t("createNew.background.gradient")}</SelectItem>
+                              <SelectItem value="solid">{t("createNew.background.solidColor")}</SelectItem>
+                              <SelectItem value="image">{t("createNew.background.uploadImage")}</SelectItem>
+                              <SelectItem value="avatar">{t("createNew.background.fromAvatar")}</SelectItem>
+                              <SelectItem value="custom-prompt">{t("createNew.background.customPrompt")}</SelectItem>
                             </SelectContent>
                           </Select>
 
                           {backgroundType === "gradient" && (
                             <div className="space-y-4">
                               <div className="space-y-2">
-                                <Label className="text-sm">Color 1</Label>
+                                <Label className="text-sm">{t("createNew.background.color1")}</Label>
                                 <div className="flex gap-2">
                                   <input
                                     type="color"
@@ -1943,7 +1955,7 @@ const CreateNew = () => {
                                 </div>
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-sm">Color 2</Label>
+                                <Label className="text-sm">{t("createNew.background.color2")}</Label>
                                 <div className="flex gap-2">
                                   <input
                                     type="color"
@@ -1963,7 +1975,7 @@ const CreateNew = () => {
 
                           {backgroundType === "solid" && (
                             <div className="space-y-2">
-                              <Label className="text-sm">Color</Label>
+                              <Label className="text-sm">{t("createNew.background.color")}</Label>
                               <div className="flex gap-2">
                                 <input
                                   type="color"
@@ -1991,12 +2003,12 @@ const CreateNew = () => {
                                         alt="Background preview"
                                         className="w-full h-32 object-cover rounded-lg"
                                       />
-                                      <p className="text-sm text-muted-foreground">Click to change</p>
+                                      <p className="text-sm text-muted-foreground">{t("createNew.background.clickToChange")}</p>
                                     </div>
                                   ) : (
                                     <div>
-                                      <p className="text-sm text-muted-foreground">Click to upload</p>
-                                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                                      <p className="text-sm text-muted-foreground">{t("createNew.background.clickToUpload")}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">{t("createNew.background.pngJpgUpTo10MB")}</p>
                                     </div>
                                   )}
                                 </div>
@@ -2014,7 +2026,7 @@ const CreateNew = () => {
                           {backgroundType === "avatar" && selectedAvatar && (
                             <div className="p-3 bg-muted/50 rounded-lg">
                               <p className="text-sm text-muted-foreground">
-                                Background will be generated from the selected avatar
+                                {t("createNew.background.backgroundFromAvatar")}
                               </p>
                             </div>
                           )}
@@ -2022,16 +2034,16 @@ const CreateNew = () => {
                           {backgroundType === "avatar" && !selectedAvatar && (
                             <div className="p-3 bg-destructive/10 rounded-lg">
                               <p className="text-sm text-destructive">
-                                Please select an avatar first to use this option
+                                {t("createNew.background.selectAvatarFirst")}
                               </p>
                             </div>
                           )}
 
                           {backgroundType === "custom-prompt" && (
                             <div className="space-y-2">
-                              <Label className="text-sm">Background Description</Label>
+                              <Label className="text-sm">{t("createNew.background.backgroundDescription")}</Label>
                               <Textarea
-                                placeholder="Describe the background you want... (e.g., 'Futuristic city skyline at sunset')"
+                                placeholder={t("createNew.background.describeBackground")}
                                 value={customBackgroundPrompt}
                                 onChange={(e) => setCustomBackgroundPrompt(e.target.value)}
                                 rows={3}
@@ -2044,8 +2056,8 @@ const CreateNew = () => {
 
                     {savedBackgrounds.length > 0 && (
                       <CollapsibleSection
-                        title="Saved Backgrounds"
-                        subtitle="Quick access to your saved background presets"
+                        title={t("createNew.background.savedBackgrounds")}
+                        subtitle={t("createNew.background.savedBackgroundsSubtitle")}
                       >
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2066,7 +2078,7 @@ const CreateNew = () => {
                                     className="h-7 px-3 text-xs"
                                     onClick={() => applySavedBackground(bg)}
                                   >
-                                    Use
+                                    {t("createNew.title.use")}
                                   </Button>
                                 </div>
                               </div>
@@ -2078,7 +2090,7 @@ const CreateNew = () => {
                             className="w-full"
                             onClick={() => navigate("/backgrounds")}
                           >
-                            View all backgrounds
+                            {t("createNew.background.viewAll")}
                           </Button>
                         </div>
                       </CollapsibleSection>
@@ -2099,12 +2111,22 @@ const CreateNew = () => {
                     {isLoading ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        {croppingGrid ? "Processing variations..." : `Generating ${GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount || 1} ${GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount === 1 ? "thumbnail" : "variations"}...`}
+                        {croppingGrid ? t("createNew.generation.processingVariations") : t("createNew.generation.generating", { 
+                          count: GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount || 1,
+                          type: GENERATION_MODES.find(m => m.value === generationMode)?.thumbnailCount === 1 ? t("createNew.generation.thumbnail") : t("createNew.generation.variations")
+                        })}
                       </>
                     ) : (
                       <>
                         <Bot className="w-5 h-5 mr-2" />
-                        Generate {GENERATION_MODES.find(m => m.value === generationMode)?.label || "1 Thumbnail"} ({GENERATION_MODES.find(m => m.value === generationMode)?.credits || 1} credit{GENERATION_MODES.find(m => m.value === generationMode)?.credits !== 1 ? "s" : ""})
+                        {(() => {
+                          const selectedMode = GENERATION_MODES.find(m => m.value === generationMode);
+                          const modeLabel = selectedMode?.label || `1 ${t("createNew.generation.thumbnail")}`;
+                          const credits = selectedMode?.credits || 1;
+                          const creditLabel = credits !== 1 ? t("createNew.generation.credits") : t("createNew.generation.credit");
+                          // Construir el texto directamente para evitar problemas de interpolación
+                          return `${t("createNew.generation.generate")} ${modeLabel} (${credits} ${creditLabel})`;
+                        })()}
                       </>
                     )}
                   </Button>
@@ -2120,7 +2142,7 @@ const CreateNew = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Select generation mode</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t("createNew.generation.selectGenerationMode")}</DropdownMenuLabel>
                       {GENERATION_MODES.map((mode) => {
                         const isDisabled = isFree && mode.value !== "1";
                         return (
@@ -2136,7 +2158,7 @@ const CreateNew = () => {
                                 {isDisabled && <Lock className="h-3 w-3" />}
                               </div>
                               <span className="text-xs text-muted-foreground ml-2">
-                                {mode.credits} credit{mode.credits !== 1 ? "s" : ""}
+                                {mode.credits} {mode.credits !== 1 ? t("createNew.generation.credits") : t("createNew.generation.credit")}
                               </span>
                             </div>
                           </DropdownMenuItem>

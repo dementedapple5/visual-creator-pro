@@ -1,34 +1,38 @@
 import { useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, User, Sparkles, Layout, Palette } from "lucide-react";
 
-const steps = [
+const getSteps = (t: (key: string) => string) => [
     {
-        title: "Start with your Identity",
-        description: "Upload your face once and reuse it freely. Choose expressions that match your video's vibe—excited, serious, or surprised—without taking new photos every time.",
+        title: t("howItWorks.steps.startWithIdentity.title"),
+        description: t("howItWorks.steps.startWithIdentity.description"),
         icon: User,
         image: "/examples/steps/stage_1.png"
     },
     {
-        title: "Add your Elements",
-        description: "Place your product, screenshots, or key visuals. Upload generic assets or branded files to fill the composition.",
+        title: t("howItWorks.steps.addElements.title"),
+        description: t("howItWorks.steps.addElements.description"),
         icon: Layout,
         image: "/examples/steps/stage_2.png"
     },
     {
-        title: "Hook with Text",
-        description: "Add punchy titles and subtitles. Select from high-converting text styles and placements that ensure your thumbnail is readable and click-worthy.",
+        title: t("howItWorks.steps.hookWithText.title"),
+        description: t("howItWorks.steps.hookWithText.description"),
         icon: Palette,
         image: "/examples/steps/stage_3.png"
     },
     {
-        title: "Style & Background",
-        description: "Set the scene with gradients, solid colors, or AI-generated backgrounds. Define the overall visual style, then hit generate to bring it all together.",
+        title: t("howItWorks.steps.styleAndBackground.title"),
+        description: t("howItWorks.steps.styleAndBackground.description"),
         icon: Sparkles,
         image: "/examples/steps/stage_4.png"
     }
 ];
 
 export const HowItWorks = () => {
+    const { t } = useTranslation();
+    const steps = getSteps(t);
+    
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -55,10 +59,10 @@ export const HowItWorks = () => {
             <div className="container mx-auto max-w-7xl">
                 <div className="text-center mb-24 space-y-4">
                     <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/60">
-                        How Vizion Works
+                        {t("howItWorks.title")}
                     </h2>
                     <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                        A professional workflow designed for speed. Go from idea to publish-ready thumbnail in four simple steps.
+                        {t("howItWorks.description")}
                     </p>
                 </div>
 
@@ -79,7 +83,7 @@ export const HowItWorks = () => {
                                         <span className="flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/20 text-[10px] font-bold">
                                             {idx + 1}
                                         </span>
-                                        Step {idx + 1}
+                                        {t("howItWorks.step")} {idx + 1}
                                     </div>
 
                                     <div className="space-y-4">
@@ -92,7 +96,11 @@ export const HowItWorks = () => {
                                     </div>
 
                                     <ul className="space-y-3">
-                                        {['Professional presets', 'Time-saving automation', 'Agency-quality output'].map((item, i) => (
+                                        {[
+                                            t("howItWorks.benefits.professionalPresets"),
+                                            t("howItWorks.benefits.timeSavingAutomation"),
+                                            t("howItWorks.benefits.agencyQualityOutput")
+                                        ].map((item, i) => (
                                             <li key={i} className="flex items-center gap-3 text-foreground/80">
                                                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
                                                     <Check className="w-3.5 h-3.5 text-rose-500" />

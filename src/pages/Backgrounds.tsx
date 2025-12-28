@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ type Avatar = Tables<"avatars">;
 type BackgroundType = "gradient" | "solid" | "image" | "avatar" | "custom-prompt";
 
 const Backgrounds = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [backgrounds, setBackgrounds] = useState<SavedBackground[]>([]);
   const [avatars, setAvatars] = useState<Avatar[]>([]);
@@ -78,7 +80,7 @@ const Backgrounds = () => {
 
     if (error) {
       console.error("Error loading backgrounds", error);
-      toast.error("Could not load backgrounds");
+      toast.error(t("backgrounds.errors.couldNotLoad"));
       return;
     }
 
@@ -124,10 +126,10 @@ const Backgrounds = () => {
         .getPublicUrl(fileName);
 
       setImageUrl(publicUrl);
-      toast.success("Background image uploaded");
+      toast.success(t("backgrounds.errors.backgroundImageUploaded"));
     } catch (error) {
       console.error("Error uploading background image:", error);
-      toast.error("Failed to upload image");
+      toast.error(t("backgrounds.errors.failedUpload"));
     } finally {
       setUploading(false);
     }
@@ -136,7 +138,7 @@ const Backgrounds = () => {
   const handleSave = async () => {
     try {
       if (!name.trim()) {
-        toast.error("Please add a name for this background");
+        toast.error(t("backgrounds.errors.addName"));
         return;
       }
 
@@ -159,7 +161,7 @@ const Backgrounds = () => {
         }
         case "image": {
           if (!imageUrl) {
-            toast.error("Upload an image before saving");
+            toast.error(t("backgrounds.errors.uploadImage"));
             return;
           }
           value = imageUrl;
@@ -168,7 +170,7 @@ const Backgrounds = () => {
         }
         case "avatar": {
           if (!avatarId) {
-            toast.error("Select an avatar to base this background on");
+            toast.error(t("backgrounds.errors.selectAvatar"));
             return;
           }
           value = avatarId;
@@ -177,7 +179,7 @@ const Backgrounds = () => {
         }
         case "custom-prompt": {
           if (!prompt.trim()) {
-            toast.error("Add a description for this background");
+            toast.error(t("backgrounds.errors.addDescription"));
             return;
           }
           value = prompt;
@@ -200,7 +202,7 @@ const Backgrounds = () => {
 
       if (error) throw error;
 
-      toast.success("Background saved");
+      toast.success(t("backgrounds.errors.backgroundSaved"));
       setName("");
       setPrompt("");
       setAvatarId("");
@@ -208,7 +210,7 @@ const Backgrounds = () => {
       await fetchBackgrounds();
     } catch (error) {
       console.error("Error saving background:", error);
-      toast.error("Failed to save background");
+      toast.error(t("backgrounds.errors.failedSave"));
     } finally {
       setSaving(false);
     }
@@ -236,11 +238,11 @@ const Backgrounds = () => {
         }
       }
 
-      toast.success("Background deleted");
+      toast.success(t("backgrounds.errors.backgroundDeleted"));
       fetchBackgrounds();
     } catch (error) {
       console.error("Error deleting background:", error);
-      toast.error("Failed to delete background");
+      toast.error(t("backgrounds.errors.failedDelete"));
     }
   };
 
@@ -282,7 +284,7 @@ const Backgrounds = () => {
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-              No image
+              {t("backgrounds.noImage")}
             </div>
           )}
         </div>
@@ -301,7 +303,7 @@ const Backgrounds = () => {
               crossOrigin="anonymous"
             />
           ) : (
-            <div className="text-xs text-muted-foreground">Avatar not found</div>
+            <div className="text-xs text-muted-foreground">{t("backgrounds.avatarNotFound")}</div>
           )}
         </div>
       );
@@ -309,7 +311,7 @@ const Backgrounds = () => {
 
     return (
       <div className="aspect-video w-full rounded-lg border border-border bg-secondary/50 p-3 text-sm text-muted-foreground overflow-hidden">
-        {background.value || (meta.prompt as string) || "Custom prompt background"}
+        {background.value || (meta.prompt as string) || t("backgrounds.customPromptBackground")}
       </div>
     );
   };
@@ -317,15 +319,15 @@ const Backgrounds = () => {
   const typeLabel = (value: BackgroundType) => {
     switch (value) {
       case "gradient":
-        return "Gradient";
+        return t("backgrounds.gradient");
       case "solid":
-        return "Solid color";
+        return t("backgrounds.solidColor");
       case "image":
-        return "Image";
+        return t("backgrounds.image");
       case "avatar":
-        return "From avatar";
+        return t("backgrounds.fromAvatar");
       case "custom-prompt":
-        return "Prompt";
+        return t("backgrounds.customPrompt");
       default:
         return value;
     }
@@ -336,7 +338,7 @@ const Backgrounds = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading backgrounds...
+          {t("backgrounds.saving")}
         </div>
       </div>
     );
@@ -348,20 +350,20 @@ const Backgrounds = () => {
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Library
+              {t("backgrounds.library")}
             </p>
-            <h2 className="text-2xl font-semibold leading-tight">Backgrounds</h2>
+            <h2 className="text-2xl font-semibold leading-tight">{t("backgrounds.title")}</h2>
             <p className="text-sm text-muted-foreground">
-              Save gradients, colors, prompts, or images to reuse in new thumbnails.
+              {t("backgrounds.subtitle")}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-              Dashboard
+              {t("navigation.dashboard")}
             </Button>
             <Button onClick={() => navigate("/create")}>
               <Sparkles className="w-4 h-4 mr-2" />
-              Create new thumbnail
+              {t("createNew.pageTitle")}
             </Button>
           </div>
         </div>
@@ -369,33 +371,33 @@ const Backgrounds = () => {
         <div className="grid lg:grid-cols-[1.1fr_1fr] gap-6">
           <Card className="h-fit">
             <CardHeader>
-              <CardTitle>Save a background</CardTitle>
+              <CardTitle>{t("backgrounds.saveBackground")}</CardTitle>
               <CardDescription>
-                Capture the settings you like and apply them later in the create flow.
+                {t("backgrounds.saveBackgroundDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>{t("backgrounds.name")}</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Neon gradient"
+                  placeholder={t("backgrounds.namePlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Type</Label>
+                <Label>{t("backgrounds.type")}</Label>
                 <Select value={type} onValueChange={(val) => setType(val as BackgroundType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gradient">Gradient</SelectItem>
-                    <SelectItem value="solid">Solid color</SelectItem>
-                    <SelectItem value="image">Image upload</SelectItem>
-                    <SelectItem value="avatar">From avatar</SelectItem>
-                    <SelectItem value="custom-prompt">Custom prompt</SelectItem>
+                    <SelectItem value="gradient">{t("backgrounds.gradient")}</SelectItem>
+                    <SelectItem value="solid">{t("backgrounds.solidColor")}</SelectItem>
+                    <SelectItem value="image">{t("backgrounds.image")}</SelectItem>
+                    <SelectItem value="avatar">{t("backgrounds.fromAvatar")}</SelectItem>
+                    <SelectItem value="custom-prompt">{t("backgrounds.customPrompt")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -403,7 +405,7 @@ const Backgrounds = () => {
               {type === "gradient" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>Color 1</Label>
+                    <Label>{t("backgrounds.color1")}</Label>
                     <div className="flex gap-2">
                       <input
                         type="color"
@@ -415,7 +417,7 @@ const Backgrounds = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Color 2</Label>
+                    <Label>{t("backgrounds.color2")}</Label>
                     <div className="flex gap-2">
                       <input
                         type="color"
@@ -431,7 +433,7 @@ const Backgrounds = () => {
 
               {type === "solid" && (
                 <div className="space-y-2">
-                  <Label>Color</Label>
+                  <Label>{t("backgrounds.color")}</Label>
                   <div className="flex gap-2">
                     <input
                       type="color"
@@ -449,7 +451,7 @@ const Backgrounds = () => {
 
               {type === "image" && (
                 <div className="space-y-2">
-                  <Label>Upload background image</Label>
+                  <Label>{t("backgrounds.uploadBackgroundImage")}</Label>
                   <label className="block">
                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
                       {imageUrl ? (
@@ -460,12 +462,12 @@ const Backgrounds = () => {
                             className="w-full h-32 object-cover rounded-lg"
                             crossOrigin="anonymous"
                           />
-                          <p className="text-sm text-muted-foreground">Click to replace</p>
+                          <p className="text-sm text-muted-foreground">{t("backgrounds.clickToReplace")}</p>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                           <ImageIcon className="w-6 h-6" />
-                          <p className="text-sm">Click to upload</p>
+                          <p className="text-sm">{t("backgrounds.clickToUpload")}</p>
                         </div>
                       )}
                     </div>
@@ -482,10 +484,10 @@ const Backgrounds = () => {
 
               {type === "avatar" && (
                 <div className="space-y-2">
-                  <Label>Choose avatar</Label>
+                  <Label>{t("backgrounds.chooseAvatar")}</Label>
                   <Select value={avatarId} onValueChange={setAvatarId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select an avatar" />
+                      <SelectValue placeholder={t("backgrounds.selectAvatar")} />
                     </SelectTrigger>
                     <SelectContent>
                       {avatars.map((avatar) => (
@@ -497,7 +499,7 @@ const Backgrounds = () => {
                   </Select>
                   {avatars.length === 0 && (
                     <p className="text-xs text-muted-foreground">
-                      No avatars yet. Upload one in the Avatars screen.
+                      {t("createNew.avatar.noAvatars")}
                     </p>
                   )}
                 </div>
@@ -505,9 +507,9 @@ const Backgrounds = () => {
 
               {type === "custom-prompt" && (
                 <div className="space-y-2">
-                  <Label>Background prompt</Label>
+                  <Label>{t("backgrounds.backgroundPrompt")}</Label>
                   <Textarea
-                    placeholder="e.g., Futuristic city skyline at dusk"
+                    placeholder={t("backgrounds.backgroundPromptPlaceholder")}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     rows={3}
@@ -520,12 +522,12 @@ const Backgrounds = () => {
                 {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {t("backgrounds.saving")}
                   </>
                 ) : (
                   <>
                     <Palette className="w-4 h-4 mr-2" />
-                    Save background
+                    {t("backgrounds.saveBackgroundButton")}
                   </>
                 )}
               </Button>
@@ -534,15 +536,15 @@ const Backgrounds = () => {
 
           <Card className="h-fit">
             <CardHeader>
-              <CardTitle>Saved backgrounds</CardTitle>
+              <CardTitle>{t("backgrounds.savedBackgrounds")}</CardTitle>
               <CardDescription>
-                Apply these quickly when creating or editing thumbnails.
+                {t("backgrounds.savedBackgroundsDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {backgrounds.length === 0 ? (
                 <div className="border border-dashed border-border rounded-lg p-6 text-center text-sm text-muted-foreground">
-                  No backgrounds saved yet.
+                  {t("backgrounds.noBackgrounds")}
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -574,7 +576,7 @@ const Backgrounds = () => {
                           onClick={() => navigate("/create")}
                           className="h-7 px-3 text-xs"
                         >
-                          Use in create
+                          {t("backgrounds.useInCreate")}
                         </Button>
                       </div>
                     </div>

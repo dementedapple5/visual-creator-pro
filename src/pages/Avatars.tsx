@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Upload, Trash2, Video, Sparkles, Loader2 } from "lucide-react";
@@ -32,6 +33,7 @@ interface Avatar {
 }
 
 const Avatars = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -109,7 +111,7 @@ const Avatars = () => {
       setAvatars(data || []);
     } catch (error) {
       console.error("Error fetching avatars:", error);
-      toast.error("Failed to load avatars");
+      toast.error(t("avatars.errors.failedLoad"));
     }
   };
 
@@ -152,7 +154,7 @@ const Avatars = () => {
 
       if (dbError) throw dbError;
 
-      toast.success("Avatar uploaded successfully");
+      toast.success(t("avatars.errors.uploadedSuccess"));
       fetchAvatars();
       
       // Setup naming dialog
@@ -161,7 +163,7 @@ const Avatars = () => {
       setShowNameDialog(true);
     } catch (error) {
       console.error("Error uploading avatar:", error);
-      toast.error("Failed to upload avatar");
+      toast.error(t("avatars.errors.failedUpload"));
     } finally {
       setUploading(false);
     }
@@ -184,7 +186,7 @@ const Avatars = () => {
 
       // Check free tier limit
       if (isFreeAvatarLimited) {
-        toast.error("Free tier users can only upload 1 avatar. Upgrade to add more.");
+        toast.error(t("avatars.errors.freeLimit"));
         setUploading(false);
         return;
       }
@@ -229,7 +231,7 @@ const Avatars = () => {
 
         if (dbError) throw dbError;
 
-        toast.success("Avatar captured from video");
+        toast.success(t("avatars.errors.capturedSuccess"));
         setVideoFile(null);
         setVideoPreview(null);
         fetchAvatars();
@@ -241,7 +243,7 @@ const Avatars = () => {
       }, "image/jpeg");
     } catch (error) {
       console.error("Error capturing frame:", error);
-      toast.error("Failed to capture frame");
+      toast.error(t("avatars.errors.failedCapture"));
     } finally {
       setUploading(false);
     }
@@ -249,7 +251,7 @@ const Avatars = () => {
 
   const handleSaveName = async () => {
     if (!pendingAvatar || !avatarName.trim()) {
-      toast.error("Please enter a name");
+      toast.error(t("avatars.errors.enterName"));
       return;
     }
 
@@ -261,13 +263,13 @@ const Avatars = () => {
 
       if (error) throw error;
 
-      toast.success("Avatar named successfully");
+      toast.success(t("avatars.errors.namedSuccess"));
       fetchAvatars();
       setShowNameDialog(false);
       setShowHeadshotDialog(true);
     } catch (error) {
       console.error("Error naming avatar:", error);
-      toast.error("Failed to name avatar");
+      toast.error(t("avatars.errors.failedName"));
     }
   };
 
@@ -298,12 +300,12 @@ const Avatars = () => {
         }
       }
 
-      toast.success("Professional headshot generated!");
+      toast.success(t("avatars.errors.headshotGenerated"));
       fetchAvatars();
       checkSubscription(); // Refresh usage
     } catch (error: any) {
       console.error("Error generating headshot:", error);
-      toast.error(error.message || "Failed to generate headshot");
+      toast.error(error.message || t("avatars.errors.failedHeadshot"));
     } finally {
       setGeneratingHeadshot(false);
       setShowHeadshotDialog(false);
@@ -331,11 +333,11 @@ const Avatars = () => {
         }
       }
 
-      toast.success("Avatar deleted");
+      toast.success(t("avatars.errors.deleted"));
       fetchAvatars();
     } catch (error) {
       console.error("Error deleting avatar:", error);
-      toast.error("Failed to delete avatar");
+      toast.error(t("avatars.errors.failedDelete"));
     }
   };
 
@@ -359,9 +361,9 @@ const Avatars = () => {
       <main className="container mx-auto px-6 py-4 max-w-6xl">
         <div className="space-y-8">
           <div>
-            <h2 className="text-2xl font-semibold mb-2">Your Avatars</h2>
+            <h2 className="text-2xl font-semibold mb-2">{t("avatars.title")}</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Upload images or capture frames from videos to use in your thumbnails
+              {t("avatars.subtitle")}
             </p>
 
             <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -369,13 +371,13 @@ const Avatars = () => {
               <label htmlFor="image-upload">
                 <div className={`border border-border rounded-lg p-6 text-center ${isFreeAvatarLimited ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-secondary/50'} transition-colors h-full flex flex-col items-center justify-center`}>
                   <Upload className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-sm font-medium mb-1">Upload Image</p>
+                  <p className="text-sm font-medium mb-1">{t("avatars.uploadImage")}</p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG up to 10MB
+                    {t("avatars.pngJpgUpTo10MB")}
                   </p>
                   {isFreeAvatarLimited && (
                     <p className="text-xs text-destructive mt-2">
-                      Free tier limit reached
+                      {t("avatars.freeLimitReached")}
                     </p>
                   )}
                 </div>
@@ -393,13 +395,13 @@ const Avatars = () => {
               <label htmlFor="video-upload">
                 <div className={`border border-border rounded-lg p-6 text-center ${isFreeAvatarLimited ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-secondary/50'} transition-colors h-full flex flex-col items-center justify-center`}>
                   <Video className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-sm font-medium mb-1">Upload Video</p>
+                  <p className="text-sm font-medium mb-1">{t("avatars.uploadVideo")}</p>
                   <p className="text-xs text-muted-foreground">
-                    MP4, MOV to capture frame
+                    {t("avatars.mp4MovCapture")}
                   </p>
                   {isFreeAvatarLimited && (
                     <p className="text-xs text-destructive mt-2">
-                      Free tier limit reached
+                      {t("avatars.freeLimitReached")}
                     </p>
                   )}
                 </div>
@@ -417,7 +419,7 @@ const Avatars = () => {
             {/* Video Preview */}
             {videoPreview && (
               <div className="mb-6 p-4 border border-border rounded-lg bg-card">
-                <h3 className="text-sm font-medium mb-3">Select a frame</h3>
+                <h3 className="text-sm font-medium mb-3">{t("avatars.selectFrame")}</h3>
                 <div className="space-y-3">
                   <video
                     ref={videoRef}
@@ -427,7 +429,7 @@ const Avatars = () => {
                   />
                   <div className="flex gap-2">
                     <Button onClick={captureFrame} disabled={uploading || generatingHeadshot} size="sm">
-                      Capture Current Frame
+                      {t("avatars.captureCurrentFrame")}
                     </Button>
                     <Button
                       variant="outline"
@@ -437,7 +439,7 @@ const Avatars = () => {
                       }}
                       size="sm"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                   </div>
                 </div>
@@ -449,7 +451,7 @@ const Avatars = () => {
             {/* Avatars Grid */}
             {avatars.length === 0 ? (
               <div className="text-center py-12 border border-border rounded-lg bg-secondary/20">
-                <p className="text-sm text-muted-foreground">No avatars uploaded yet</p>
+                <p className="text-sm text-muted-foreground">{t("avatars.noAvatars")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -510,14 +512,14 @@ const Avatars = () => {
       <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Name your Avatar</DialogTitle>
+            <DialogTitle>{t("avatars.nameYourAvatar")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="avatar-name">Avatar Name</Label>
+              <Label htmlFor="avatar-name">{t("avatars.avatarName")}</Label>
               <Input
                 id="avatar-name"
-                placeholder="e.g. Daniel, Professional Me, etc."
+                placeholder={t("avatars.avatarNamePlaceholder")}
                 value={avatarName}
                 onChange={(e) => setAvatarName(e.target.value)}
                 onKeyDown={(e) => {
@@ -527,11 +529,11 @@ const Avatars = () => {
                 }}
               />
               <p className="text-xs text-muted-foreground">
-                This name will be used to mention this avatar in prompts using "@".
+                {t("avatars.nameMention")}
               </p>
             </div>
             <Button onClick={handleSaveName} className="w-full">
-              Save Name
+              {t("avatars.saveName")}
             </Button>
           </div>
         </DialogContent>
@@ -542,18 +544,18 @@ const Avatars = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-purple-500" />
-              Professional Headshot
+              {t("avatars.professionalHeadshot")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {isFree ? (
-                "Professional headshots are only available for paid plans. Upgrade now to transform your avatars into studio-quality headshots!"
+                t("avatars.headshotFreeOnly")
               ) : limitReached ? (
-                `You've used all your ${getHeadshotLimit()} professional headshots for this month. Upgrade your plan for more!`
+                t("avatars.headshotLimitReached", { limit: getHeadshotLimit() })
               ) : (
                 <>
-                  Want to turn this avatar into a professional headshot? This will improve face adherence when generating thumbnails further on.
+                  {t("avatars.headshotDescription")}
                   <div className="mt-2 text-xs text-muted-foreground">
-                    Remaining this month: {getHeadshotLimit() - headshotUsage}
+                    {t("avatars.remainingThisMonth", { count: getHeadshotLimit() - headshotUsage })}
                   </div>
                 </>
               )}
@@ -561,15 +563,15 @@ const Avatars = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={generatingHeadshot}>
-              {isFree || limitReached ? "Close" : "Keep Original"}
+              {isFree || limitReached ? t("common.cancel") : t("avatars.keepOriginal")}
             </AlertDialogCancel>
             {isFree ? (
               <AlertDialogAction onClick={() => navigate("/profile")}>
-                View Plans
+                {t("avatars.viewPlans")}
               </AlertDialogAction>
             ) : limitReached ? (
               <AlertDialogAction onClick={() => navigate("/profile")}>
-                Upgrade Plan
+                {t("avatars.upgradePlan")}
               </AlertDialogAction>
             ) : (
               <AlertDialogAction
@@ -583,10 +585,10 @@ const Avatars = () => {
                 {generatingHeadshot ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
+                    {t("avatars.generating")}
                   </>
                 ) : (
-                  "Transform to Headshot"
+                  t("avatars.transformToHeadshot")
                 )}
               </AlertDialogAction>
             )}

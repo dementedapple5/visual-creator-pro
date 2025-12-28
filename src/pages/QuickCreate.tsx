@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +56,7 @@ const TypewriterText = ({ texts }: { texts: string[] }) => {
 };
 
 const QuickCreate = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [appState, setAppState] = useState<AppState>("input");
   const [processingStep, setProcessingStep] = useState(0);
@@ -93,7 +95,7 @@ const QuickCreate = () => {
     // Check credits before starting
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Please sign in first");
+      toast.error(t("quickCreate.errors.signInFirst"));
       navigate("/auth");
       return;
     }
@@ -115,7 +117,7 @@ const QuickCreate = () => {
 
     if (!isSuperAdmin && usedGenerations + requiredCredits > monthlyLimit) {
       const limitType = getGenerationLimitLabel(subscriptionData || {});
-      toast.error(`${limitType} limit reached. Upgrade to create more.`);
+      toast.error(`${limitType} ${t("quickCreate.errors.limitReached")}`);
       return;
     }
 
@@ -133,7 +135,7 @@ const QuickCreate = () => {
 
     if (initialGenError) {
       console.warn("Could not create initial generation record:", initialGenError);
-      toast.error("Could not start generation (failed to record credits). Please try again.");
+      toast.error(t("quickCreate.errors.couldNotStart"));
       return;
     }
 
@@ -141,7 +143,7 @@ const QuickCreate = () => {
 
     setAppState("processing");
     setProcessingStep(0);
-    setProcessingMessage("Preparing...");
+    setProcessingMessage(t("quickCreate.success.preparing"));
     setTranscriptionPreview("");
     setThumbnailPreviews([]);
     setTitlePreviews([]);
@@ -208,7 +210,7 @@ const QuickCreate = () => {
           .eq("id", generationId);
       }
 
-      toast.error(error instanceof Error ? error.message : "Error processing video");
+      toast.error(error instanceof Error ? error.message : t("quickCreate.errors.errorProcessing"));
       setAppState("input");
     }
     } finally {
@@ -235,7 +237,7 @@ const QuickCreate = () => {
     const thumbnailsToSave = typeof index === "number" ? [thumbnails[index]] : thumbnails;
     
     if (thumbnailsToSave.length === 0) {
-      toast.error("No thumbnails to save");
+      toast.error(t("quickCreate.errors.noThumbnailsToSave"));
       return;
     }
 
@@ -281,12 +283,12 @@ const QuickCreate = () => {
 
       toast.success(
         thumbnailsToSave.length === 1 
-          ? "Thumbnail saved!" 
-          : `Successfully saved ${thumbnails.length} thumbnails!`
+          ? t("quickCreate.success.thumbnailSaved")
+          : t("quickCreate.success.thumbnailsSaved", { count: thumbnails.length })
       );
     } catch (e) {
       console.error("Error saving thumbnails:", e);
-      toast.error("Error saving thumbnails");
+      toast.error(t("quickCreate.errors.errorSaving"));
     } finally {
       setIsSaving(false);
     }
@@ -322,7 +324,7 @@ const QuickCreate = () => {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-8 border border-primary/20 backdrop-blur-sm"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span className="text-sm font-medium tracking-wide uppercase">AI Powered Quick Creation</span>
+                  <span className="text-sm font-medium tracking-wide uppercase">{t("quickCreate.badge")}</span>
                 </motion.div>
                 
                 <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold text-foreground mb-8 tracking-tighter leading-[0.9] flex flex-col items-center">
@@ -332,7 +334,7 @@ const QuickCreate = () => {
                     transition={{ duration: 0.7, ease: "easeOut" }}
                     className="hero-font-primary"
                   >
-                    Thumbnails
+                    {t("quickCreate.heroTitle")}
                   </motion.span>
                   <motion.span
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -340,7 +342,7 @@ const QuickCreate = () => {
                     transition={{ duration: 0.5, delay: 0.3 }}
                     className="text-primary hero-font-secondary italic my-2 text-4xl sm:text-6xl"
                   >
-                    &
+                    {t("quickCreate.heroAnd")}
                   </motion.span>
                   <motion.span
                     initial={{ x: 20, opacity: 0 }}
@@ -348,11 +350,15 @@ const QuickCreate = () => {
                     transition={{ duration: 0.7, ease: "easeOut" }}
                     className="hero-font-primary"
                   >
-                    titles
+                    {t("quickCreate.heroTitles")}
                   </motion.span>
                   
                   <div className="mt-6 text-muted-foreground hero-font-primary text-3xl sm:text-5xl font-medium tracking-tight h-[1.2em]">
-                    <TypewriterText texts={["in seconds", "effortlessly", "with AI"]} />
+                    <TypewriterText texts={[
+                      t("quickCreate.typewriterTexts.inSeconds"),
+                      t("quickCreate.typewriterTexts.effortlessly"),
+                      t("quickCreate.typewriterTexts.withAI")
+                    ]} />
                   </div>
                 </h1>
                 
@@ -362,8 +368,7 @@ const QuickCreate = () => {
                   transition={{ delay: 0.8 }}
                   className="text-xl text-muted-foreground max-w-xl mx-auto font-light leading-relaxed mb-12"
                 >
-                  Revolutionize your content workflow. 
-                  Upload your video and watch as AI crafts perfect visuals for you.
+                  {t("quickCreate.description")}
                 </motion.p>
               </motion.div>
 
@@ -377,9 +382,9 @@ const QuickCreate = () => {
                 className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
               >
                 {[
-                  "Analyze your content",
-                  "4 unique thumbnails",
-                  "Optimized titles",
+                  t("quickCreate.features.analyzeContent"),
+                  t("quickCreate.features.fourThumbnails"),
+                  t("quickCreate.features.optimizedTitles"),
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />

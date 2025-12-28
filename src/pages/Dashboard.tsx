@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles, Download } from "lucide-react";
+import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles, Download, Zap, User } from "lucide-react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -77,6 +78,7 @@ const initialFilters: FiltersState = {
 const ITEMS_PER_PAGE = 15;
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   // const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]); // Replaced by useQuery
@@ -127,7 +129,7 @@ const Dashboard = () => {
         .range(from, to);
 
       if (error) {
-        toast.error("Failed to load thumbnails");
+        toast.error(t("dashboard.errors.failedLoad"));
         throw error;
       }
       return { thumbnails: data as Thumbnail[], count: count || 0 };
@@ -227,10 +229,10 @@ const Dashboard = () => {
         fileName: `${thumbnail.title || "thumbnail"}-${option.width}x${option.height}.png`,
       });
       
-      toast.success("Download started");
+      toast.success(t("dashboard.errors.downloadStarted"));
     } catch (error) {
       console.error("Error downloading thumbnail:", error);
-      toast.error("Failed to download thumbnail");
+      toast.error(t("dashboard.errors.failedDownload"));
     } finally {
       setDownloadingIds((prev) => {
         const next = new Set(prev);
@@ -276,8 +278,8 @@ const Dashboard = () => {
     if (dateRange?.from) {
       return formatDate(dateRange.from.toISOString());
     }
-    return "Select date range";
-  }, [dateRange]);
+    return t("dashboard.selectDateRange");
+  }, [dateRange, t]);
 
   const hasActiveFilters = 
     filters.search.trim() !== "" || 
@@ -290,10 +292,10 @@ const Dashboard = () => {
       <div className="w-full px-6 pb-8 pt-4 space-y-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-primary/80">Gallery</p>
-            <h1 className="text-3xl font-semibold tracking-tight">Your Thumbnails</h1>
+            <p className="text-sm font-medium text-primary/80">{t("dashboard.gallery")}</p>
+            <h1 className="text-3xl font-semibold tracking-tight">{t("dashboard.yourThumbnails")}</h1>
             <p className="text-sm text-muted-foreground">
-              Browse, search and filter all your creations in one place.
+              {t("dashboard.subtitle")}
             </p>
           </div>
           <div className="flex gap-3">
@@ -303,9 +305,69 @@ const Dashboard = () => {
               className="shadow-lg shadow-primary/20"
             >
               <Plus className="w-4 h-4 mr-2" />
-              New Thumbnail
+              {t("dashboard.newThumbnail")}
             </Button>
           </div>
+        </div>
+
+        {/* Navigation Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <button
+            onClick={() => navigate("/create")}
+            className="group relative overflow-hidden rounded-xl border border-border/60 bg-card/70 p-6 text-left transition-all hover:border-primary/50 hover:bg-card hover:shadow-lg hover:shadow-primary/10"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg bg-primary/10 p-3 group-hover:bg-primary/20 transition-colors">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {t("navigation.create")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t("dashboard.createCardDescription")}
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate("/quick-create")}
+            className="group relative overflow-hidden rounded-xl border border-border/60 bg-card/70 p-6 text-left transition-all hover:border-primary/50 hover:bg-card hover:shadow-lg hover:shadow-primary/10"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg bg-primary/10 p-3 group-hover:bg-primary/20 transition-colors">
+                <Zap className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {t("navigation.quickCreate")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t("dashboard.quickCreateCardDescription")}
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate("/avatars")}
+            className="group relative overflow-hidden rounded-xl border border-border/60 bg-card/70 p-6 text-left transition-all hover:border-primary/50 hover:bg-card hover:shadow-lg hover:shadow-primary/10"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg bg-primary/10 p-3 group-hover:bg-primary/20 transition-colors">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {t("navigation.avatars")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t("dashboard.avatarsCardDescription")}
+                </p>
+              </div>
+            </div>
+          </button>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -315,7 +377,7 @@ const Dashboard = () => {
               <Input
                 value={filters.search}
                 onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                placeholder="Search by title or subtitle"
+                placeholder={t("dashboard.searchPlaceholder")}
                 className="w-full bg-card/70 pl-10"
               />
             </div>
@@ -324,34 +386,34 @@ const Dashboard = () => {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="gap-2 bg-card/70">
                   <SlidersHorizontal className="h-4 w-4" />
-                  Filters
+                  {t("dashboard.filters")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[340px] sm:w-[420px] space-y-4" align="end">
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold">Filters</p>
-                  <p className="text-xs text-muted-foreground">Refine your gallery by avatar, element, or date.</p>
+                  <p className="text-sm font-semibold">{t("dashboard.filters")}</p>
+                  <p className="text-xs text-muted-foreground">{t("dashboard.filtersDescription")}</p>
                 </div>
 
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Avatar</label>
+                    <label className="text-xs font-medium text-muted-foreground">{t("dashboard.avatar")}</label>
                     <Select
                       value={filters.avatar}
                       onValueChange={(value) => setFilters((prev) => ({ ...prev, avatar: value }))}
                     >
                       <SelectTrigger className="bg-background/60">
-                        <SelectValue placeholder="Filter by avatar" />
+                        <SelectValue placeholder={t("dashboard.filterByAvatar")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All avatars</SelectItem>
+                        <SelectItem value="all">{t("dashboard.allAvatars")}</SelectItem>
                         {avatars.map((avatar, index) => (
                           <SelectItem key={avatar.id} value={avatar.id}>
                             <div className="flex items-center gap-2">
                               <span className="h-6 w-6 overflow-hidden rounded-full bg-muted">
                                 <img src={avatar.image_url} alt="" className="h-full w-full object-cover" />
                               </span>
-                              <span>Avatar {index + 1}</span>
+                              <span>{t("dashboard.avatarLabel", { index: index + 1 })}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -360,16 +422,16 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Element</label>
+                    <label className="text-xs font-medium text-muted-foreground">{t("dashboard.element")}</label>
                     <Select
                       value={filters.element}
                       onValueChange={(value) => setFilters((prev) => ({ ...prev, element: value }))}
                     >
                       <SelectTrigger className="bg-background/60">
-                        <SelectValue placeholder="Filter by element" />
+                        <SelectValue placeholder={t("dashboard.filterByElement")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All elements</SelectItem>
+                        <SelectItem value="all">{t("dashboard.allElements")}</SelectItem>
                         {products.map((product) => (
                           <SelectItem key={product.id} value={product.id}>
                             <div className="flex items-center gap-2">
@@ -396,7 +458,7 @@ const Dashboard = () => {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-muted-foreground">Date range</label>
+                      <label className="text-xs font-medium text-muted-foreground">{t("dashboard.dateRange")}</label>
                     </div>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -433,10 +495,10 @@ const Dashboard = () => {
                       setFiltersOpen(false);
                     }}
                   >
-                    Clear filters
+                    {t("dashboard.clearFilters")}
                   </Button>
                   <Button size="sm" onClick={() => setFiltersOpen(false)}>
-                    Apply
+                    {t("dashboard.apply")}
                   </Button>
                 </div>
               </PopoverContent>
@@ -469,24 +531,24 @@ const Dashboard = () => {
         ) : count === 0 ? (
           !hasActiveFilters ? (
             <div className="text-center py-20 rounded-2xl border border-border/60 bg-card/70 shadow-inner">
-              <p className="text-muted-foreground mb-4">No thumbnails yet. Create your first one!</p>
+              <p className="text-muted-foreground mb-4">{t("dashboard.noThumbnails")}</p>
               <Button
                 onClick={() => navigate("/create")}
                 size="sm"
                 className="bg-primary hover:bg-primary/90 shadow-primary/20 shadow-lg"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create Thumbnail
+                {t("dashboard.createThumbnail")}
               </Button>
             </div>
           ) : (
             <div className="rounded-2xl border border-border/60 bg-card/70 p-10 text-center shadow-inner">
-              <p className="text-lg font-semibold mb-2">No results match these filters</p>
+              <p className="text-lg font-semibold mb-2">{t("dashboard.noResults")}</p>
               <p className="text-muted-foreground mb-6">
-                Try adjusting your search terms, avatar, element, or date range.
+                {t("dashboard.noResultsDescription")}
               </p>
               <Button onClick={resetFilters} variant="outline">
-                Reset filters
+                {t("dashboard.resetFilters")}
               </Button>
             </div>
           )
@@ -510,7 +572,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <p className="mt-4 text-sm text-muted-foreground animate-pulse">
-                        Generating...
+                        {t("dashboard.generating")}
                       </p>
                     </div>
                   </div>
@@ -560,7 +622,7 @@ const Dashboard = () => {
                               <Loader2 className="h-6 w-6 text-primary animate-spin" />
                             </div>
                             <span className="rounded-full bg-background/80 px-3 py-1 text-xs font-medium backdrop-blur-md shadow-sm">
-                              Iterating...
+                              {t("dashboard.iterating")}
                             </span>
                           </div>
                         </div>
@@ -571,7 +633,7 @@ const Dashboard = () => {
                       <div className="space-y-0 cursor-pointer" onClick={() => navigate(`/thumbnail/${thumbnail.id}`)}>
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="line-clamp-1 text-lg font-semibold leading-tight text-card-foreground pt-2.5">
-                            {thumbnail.title || "Untitled Project"}
+                            {thumbnail.title || t("dashboard.untitledProject")}
                           </h3>
                           {isIterating && (
                             <span className="relative flex h-2.5 w-2.5 flex-none translate-y-1.5">
@@ -581,7 +643,7 @@ const Dashboard = () => {
                           )}
                         </div>
                         <p className="line-clamp-2 text-sm text-muted-foreground/80 leading-relaxed h-11">
-                          {thumbnail.subtitle || "No description provided"}
+                          {thumbnail.subtitle || t("dashboard.noDescription")}
                         </p>
                       </div>
 
@@ -596,7 +658,7 @@ const Dashboard = () => {
                             size="sm"
                             className="h-9 px-4 rounded bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
                           >
-                            View Details
+                            {t("dashboard.viewDetails")}
                           </Button>
                           
                           <Button

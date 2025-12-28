@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ const modeLabel: Record<string, string> = {
 };
 
 const Generations = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [generations, setGenerations] = useState<GenerationRecord[]>([]);
@@ -124,14 +126,14 @@ const Generations = () => {
       setRemaining(calculateRemainingGenerations(activeSubscription || {}, completed));
     } catch (error) {
       console.error("Error loading generations", error);
-      toast.error("Failed to load generations history");
+      toast.error(t("generations.errors.failedLoad"));
     } finally {
       setLoading(false);
     }
   };
 
   const formatDate = (value: string | Date | null) => {
-    if (!value) return "Not available";
+    if (!value) return t("generations.notAvailable");
 
     const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.getTime())) {
@@ -239,26 +241,26 @@ const Generations = () => {
 
   const subscriptionPeriodLabel = subscription.subscribed
     ? `${formatShortDate(subscriptionStartDate)} - ${formatShortDate(subscriptionEndDate)}`
-    : "Free tier";
+    : t("generations.freeTier");
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Usage</p>
-            <h1 className="text-2xl font-semibold">Generation History</h1>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("generations.usage")}</p>
+            <h1 className="text-2xl font-semibold">{t("generations.title")}</h1>
             <p className="text-sm text-muted-foreground">
-              Track every generation, status, and remaining credits.
+              {t("generations.subtitle")}
             </p>
           </div>
 
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              Dashboard
+              {t("generations.dashboard")}
             </Button>
             <Button onClick={() => navigate("/create")}>
-              New Generation
+              {t("generations.newGeneration")}
             </Button>
           </div>
         </div>
@@ -266,7 +268,7 @@ const Generations = () => {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Used {remainingLabel}</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t("generations.used")} {subscription.is_daily_limit ? t("generations.today") : t("generations.thisPeriod")}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-2xl font-bold">
@@ -276,22 +278,22 @@ const Generations = () => {
               </p>
               <p className="text-sm text-muted-foreground">
                 {subscription.is_super_admin 
-                  ? "Status: Super Admin • Unlimited credits"
-                  : `Status: ${limitLabel} limit • Resets on ${formatShortDate(resetDate)}`}
+                  ? `${t("generations.status")}: ${t("generations.superAdmin")} • ${t("generations.unlimitedCredits")}`
+                  : `${t("generations.status")}: ${limitLabel} limit • ${t("generations.resetsOn")} ${formatShortDate(resetDate)}`}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Plan</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t("generations.plan")}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 space-y-1">
               <p className="text-lg font-semibold">
-                {subscription.is_super_admin ? "Super Admin" : planTitleWithBilling}
+                {subscription.is_super_admin ? t("generations.superAdmin") : planTitleWithBilling}
               </p>
               <p className="text-sm text-muted-foreground">
-                {subscription.is_super_admin ? "Full access to all features" : subscriptionPeriodLabel}
+                {subscription.is_super_admin ? t("generations.fullAccess") : subscriptionPeriodLabel}
               </p>
             </CardContent>
           </Card>
@@ -299,7 +301,7 @@ const Generations = () => {
 
         <Card className="border border-border/60 bg-card/70 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Timeline</CardTitle>
+            <CardTitle className="text-lg font-semibold">{t("generations.timeline")}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             {loading ? (
@@ -310,7 +312,7 @@ const Generations = () => {
               </div>
             ) : generations.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground">
-                No generations yet in this period.
+                {t("generations.noGenerations")}
               </div>
             ) : (
               <ScrollArea className="h-[600px] pr-4">
@@ -323,7 +325,7 @@ const Generations = () => {
                         <div className="space-y-1 min-w-0 md:max-w-[640px]">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-semibold">
-                              {item.title || "Untitled generation"}
+                              {item.title || t("generations.untitledGeneration")}
                             </p>
                             <Badge variant={statusVariant[item.status] || "outline"} className="capitalize">
                               {item.status}
@@ -336,7 +338,7 @@ const Generations = () => {
                             )}
                             {item.credits_used && (
                               <Badge variant="outline" className="bg-primary/5">
-                                {item.credits_used} credit{item.credits_used > 1 ? "s" : ""}
+                                {item.credits_used} {item.credits_used > 1 ? t("generations.credits") : t("generations.credit")}
                               </Badge>
                             )}
                           </div>
@@ -347,13 +349,13 @@ const Generations = () => {
                             <p className="text-sm text-muted-foreground line-clamp-2">{item.subtitle}</p>
                           )}
                           {item.prompt && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">Prompt: {item.prompt}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{t("generations.prompt")}: {item.prompt}</p>
                           )}
                           {item.remix_prompt && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">Remix: {item.remix_prompt}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{t("generations.remix")}: {item.remix_prompt}</p>
                           )}
                           {item.error_message && (
-                            <p className="text-xs text-destructive">Error: {item.error_message}</p>
+                            <p className="text-xs text-destructive">{t("generations.error")}: {item.error_message}</p>
                           )}
                           {item.thumbnail_id && (
                             <div className="flex gap-2">
@@ -362,7 +364,7 @@ const Generations = () => {
                                 variant="secondary"
                                 onClick={() => navigate(`/thumbnail/${item.thumbnail_id}`)}
                               >
-                                Open
+                                {t("generations.open")}
                               </Button>
                             </div>
                           )}

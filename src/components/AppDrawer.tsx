@@ -18,20 +18,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { calculateRemainingGenerations, getGenerationLimitLabel, getGenerationWindowStart } from "@/lib/generationLimits";
 
-const mainMenuItems = [
-  { icon: Home, label: "Dashboard", path: "/dashboard" },
-  { icon: Zap, label: "Quick Create", path: "/quick-create" },
-  { icon: Sparkles, label: "Create", path: "/create" },
-  { icon: History, label: "Generations", path: "/generations" },
+const getMainMenuItems = (t: (key: string) => string) => [
+  { icon: Home, label: t("navigation.dashboard"), path: "/dashboard" },
+  { icon: Zap, label: t("navigation.quickCreate"), path: "/quick-create" },
+  { icon: Sparkles, label: t("navigation.create"), path: "/create" },
+  { icon: History, label: t("navigation.generations"), path: "/generations" },
 ];
 
-const contentMenuItems = [
-  { icon: User, label: "Avatars", path: "/avatars" },
-  { icon: Package, label: "Elements", path: "/products" },
-  { icon: ImageIcon, label: "Backgrounds", path: "/backgrounds" },
-  { icon: PenTool, label: "Font Styles", path: "/font-styles" },
+const getContentMenuItems = (t: (key: string) => string) => [
+  { icon: User, label: t("navigation.avatars"), path: "/avatars" },
+  { icon: Package, label: t("navigation.elements"), path: "/products" },
+  { icon: ImageIcon, label: t("navigation.backgrounds"), path: "/backgrounds" },
+  { icon: PenTool, label: t("navigation.fontStyles"), path: "/font-styles" },
 ];
 
 // Detect if running on localhost
@@ -149,7 +150,34 @@ const testPlansData = [
 ];
 
 // Use test plans on localhost, production plans otherwise
-const subscriptionPlansData = isLocalhost ? testPlansData : productionPlansData;
+const getSubscriptionPlansData = (t: (key: string) => string) => {
+  const basePlans = isLocalhost ? testPlansData : productionPlansData;
+  return basePlans.map(plan => ({
+    ...plan,
+    features: plan.tier === "starter" 
+      ? [
+          t("plans.starter.features.credits"),
+          t("plans.starter.features.headshots"),
+          t("plans.starter.features.customization"),
+          t("plans.starter.features.support")
+        ]
+      : plan.tier === "pro"
+      ? [
+          t("plans.pro.features.credits"),
+          t("plans.pro.features.headshots"),
+          t("plans.pro.features.customization"),
+          t("plans.pro.features.support")
+        ]
+      : plan.tier === "enterprise"
+      ? [
+          t("plans.enterprise.features.credits"),
+          t("plans.enterprise.features.headshots"),
+          t("plans.enterprise.features.customization"),
+          t("plans.enterprise.features.support")
+        ]
+      : plan.features
+  }));
+};
 
 // Type for subscription response from check-subscription function
 interface SubscriptionData {
@@ -166,6 +194,7 @@ interface SubscriptionData {
 }
 
 export const AppDrawer = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -186,6 +215,10 @@ export const AppDrawer = () => {
     billing_period_start: null,
     billing_period_end: null,
   });
+
+  const mainMenuItems = getMainMenuItems(t);
+  const contentMenuItems = getContentMenuItems(t);
+  const subscriptionPlansData = getSubscriptionPlansData(t);
 
   // Map plan tiers to badge variants
   const planBadgeVariants: Record<string, "secondary" | "default" | "outline"> = {
@@ -254,7 +287,7 @@ export const AppDrawer = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    toast.success("Signed out successfully");
+    toast.success(t("drawer.signedOut"));
     navigate("/");
   };
 
@@ -274,12 +307,12 @@ export const AppDrawer = () => {
 
       if (data?.url) {
         window.open(data.url, "_blank");
-        toast.success("Opening checkout...");
+        toast.success(t("drawer.openingCheckout"));
         setUpgradeDialogOpen(false);
         setTimeout(() => fetchUserData(), 3000);
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to start checkout");
+      toast.error(error.message || t("drawer.failedCheckout"));
     } finally {
       setLoading(false);
     }
@@ -312,7 +345,7 @@ export const AppDrawer = () => {
       <DrawerContent className="h-full w-64 glass-panel border-r border-border rounded-r-3xl rounded-l-none">
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-border space-y-6">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">VIZION</h2>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">{t("drawer.vizion")}</h2>
 
             <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
               <Avatar className="h-10 w-10 ring-2 ring-primary/10">
@@ -323,7 +356,7 @@ export const AppDrawer = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="text-sm font-medium truncate text-foreground">
-                    {profile?.username || profile?.email || "User"}
+                    {profile?.username || profile?.email || t("common.user")}
                   </p>
                   {subscription.is_super_admin ? (
                     <Badge variant="default" className="text-[10px] py-0 px-1.5 h-5 bg-gradient-to-r from-purple-500 to-blue-600 border-0 whitespace-nowrap shrink-0">
@@ -335,14 +368,14 @@ export const AppDrawer = () => {
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-border text-muted-foreground whitespace-nowrap shrink-0">
-                      Free
+                      {t("common.free")}
                     </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {subscription.is_super_admin 
-                    ? `${generationsCount} generated`
-                    : `${generationsCount}/${subscription.monthly_limit} used`}
+                    ? `${generationsCount} ${t("drawer.generated")}`
+                    : `${generationsCount}/${subscription.monthly_limit} ${t("drawer.used")}`}
                 </p>
                 {!subscription.subscribed && !subscription.is_super_admin && (
                   <Button
@@ -351,7 +384,7 @@ export const AppDrawer = () => {
                     size="sm"
                     className="w-full mt-2 h-7 text-xs bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white border-0"
                   >
-                    Upgrade Plan
+                    {t("common.upgradePlan")}
                   </Button>
                 )}
               </div>
@@ -385,7 +418,7 @@ export const AppDrawer = () => {
                     </button>
                     {isCreate && isLimitReached && (
                       <p className="text-xs text-muted-foreground px-4">
-                        {limitLabel} limit reached. {!subscription.subscribed && "Upgrade to create more."}
+                        {limitLabel} {t("drawer.limitReached")}
                       </p>
                     )}
                   </div>
@@ -394,7 +427,7 @@ export const AppDrawer = () => {
             </div>
 
             <div className="pt-4 border-t border-border">
-              <p className="text-xs font-semibold text-muted-foreground mb-4 px-4 uppercase tracking-wider">Content</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-4 px-4 uppercase tracking-wider">{t("navigation.content")}</p>
               <div className="space-y-1">
                 {contentMenuItems.map((item) => {
                   const isActive = location.pathname === item.path;
@@ -434,14 +467,14 @@ export const AppDrawer = () => {
                 }`}
             >
               <User className="w-5 h-5" />
-              <span>Profile</span>
+              <span>{t("common.profile")}</span>
             </button>
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-all duration-300"
             >
               <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+              <span>{t("common.logout")}</span>
             </button>
           </div>
         </div>
@@ -452,10 +485,10 @@ export const AppDrawer = () => {
         <DialogContent className="glass-panel border-border max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-              Choose Your Plan
+              {t("common.chooseYourPlan")}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Upgrade to unlock more credits and premium features
+              {t("common.upgradeToUnlock")}
             </DialogDescription>
           </DialogHeader>
 
@@ -469,7 +502,7 @@ export const AppDrawer = () => {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Monthly
+              {t("common.monthly")}
             </button>
             <button
               onClick={() => setBillingInterval("yearly")}
@@ -479,9 +512,9 @@ export const AppDrawer = () => {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Yearly
+              {t("common.yearly")}
               <span className="absolute -top-4 -right-4 text-[10px] bg-gradient-to-r from-purple-500 to-blue-600 text-white px-1.5 py-0.5 rounded-full shadow-lg shadow-purple-500/20">
-                20% off
+                20% {t("common.save").toLowerCase()}
               </span>
             </button>
           </div>
@@ -519,7 +552,7 @@ export const AppDrawer = () => {
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge className="bg-gradient-to-r from-purple-500 to-blue-600 text-white border-0">
-                        Most Popular
+                        {t("common.mostPopular")}
                       </Badge>
                     </div>
                   )}
@@ -529,11 +562,11 @@ export const AppDrawer = () => {
                       <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
                       <div className="mt-2 flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-foreground">{displayPrice}</span>
-                        <span className="text-muted-foreground">{priceLabel}</span>
+                        <span className="text-muted-foreground">{t("landing.perMonth")}</span>
                       </div>
                       {billingInterval === "yearly" && plan.yearlySavings && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          {plan.yearlyPrice} billed annually • Save {plan.yearlySavings}
+                          {plan.yearlyPrice} {t("landing.billedAnnually")} • {t("common.save")} {plan.yearlySavings}
                         </p>
                       )}
                     </div>
@@ -556,7 +589,7 @@ export const AppDrawer = () => {
                           : "bg-primary hover:bg-primary/90 text-primary-foreground"
                       }`}
                     >
-                      {loading ? "Processing..." : "Get Started"}
+                      {loading ? t("common.processing") : t("common.getStartedButton")}
                     </Button>
                   </div>
                 </div>

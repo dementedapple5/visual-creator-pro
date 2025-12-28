@@ -1,0 +1,851 @@
+{
+  "common": {
+    "signIn": "Iniciar sesión",
+    "getStarted": "Comenzar",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil",
+    "user": "Usuario",
+    "free": "Gratis",
+    "upgradePlan": "Mejorar plan",
+    "processing": "Procesando...",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "save": "Ahorrar",
+    "mostPopular": "Más Popular",
+    "chooseYourPlan": "Elige tu plan",
+    "upgradeToUnlock": "Mejora para desbloquear más créditos y funciones premium",
+    "getStartedButton": "Comenzar",
+    "startNow": "Empezar ahora",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "cancel": "Cancelar",
+    "confirm": "¿Estás seguro de que quieres limpiar las miniaturas generadas? Esto las eliminará de la caché.",
+    "letAIDecide": "Dejar que la IA Decida"
+  },
+  "navigation": {
+    "dashboard": "Panel",
+    "quickCreate": "Creación rápida",
+    "create": "Crear",
+    "generations": "Generaciones",
+    "avatars": "Avatares",
+    "elements": "Elementos",
+    "backgrounds": "Fondos",
+    "fontStyles": "Estilos de fuente",
+    "content": "Contenido"
+  },
+  "drawer": {
+    "vizion": "VIZION",
+    "generated": "generadas",
+    "used": "usadas",
+    "limitReached": "límite alcanzado. Mejora para crear más.",
+    "signedOut": "Sesión cerrada exitosamente",
+    "openingCheckout": "Abriendo checkout...",
+    "failedCheckout": "Error al iniciar checkout"
+  },
+  "landing": {
+    "heroTitle": "Crea miniaturas de YouTube",
+    "heroSubtitle": "que disparan tus clics",
+    "heroDescription": "Flujo de trabajo experto para",
+    "heroTagline": "La herramienta de diseño especializada para YouTubers. Sube tu cara, arrastra elementos y genera miniaturas de alto CTR en segundos. Sin plantillas genéricas—solo resultados.",
+    "startCreatingFree": "Empezar a crear gratis",
+    "signIn": "Iniciar sesión",
+    "getStarted": "Comenzar",
+    "powerUpTitle": "Potencia tu canal con Vizion",
+    "powerUpDescription": "Todo lo que necesitas para crear miniaturas virales—avatares, fondos y elementos—todo en un solo lugar.",
+    "lovedByCreators": "Amado por creadores",
+    "lovedByCreatorsDescription": "Únete a miles de creadores de contenido que confían en Vizion para crear miniaturas impresionantes.",
+    "simplePricing": "Precios simples",
+    "simplePricingDescription": "Comienza gratis, mejora cuando crezcas.",
+    "save20": "Ahorra 20%",
+    "billedAnnually": "Facturado anualmente en",
+    "perMonth": "/mes",
+    "rotatingWords": {
+      "thumbnails": "Miniaturas",
+      "ctrHooks": "Ganchos CTR",
+      "youtube169": "YouTube 16:9",
+      "variations": "Variaciones",
+      "viralCovers": "Portadas virales"
+    }
+  },
+  "features": {
+    "yourIdentityAutomated": {
+      "title": "Tu identidad, automatizada",
+      "description": "Sube tu cara una vez y deja que la IA la integre en cualquier miniatura con la expresión perfecta.",
+      "badge": "Personalización",
+      "footnote": "Compatible con cualquier estilo visual.",
+      "steps": {
+        "faceLibrary": {
+          "title": "Biblioteca de caras",
+          "detail": "Guarda tus mejores ángulos y expresiones."
+        },
+        "lightingMatch": {
+          "title": "Coincidencia de iluminación",
+          "detail": "La IA ajusta tu cara para que coincida con el fondo de la miniatura."
+        },
+        "noNewShoots": {
+          "title": "Sin nuevas sesiones",
+          "detail": "Reutiliza tus fotos sin tener que posar de nuevo."
+        }
+      }
+    },
+    "designThatGetsClicks": {
+      "title": "Diseño que obtiene clics",
+      "description": "Herramientas especializadas para jerarquía visual y contraste para destacar en el feed de YouTube.",
+      "badge": "Conversión",
+      "footnote": "Optimizado para maximizar CTR.",
+      "stats": {
+        "format": {
+          "label": "Formato",
+          "value": "Nativo 16:9",
+          "sub": "Resolución óptima 1280x720"
+        },
+        "contrast": {
+          "label": "Contraste",
+          "value": "Borde inteligente",
+          "sub": "Resalta elementos clave"
+        },
+        "readability": {
+          "label": "Legibilidad",
+          "value": "Móvil primero",
+          "sub": "Títulos legibles en pantallas pequeñas"
+        },
+        "presets": {
+          "label": "Preajustes",
+          "value": "9 opciones",
+          "sub": "Diseños probados por creadores"
+        }
+      }
+    },
+    "stylesThatHook": {
+      "title": "Estilos que enganchan",
+      "description": "Fondos, degradados y preajustes de texto optimizados para ser leídos instantáneamente.",
+      "badge": "Visuales",
+      "footnote": "Biblioteca de estilos en constante expansión.",
+      "swatches": {
+        "gamingPro": "Gaming Pro",
+        "cleanIRL": "IRL Limpio",
+        "aiScenery": "Escenario IA"
+      },
+      "chips": {
+        "aiBackgrounds": "Fondos IA",
+        "proFilters": "Filtros Pro",
+        "autoContrast": "Contraste automático",
+        "smartLayers": "Capas inteligentes"
+      }
+    },
+    "textThatCutsThroughNoise": {
+      "title": "Texto que corta el ruido",
+      "description": "Tipografías y diseños con sombras y trazos diseñados para destacar en cualquier fondo.",
+      "badge": "Impacto",
+      "sample": {
+        "title": "¡MIRA ESTO AHORA!",
+        "subtitle": "El secreto para un CTR más alto",
+        "tags": {
+          "boldContrast": "Negrita y contraste",
+          "proShadows": "Sombras Pro",
+          "readyToUse": "Listo para usar"
+        }
+      }
+    },
+    "smartLayouts": {
+      "title": "Diseños inteligentes",
+      "description": "Coloca elementos clave, capturas de pantalla y productos con guías de composición profesionales.",
+      "badge": "Composición",
+      "stats": {
+        "rules": {
+          "label": "Reglas",
+          "value": "Tercios y dorado",
+          "sub": "Guías visuales inteligentes"
+        },
+        "slots": {
+          "label": "Espacios",
+          "value": "3 objetos",
+          "sub": "Composiciones equilibradas"
+        }
+      },
+      "chips": {
+        "autoAlign": "Alineación automática",
+        "layerOrder": "Orden de capas",
+        "smartScaling": "Escalado inteligente"
+      }
+    },
+    "remixAndScale": {
+      "title": "Remezclar y escalar",
+      "description": "No te conformes con uno. Genera variaciones y remezcla hasta encontrar el ganador.",
+      "badge": "Velocidad",
+      "footnote": "Historial de generación guardado automáticamente.",
+      "steps": {
+        "aiRemix": {
+          "title": "Remezcla IA",
+          "detail": "Cambia el estilo o fondo manteniendo tu cara consistente."
+        },
+        "oneClickExport": {
+          "title": "Exportar con 1 clic",
+          "detail": "Descarga tu miniatura optimizada de 1280x720."
+        }
+      },
+      "stats": {
+        "productivity": {
+          "label": "Productividad",
+          "value": "10x más rápido",
+          "sub": "De idea a resultado en 2 minutos"
+        }
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "Cómo funciona Vizion",
+    "description": "Un flujo de trabajo profesional diseñado para velocidad. Ve de la idea a la miniatura lista para publicar en cuatro pasos simples.",
+    "step": "Paso",
+    "steps": {
+      "startWithIdentity": {
+        "title": "Comienza con tu identidad",
+        "description": "Sube tu cara una vez y reutilízala libremente. Elige expresiones que coincidan con la vibra de tu video—emocionado, serio o sorprendido—sin tomar nuevas fotos cada vez."
+      },
+      "addElements": {
+        "title": "Añade tus elementos",
+        "description": "Coloca tu producto, capturas de pantalla o elementos visuales clave. Sube activos genéricos o archivos con marca para llenar la composición."
+      },
+      "hookWithText": {
+        "title": "Engancha con texto",
+        "description": "Añade títulos y subtítulos impactantes. Selecciona entre estilos de texto y ubicaciones de alta conversión que aseguran que tu miniatura sea legible y digna de clic."
+      },
+      "styleAndBackground": {
+        "title": "Estilo y fondo",
+        "description": "Establece la escena con degradados, colores sólidos o fondos generados por IA. Define el estilo visual general, luego presiona generar para unirlo todo."
+      }
+    },
+    "benefits": {
+      "professionalPresets": "Preajustes profesionales",
+      "timeSavingAutomation": "Automatización que ahorra tiempo",
+      "agencyQualityOutput": "Salida de calidad de agencia"
+    }
+  },
+  "plans": {
+    "free": {
+      "name": "Gratis",
+      "description": "Perfecto para probar Vizion",
+      "features": {
+        "oneTimeCredits": "5 créditos únicos",
+        "emailSupport": "Soporte por correo"
+      }
+    },
+    "starter": {
+      "name": "Inicial",
+      "description": "Para creadores casuales",
+      "features": {
+        "credits": "50 créditos/mes",
+        "headshots": "10 retratos/mes",
+        "customization": "Personalización avanzada",
+        "support": "Soporte por correo"
+      }
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "Para creadores serios",
+      "features": {
+        "credits": "100 créditos/mes",
+        "headshots": "30 retratos/mes",
+        "customization": "Personalización avanzada",
+        "support": "Soporte prioritario"
+      }
+    },
+    "enterprise": {
+      "name": "Empresarial",
+      "description": "Para equipos y agencias",
+      "features": {
+        "credits": "300 créditos/mes",
+        "headshots": "100 retratos/mes",
+        "customization": "Personalización avanzada",
+        "support": "Soporte 24/7"
+      }
+    }
+  },
+  "testimonials": {
+    "testimonial1": {
+      "text": "Vizion ha cambiado completamente mi flujo de trabajo. Solía pasar horas en miniaturas, ahora toma minutos.",
+      "author": "Sarah Jenkins",
+      "role": "YouTuber de tecnología (500k suscriptores)"
+    },
+    "testimonial2": {
+      "text": "La calidad de la generación de IA es impresionante. Entiende exactamente lo que quiero con un simple prompt.",
+      "author": "Mike Chen",
+      "role": "Streamer de juegos"
+    },
+    "testimonial3": {
+      "text": "Finalmente, una herramienta que realmente me ayuda a obtener más clics. Mi CTR ha aumentado un 40% desde que uso Vizion.",
+      "author": "Jessica Lee",
+      "role": "Vlogger de estilo de vida"
+    },
+    "testimonial4": {
+      "text": "He probado todas las herramientas de miniaturas que existen. Vizion es la única que consistentemente entrega resultados profesionales.",
+      "author": "David Park",
+      "role": "Educador financiero"
+    },
+    "testimonial5": {
+      "text": "La velocidad es increíble. Puedo iterar a través de docenas de ideas en el tiempo que solía tomarme hacer una.",
+      "author": "Emma Wilson",
+      "role": "Creadora de viajes"
+    },
+    "testimonial6": {
+      "text": "Mis suscriptores siempre comentan lo geniales que se ven mis miniaturas ahora. Esta herramienta es un cambio de juego.",
+      "author": "Alex Rivera",
+      "role": "Productor musical"
+    }
+  },
+  "footer": {
+    "copyright": "© 2025 Vizion AI. Todos los derechos reservados."
+  },
+  "quickCreate": {
+    "badge": "Creación Rápida con IA",
+    "heroTitle": "Miniaturas",
+    "heroAnd": "&",
+    "heroTitles": "títulos",
+    "typewriterTexts": {
+      "inSeconds": "en segundos",
+      "effortlessly": "sin esfuerzo",
+      "withAI": "con IA"
+    },
+    "description": "Revoluciona tu flujo de trabajo de contenido. Sube tu video y observa cómo la IA crea visuales perfectos para ti.",
+    "features": {
+      "analyzeContent": "Analiza tu contenido",
+      "fourThumbnails": "4 miniaturas únicas",
+      "optimizedTitles": "Títulos optimizados"
+    },
+    "errors": {
+      "signInFirst": "Por favor inicia sesión primero",
+      "limitReached": "límite alcanzado. Mejora para crear más.",
+      "couldNotStart": "No se pudo iniciar la generación (error al registrar créditos). Por favor intenta de nuevo.",
+      "errorProcessing": "Error al procesar el video",
+      "noThumbnailsToSave": "No hay miniaturas para guardar",
+      "errorSaving": "Error al guardar miniaturas"
+    },
+    "success": {
+      "thumbnailSaved": "¡Miniatura guardada!",
+      "thumbnailsSaved": "¡{count} miniaturas guardadas exitosamente!",
+      "preparing": "Preparando..."
+    }
+  },
+  "createNew": {
+    "pageTitle": "Crear Miniatura",
+    "subtitle": "Navega por las etapas para crear tu miniatura sin perder contexto.",
+    "backToDashboard": "Volver al panel",
+    "playground": "Área de trabajo",
+    "livePreview": "Vista previa en vivo",
+    "canvas": "Lienzo",
+    "startWithAvatar": "Empezar con avatar",
+    "previewWillAppear": "La vista previa aparecerá aquí",
+    "download": "Descargar",
+    "downloading": "Descargando...",
+    "remixButton": "Remezclar",
+    "generatedThumbnails": "Miniaturas generadas",
+    "clickToSelect": "Haz clic para seleccionar",
+    "results": "resultados",
+    "clearAll": "Limpiar todo",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo",
+    "saving": "Guardando...",
+    "save": "Guardar",
+    "creationStages": "Etapas de creación",
+    "navigateStages": "Navega entre Avatar, Elementos, Título y Fondo.",
+    "tabs": {
+      "avatar": "Avatar",
+      "elements": "Elementos",
+      "title": "Título",
+      "background": "Fondo"
+    },
+    "avatar": {
+      "selection": "Selección de Avatar",
+      "selectionSubtitle": "Elige o sube una imagen de avatar para incluir en tu miniatura",
+      "noAvatars": "No hay avatares disponibles. Sube uno en tu Perfil.",
+      "upload": "Subir",
+      "expressions": "Expresiones",
+      "expressionsSubtitle": "Selecciona expresiones faciales para tu avatar (máx. 3)",
+      "position": "Posición del Avatar",
+      "positionSubtitle": "Controla dónde aparece tu avatar en el lienzo"
+    },
+    "elements": {
+      "textElements": "Elementos de Texto",
+      "textElementsSubtitle": "Añade objetos específicos para incluir (ej. 'coche rojo', 'girasoles')",
+      "addElement": "Añadir elemento específico (ej. coche rojo, letrero de neón)...",
+      "elementLibrary": "Biblioteca de Elementos",
+      "elementLibrarySubtitle": "Selecciona hasta 3 elementos como productos, accesorios o imágenes personalizadas",
+      "elementPositions": "Posiciones de Elementos",
+      "elementPositionsSubtitle": "Define la ubicación de cada elemento seleccionado",
+      "customElement": "Elemento Personalizado",
+      "element": "Elemento",
+      "maximumReached": "Máximo 3 elementos permitidos",
+      "elementAlreadyAdded": "Elemento ya añadido",
+      "maxTextElements": "Máximo 10 elementos de texto permitidos"
+    },
+    "title": {
+      "content": "Contenido del Título",
+      "contentSubtitle": "Escribe tu propio título o deja que la IA genere variaciones que generen clics",
+      "title": "Título",
+      "subtitle": "Subtítulo",
+      "fontStyle": "Estilo de Fuente",
+      "fontStyleSubtitle": "Elige entre preajustes o usa una referencia de imagen para tipografía",
+      "textPosition": "Posición del Texto",
+      "textPositionSubtitle": "Controla dónde aparece tu texto en el lienzo",
+      "savedTitles": "Títulos Guardados",
+      "savedTitlesSubtitle": "Acceso rápido a tus preajustes de título guardados",
+      "use": "Usar",
+      "style": "Estilo",
+      "position": "Posición",
+      "aiGenerate": "Generar con IA",
+      "aiGenerateDesc": "Títulos que generan clics",
+      "manual": "Manual",
+      "manualDesc": "Escribe el tuyo",
+      "enterTitle": "Ingresa título...",
+      "enterSubtitle": "Ingresa subtítulo...",
+      "presetStyles": "Estilos Preajustados",
+      "presetStylesDesc": "Selecciona de preajustes",
+      "imageReference": "Referencia de Imagen",
+      "imageReferenceDesc": "Sube una muestra",
+      "noFontStyles": "Aún no hay estilos de fuente disponibles.",
+      "uploadFontStyles": "Subir Estilos de Fuente",
+      "manageFontStyles": "Gestionar estilos de fuente →"
+    },
+    "background": {
+      "visualStyle": "Estilo Visual",
+      "visualStyleSubtitle": "Define el estado de ánimo y la estética general de tus miniaturas",
+      "background": "Fondo",
+      "backgroundSubtitle": "Elige un tipo de fondo: degradado, color sólido, imagen o personalizado",
+      "letAIDecide": "Dejar que la IA Decida",
+      "letAIDecideDesc": "La IA creará fondos variados en las 9 miniaturas",
+      "savedBackgrounds": "Fondos Guardados",
+      "savedBackgroundsSubtitle": "Acceso rápido a tus preajustes de fondo guardados",
+      "viewAll": "Ver todos los fondos",
+      "gradient": "Degradado",
+      "solidColor": "Color Sólido",
+      "uploadImage": "Subir Imagen",
+      "fromAvatar": "Desde Avatar",
+      "customPrompt": "Prompt Personalizado",
+      "color1": "Color 1",
+      "color2": "Color 2",
+      "color": "Color",
+      "clickToUpload": "Haz clic para subir",
+      "clickToChange": "Haz clic para cambiar",
+      "pngJpgUpTo10MB": "PNG, JPG hasta 10MB",
+      "backgroundFromAvatar": "El fondo se generará desde el avatar seleccionado",
+      "selectAvatarFirst": "Por favor selecciona un avatar primero para usar esta opción",
+      "backgroundDescription": "Descripción del Fondo",
+      "describeBackground": "Describe el fondo que quieres... (ej., 'Horizonte de ciudad futurista al atardecer')"
+    },
+    "generation": {
+      "generate": "Generar",
+      "generateWithCredits": "Generar {mode} ({credits} {creditLabel})",
+      "generating": "Generando {count} {type}...",
+      "processingVariations": "Procesando variaciones...",
+      "selectGenerationMode": "Seleccionar modo de generación",
+      "thumbnail": "miniatura",
+      "thumbnails": "miniaturas",
+      "variations": "variaciones",
+      "credit": "crédito",
+      "credits": "créditos"
+    },
+    "remix": {
+      "title": "Remezclar Miniatura",
+      "description": "Añade instrucciones personalizadas para crear una variación de esta miniatura",
+      "placeholder": "Ej., Haz el fondo más vibrante, cambia el color del texto a azul, añade efecto de desenfoque de movimiento...",
+      "generatingRemix": "Generando Remezcla...",
+      "generateRemix": "Generar Remezcla"
+    },
+    "positions": {
+      "topLeft": "Arriba Izquierda",
+      "topCenter": "Arriba Centro",
+      "topRight": "Arriba Derecha",
+      "centerLeft": "Centro Izquierda",
+      "center": "Centro",
+      "centerRight": "Centro Derecha",
+      "bottomLeft": "Abajo Izquierda",
+      "bottomCenter": "Abajo Centro",
+      "bottomRight": "Abajo Derecha"
+    },
+    "expressions": {
+      "excited": "Emocionado",
+      "surprised": "Sorprendido",
+      "happy": "Feliz",
+      "serious": "Serio",
+      "confident": "Confiado",
+      "thinking": "Pensativo"
+    },
+    "visualStyles": {
+      "modernMinimalist": "Moderno y Minimalista",
+      "boldDramatic": "Audaz y Dramático",
+      "playfulFun": "Juguetón y Divertido",
+      "professionalClean": "Profesional y Limpio",
+      "cinematic": "Cinematográfico",
+      "3dRendered": "Renderizado 3D"
+    },
+    "textStyles": {
+      "boldLarge": "Negrita y Grande",
+      "elegantScript": "Script Elegante",
+      "modernSans": "Sans Moderno",
+      "handwritten": "Manuscrito",
+      "futuristic": "Futurista",
+      "classicSerif": "Serif Clásico"
+    },
+    "letAIDecide": "Dejar que la IA Decida",
+    "aiVaryExpressions": "La IA variará las expresiones en las 9 miniaturas",
+    "aiVaryPositions": "La IA variará las posiciones del avatar en las 9 miniaturas",
+    "aiVaryElementPositions": "La IA variará las posiciones de los elementos en las 9 miniaturas",
+    "aiVaryTextPositions": "La IA variará las posiciones del texto en las 9 miniaturas",
+    "aiVaryTextStyles": "La IA variará los estilos de texto en las 9 miniaturas",
+    "aiVaryVisualStyles": "La IA variará los estilos visuales en las 9 miniaturas",
+    "aiVaryBackgrounds": "La IA creará fondos variados en las 9 miniaturas",
+    "addCustomExpression": "Añadir expresión personalizada...",
+    "addCustomPosition": "Añadir posición personalizada...",
+    "addCustomTextStyle": "Añadir estilo de texto personalizado...",
+    "addCustomVisualStyle": "Añadir estilo visual personalizado...",
+    "errors": {
+      "limitReached": "límite alcanzado.",
+      "freeUsersDaily": "Los usuarios gratuitos obtienen 1 crédito por día. Mejora para crear más.",
+      "allCreditsUsed": "Has usado todos tus créditos para este período de facturación.",
+      "freeUsersRemix": "Los usuarios gratuitos pueden crear 1 miniatura por día. Mejora para crear más.",
+      "allThumbnailsUsed": "Has usado todas tus miniaturas para este período de facturación.",
+      "failedGenerate": "Error al generar miniatura. Por favor intenta de nuevo.",
+      "failedDownload": "Error al descargar miniatura",
+      "noThumbnailsSelected": "No hay miniaturas seleccionadas para guardar",
+      "failedSave": "Error al guardar miniaturas",
+      "failedRemix": "Error al remezclar miniatura",
+      "backgroundUploaded": "Imagen de fondo subida",
+      "failedBackgroundUpload": "Error al subir imagen de fondo",
+      "avatarUploaded": "Avatar subido",
+      "failedAvatarUpload": "Error al subir avatar",
+      "elementUploaded": "Elemento subido",
+      "failedElementUpload": "Error al subir elemento",
+      "backgroundApplied": "Fondo aplicado",
+      "titleApplied": "Título aplicado",
+      "thumbnailGenerated": "¡Miniatura generada!",
+      "variationsGenerated": "¡{count} variaciones de miniatura generadas!",
+      "gridImageCroppingFailed": "Imagen de cuadrícula generada (falló el recorte)",
+      "remixGenerated": "¡Remezcla generada exitosamente!",
+      "saved": "¡{count} {thumbnailLabel} guardada{plural}!",
+      "downloadStarted": "Descarga de {label} iniciada"
+    }
+  },
+  "products": {
+    "title": "Elementos",
+    "addElement": "Añadir Elemento",
+    "limitReached": " (Límite Alcanzado)",
+    "noElements": "Aún no hay elementos",
+    "createFirst": "Crea tu primer elemento para comenzar",
+    "createElement": "Crear Elemento",
+    "createNewElement": "Crear Nuevo Elemento",
+    "elementTitle": "Título del Elemento *",
+    "enterTitle": "Ingresa título del elemento",
+    "brand": "Marca (opcional)",
+    "enterBrand": "Ingresa nombre de marca (opcional)",
+    "elementImages": "Imágenes del Elemento * (al menos 1)",
+    "clickToUpload": "Haz clic para subir imágenes (múltiples permitidas)",
+    "images": "imagen",
+    "imagesPlural": "imágenes",
+    "errors": {
+      "failedLoad": "Error al cargar elementos",
+      "imagesUploaded": "{count} imagen(es) subida(s)",
+      "failedUpload": "Error al subir imágenes",
+      "addTitleAndImage": "Añade un título y al menos una imagen",
+      "freeLimit": "Los usuarios del plan gratuito solo pueden crear 3 elementos. Mejora para añadir más.",
+      "createdSuccess": "Elemento creado exitosamente",
+      "failedCreate": "Error al crear elemento"
+    }
+  },
+  "avatars": {
+    "title": "Tus Avatares",
+    "subtitle": "Sube imágenes o captura fotogramas de videos para usar en tus miniaturas",
+    "uploadImage": "Subir Imagen",
+    "pngJpgUpTo10MB": "PNG, JPG hasta 10MB",
+    "uploadVideo": "Subir Video",
+    "mp4MovCapture": "MP4, MOV para capturar fotograma",
+    "freeLimitReached": "Límite del plan gratuito alcanzado",
+    "selectFrame": "Selecciona un fotograma",
+    "captureCurrentFrame": "Capturar Fotograma Actual",
+    "noAvatars": "Aún no se han subido avatares",
+    "nameYourAvatar": "Nombra tu Avatar",
+    "avatarName": "Nombre del Avatar",
+    "avatarNamePlaceholder": "ej. Daniel, Yo Profesional, etc.",
+    "nameMention": "Este nombre se usará para mencionar este avatar en prompts usando \"@\".",
+    "saveName": "Guardar Nombre",
+    "professionalHeadshot": "Retrato Profesional",
+    "headshotFreeOnly": "Los retratos profesionales solo están disponibles para planes de pago. ¡Mejora ahora para transformar tus avatares en retratos de calidad de estudio!",
+    "headshotLimitReached": "Has usado todos tus {limit} retratos profesionales de este mes. ¡Mejora tu plan para más!",
+    "headshotDescription": "¿Quieres convertir este avatar en un retrato profesional? Esto mejorará la adherencia facial al generar miniaturas más adelante.",
+    "remainingThisMonth": "Restantes este mes: {count}",
+    "keepOriginal": "Mantener Original",
+    "viewPlans": "Ver Planes",
+    "upgradePlan": "Mejorar Plan",
+    "transformToHeadshot": "Transformar a Retrato",
+    "generating": "Generando...",
+    "errors": {
+      "failedLoad": "Error al cargar avatares",
+      "freeLimit": "Los usuarios del plan gratuito solo pueden subir 1 avatar. Mejora para añadir más.",
+      "uploadedSuccess": "Avatar subido exitosamente",
+      "failedUpload": "Error al subir avatar",
+      "capturedSuccess": "Avatar capturado del video",
+      "failedCapture": "Error al capturar fotograma",
+      "enterName": "Por favor ingresa un nombre",
+      "namedSuccess": "Avatar nombrado exitosamente",
+      "failedName": "Error al nombrar avatar",
+      "headshotGenerated": "¡Retrato profesional generado!",
+      "failedHeadshot": "Error al generar retrato",
+      "deleted": "Avatar eliminado",
+      "failedDelete": "Error al eliminar avatar"
+    }
+  },
+  "backgrounds": {
+    "title": "Fondos",
+    "subtitle": "Guarda degradados, colores, prompts o imágenes para reutilizar en nuevas miniaturas.",
+    "library": "Biblioteca",
+    "saveBackground": "Guardar un fondo",
+    "saveBackgroundDescription": "Captura la configuración que te gusta y aplícala más tarde en el flujo de creación.",
+    "name": "Nombre",
+    "namePlaceholder": "ej., Degradado neón",
+    "type": "Tipo",
+    "gradient": "Degradado",
+    "solidColor": "Color sólido",
+    "image": "Subir imagen",
+    "fromAvatar": "Desde avatar",
+    "customPrompt": "Prompt personalizado",
+    "color1": "Color 1",
+    "color2": "Color 2",
+    "color": "Color",
+    "uploadBackgroundImage": "Subir imagen de fondo",
+    "clickToUpload": "Haz clic para subir",
+    "clickToReplace": "Haz clic para reemplazar",
+    "chooseAvatar": "Elegir avatar",
+    "selectAvatar": "Selecciona un avatar",
+    "backgroundPrompt": "Prompt de fondo",
+    "backgroundPromptPlaceholder": "ej., Horizonte de ciudad futurista al anochecer",
+    "saveBackgroundButton": "Guardar fondo",
+    "saving": "Guardando...",
+    "savedBackgrounds": "Fondos guardados",
+    "savedBackgroundsDescription": "Aplícalos rápidamente al crear o editar miniaturas.",
+    "noBackgrounds": "Aún no hay fondos guardados.",
+    "useInCreate": "Usar en crear",
+    "noImage": "Sin imagen",
+    "avatarNotFound": "Avatar no encontrado",
+    "customPromptBackground": "Fondo con prompt personalizado",
+    "errors": {
+      "couldNotLoad": "No se pudieron cargar los fondos",
+      "addName": "Por favor añade un nombre para este fondo",
+      "uploadImage": "Sube una imagen antes de guardar",
+      "selectAvatar": "Selecciona un avatar para basar este fondo",
+      "addDescription": "Añade una descripción para este fondo",
+      "backgroundSaved": "Fondo guardado",
+      "failedSave": "Error al guardar fondo",
+      "backgroundDeleted": "Fondo eliminado",
+      "failedDelete": "Error al eliminar fondo",
+      "backgroundImageUploaded": "Imagen de fondo subida",
+      "failedUpload": "Error al subir imagen"
+    }
+  },
+  "fontStyles": {
+    "title": "Estilos de Fuente",
+    "subtitle": "Explora y sube imágenes de estilos de fuente para usar como referencias en tus miniaturas.",
+    "library": "Biblioteca",
+    "loading": "Cargando estilos de fuente...",
+    "uploadCustomFontStyle": "Subir Estilo de Fuente Personalizado",
+    "uploadDescription": "Sube una imagen que muestre el estilo de fuente/texto que deseas. La IA lo usará como referencia visual.",
+    "name": "Nombre",
+    "namePlaceholder": "ej., Estilo Brillo Neón",
+    "fontStyleImage": "Imagen de Estilo de Fuente",
+    "clickToUploadFontStyle": "Haz clic para subir imagen de estilo de fuente",
+    "pngJpgRecommended": "PNG o JPG recomendado",
+    "uploadFontStyle": "Subir Estilo de Fuente",
+    "uploading": "Subiendo...",
+    "premadeFontStyles": "Estilos de Fuente Pre-hechos",
+    "yourFontStyles": "Tus Estilos de Fuente",
+    "noCustomFontStyles": "Aún no hay estilos de fuente personalizados. ¡Sube uno arriba para comenzar!",
+    "useInCreate": "Usar en crear",
+    "system": "Sistema",
+    "errors": {
+      "couldNotLoad": "No se pudieron cargar los estilos de fuente",
+      "provideNameAndImage": "Por favor proporciona un nombre y selecciona una imagen",
+      "uploadedSuccess": "Estilo de fuente subido exitosamente",
+      "failedUpload": "Error al subir estilo de fuente",
+      "cannotDeleteSystem": "No se pueden eliminar estilos de fuente del sistema",
+      "fontStyleDeleted": "Estilo de fuente eliminado",
+      "failedDelete": "Error al eliminar estilo de fuente"
+    }
+  },
+  "dashboard": {
+    "gallery": "Galería",
+    "yourThumbnails": "Tus Miniaturas",
+    "subtitle": "Explora, busca y filtra todas tus creaciones en un solo lugar.",
+    "newThumbnail": "Nueva Miniatura",
+    "createCardDescription": "Crea miniaturas personalizadas con control total",
+    "quickCreateCardDescription": "Genera miniaturas desde video al instante",
+    "avatarsCardDescription": "Gestiona tu biblioteca de avatares",
+    "searchPlaceholder": "Buscar por título o subtítulo",
+    "filters": "Filtros",
+    "filtersDescription": "Refina tu galería por avatar, elemento o fecha.",
+    "avatar": "Avatar",
+    "filterByAvatar": "Filtrar por avatar",
+    "allAvatars": "Todos los avatares",
+    "avatarLabel": "Avatar {{index}}",
+    "element": "Elemento",
+    "filterByElement": "Filtrar por elemento",
+    "allElements": "Todos los elementos",
+    "dateRange": "Rango de fechas",
+    "selectDateRange": "Seleccionar rango de fechas",
+    "clearFilters": "Limpiar filtros",
+    "apply": "Aplicar",
+    "noThumbnails": "Aún no hay miniaturas. ¡Crea tu primera!",
+    "createThumbnail": "Crear Miniatura",
+    "noResults": "No hay resultados que coincidan con estos filtros",
+    "noResultsDescription": "Intenta ajustar tus términos de búsqueda, avatar, elemento o rango de fechas.",
+    "resetFilters": "Restablecer filtros",
+    "generating": "Generando...",
+    "viewDetails": "Ver Detalles",
+    "untitledProject": "Proyecto Sin Título",
+    "noDescription": "Sin descripción",
+    "iterating": "Iterando...",
+    "errors": {
+      "failedLoad": "Error al cargar miniaturas",
+      "downloadStarted": "Descarga iniciada",
+      "failedDownload": "Error al descargar miniatura"
+    }
+  },
+  "generations": {
+    "usage": "Uso",
+    "title": "Historial de Generaciones",
+    "subtitle": "Rastrea cada generación, estado y créditos restantes.",
+    "dashboard": "Panel",
+    "newGeneration": "Nueva Generación",
+    "used": "Usados",
+    "today": "hoy",
+    "thisPeriod": "este período",
+    "status": "Estado",
+    "superAdmin": "Super Admin",
+    "fullAccess": "Acceso completo a todas las funciones",
+    "unlimitedCredits": "Créditos ilimitados",
+    "resetsOn": "Se restablece el",
+    "plan": "Plan",
+    "freeTier": "Plan gratuito",
+    "timeline": "Línea de tiempo",
+    "noGenerations": "Aún no hay generaciones en este período.",
+    "untitledGeneration": "Generación sin título",
+    "credit": "crédito",
+    "credits": "créditos",
+    "open": "Abrir",
+    "prompt": "Prompt",
+    "remix": "Remezcla",
+    "error": "Error",
+    "notAvailable": "No disponible",
+    "errors": {
+      "failedLoad": "Error al cargar el historial de generaciones"
+    }
+  },
+  "thumbnailDetail": {
+    "back": "Atrás",
+    "versions": "{{count}} versión",
+    "versionsPlural": "{{count}} versiones",
+    "download": "Descargar",
+    "downloading": "...",
+    "loading": "Cargando...",
+    "selectedVersion": "Versión Seleccionada",
+    "created": "Creado",
+    "promptUsed": "Prompt usado",
+    "baseSettings": "Configuración Base",
+    "title": "Título",
+    "untitled": "Sin título",
+    "totalVersions": "Total de Versiones",
+    "generationConfig": "Configuración de Generación",
+    "assetsUsed": "Activos Usados",
+    "thumbnailDetails": "Detalles de la Miniatura",
+    "detailsDescription": "Configuración e información de la versión seleccionada",
+    "originalGeneration": "Generación original",
+    "selected": "Seleccionado",
+    "version": "Versión {{number}}",
+    "generatingMagic": "Generando Magia...",
+    "context": "Contexto",
+    "describeChanges": "Describe cambios para una nueva versión...",
+    "pressEnter": "Presiona Enter para enviar, Shift+Enter para nueva línea",
+    "deleteTitle": "¿Estás seguro?",
+    "deleteDescription": "Esta acción no se puede deshacer. Esto eliminará permanentemente tu miniatura y todas sus versiones.",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "errors": {
+      "failedLoad": "Error al cargar miniatura",
+      "downloadStarted": "Descarga de {label} iniciada",
+      "failedDownload": "Error al descargar miniatura",
+      "newVersionGenerated": "¡Nueva versión generada!",
+      "failedGenerate": "Error al generar nueva versión",
+      "deletedSuccess": "¡Miniatura eliminada exitosamente!",
+      "failedDelete": "Error al eliminar miniatura"
+    },
+    "mention": {
+      "all": "Todos",
+      "avatars": "Avatares",
+      "elements": "Elementos",
+      "noItems": "No se encontraron {type}",
+      "items": "elementos",
+      "noAvatars": "No se encontraron avatares",
+      "noElements": "No se encontraron elementos"
+    }
+  },
+  "profile": {
+    "accountInformation": "Información de la Cuenta",
+    "viewAccountDetails": "Ver los detalles de tu cuenta",
+    "email": "Correo electrónico",
+    "username": "Nombre de usuario",
+    "enterUsername": "Ingresa tu nombre de usuario",
+    "update": "Actualizar",
+    "userId": "ID de Usuario",
+    "appearance": "Apariencia",
+    "customizeAppearance": "Personaliza cómo se ve la aplicación",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "language": "Idioma",
+    "english": "English",
+    "spanish": "Español",
+    "updatePassword": "Actualizar Contraseña",
+    "changePassword": "Cambia la contraseña de tu cuenta",
+    "newPassword": "Nueva Contraseña",
+    "enterNewPassword": "Ingresa nueva contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "confirmNewPassword": "Confirma la nueva contraseña",
+    "subscriptionPlans": "Planes de Suscripción",
+    "testMode": "MODO DE PRUEBA",
+    "choosePlan": "Elige el plan que se adapte a tus necesidades",
+    "manageSubscription": "Gestionar Suscripción",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "save20": "Ahorra 20%",
+    "superAdminActive": "Super Admin Activo",
+    "superAdminDescription": "Tienes acceso completo a todas las funciones y generaciones ilimitadas.",
+    "activeSubscription": "Suscripción Activa",
+    "currentPlan": "Plan actual:",
+    "monthlyLimit": "Límite mensual:",
+    "thumbnails": "miniaturas",
+    "renewsOn": "Se renueva el:",
+    "freeTier": "Plan Gratuito",
+    "freeTierDescription": "Actualmente estás en el plan gratuito con 5 créditos únicos",
+    "mostPopular": "Más Popular",
+    "yourPlan": "Tu Plan",
+    "perMonth": "/mes",
+    "billedAnnually": "Facturado anualmente en",
+    "currentPlanButton": "Plan Actual",
+    "priceIdMissing": "ID de Precio Faltante",
+    "subscribe": "Suscribirse",
+    "errors": {
+      "usernameEmpty": "El nombre de usuario no puede estar vacío",
+      "usernameUpdated": "Nombre de usuario actualizado exitosamente",
+      "usernameUpdateFailed": "Error al actualizar el nombre de usuario",
+      "passwordsNoMatch": "Las contraseñas no coinciden",
+      "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
+      "passwordUpdated": "Contraseña actualizada exitosamente",
+      "invalidPriceId": "ID de Precio inválido: \"{priceId}\". Esto parece un marcador de posición. Por favor actualiza testPlans en Profile.tsx con IDs de Precio de prueba reales de Stripe desde tu Panel de Stripe (Modo de prueba).",
+      "placeholderPriceId": "ID de Precio de marcador de posición detectado: \"{priceId}\". Por favor reemplázalo con un ID de Precio de prueba real de Stripe. Obténlo desde Panel de Stripe > Productos (Modo de prueba) > Tu Producto > Copiar ID de Precio.",
+      "failedCheckout": "Error al iniciar checkout",
+      "openingCheckout": "Abriendo checkout...",
+      "unexpectedResponse": "Respuesta inesperada del checkout. Revisa la consola para más detalles.",
+      "failedStartCheckout": "Error al iniciar checkout. Revisa la consola para más detalles.",
+      "failedCustomerPortal": "Error al abrir el portal del cliente",
+      "testPriceIdNotConfigured": "ID de Precio de prueba no configurado para {planName}. Por favor actualiza testPlans en Profile.tsx con tus IDs de Precio de prueba de Stripe."
+    }
+  }
+}

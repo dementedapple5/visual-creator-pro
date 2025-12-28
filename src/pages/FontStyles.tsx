@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ const FONT_STYLES_BUCKET = "thumbnails";
 const FONT_STYLES_FOLDER = "font-styles";
 
 const FontStyles = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [fontStyles, setFontStyles] = useState<FontStyle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +75,7 @@ const FontStyles = () => {
 
     if (error) {
       console.error("Error loading font styles", error);
-      toast.error("Could not load font styles");
+      toast.error(t("fontStyles.errors.couldNotLoad"));
       return;
     }
 
@@ -97,7 +99,7 @@ const FontStyles = () => {
 
   const handleUpload = async () => {
     if (!selectedFile || !name.trim()) {
-      toast.error("Please provide a name and select an image");
+      toast.error(t("fontStyles.errors.provideNameAndImage"));
       return;
     }
 
@@ -133,14 +135,14 @@ const FontStyles = () => {
 
       if (dbError) throw dbError;
 
-      toast.success("Font style uploaded successfully");
+      toast.success(t("fontStyles.errors.uploadedSuccess"));
       setName("");
       setPreviewUrl(null);
       setSelectedFile(null);
       fetchFontStyles();
     } catch (error) {
       console.error("Error uploading font style:", error);
-      toast.error("Failed to upload font style");
+      toast.error(t("fontStyles.errors.failedUpload"));
     } finally {
       setUploading(false);
     }
@@ -148,7 +150,7 @@ const FontStyles = () => {
 
   const handleDelete = async (fontStyle: FontStyle) => {
     if (fontStyle.is_system) {
-      toast.error("Cannot delete system font styles");
+      toast.error(t("fontStyles.errors.cannotDeleteSystem"));
       return;
     }
 
@@ -168,11 +170,11 @@ const FontStyles = () => {
           .remove([path]);
       }
 
-      toast.success("Font style deleted");
+      toast.success(t("fontStyles.errors.fontStyleDeleted"));
       fetchFontStyles();
     } catch (error) {
       console.error("Error deleting font style:", error);
-      toast.error("Failed to delete font style");
+      toast.error(t("fontStyles.errors.failedDelete"));
     }
   };
 
@@ -184,7 +186,7 @@ const FontStyles = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading font styles...
+          {t("fontStyles.loading")}
         </div>
       </div>
     );
@@ -196,20 +198,20 @@ const FontStyles = () => {
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Library
+              {t("fontStyles.library")}
             </p>
-            <h2 className="text-2xl font-semibold leading-tight">Font Styles</h2>
+            <h2 className="text-2xl font-semibold leading-tight">{t("fontStyles.title")}</h2>
             <p className="text-sm text-muted-foreground">
-              Browse and upload font style images to use as references in your thumbnails.
+              {t("fontStyles.subtitle")}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-              Dashboard
+              {t("navigation.dashboard")}
             </Button>
             <Button onClick={() => navigate("/create")}>
               <Sparkles className="w-4 h-4 mr-2" />
-              Create new thumbnail
+              {t("createNew.pageTitle")}
             </Button>
           </div>
         </div>
@@ -219,25 +221,25 @@ const FontStyles = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5" />
-              Upload Custom Font Style
+              {t("fontStyles.uploadCustomFontStyle")}
             </CardTitle>
             <CardDescription>
-              Upload an image showing your desired font/text style. The AI will use it as a visual reference.
+              {t("fontStyles.uploadDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>{t("fontStyles.name")}</Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., Neon Glow Style"
+                    placeholder={t("fontStyles.namePlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Font Style Image</Label>
+                  <Label>{t("fontStyles.fontStyleImage")}</Label>
                   <label className="block">
                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
                       {previewUrl ? (
@@ -247,13 +249,13 @@ const FontStyles = () => {
                             alt="Preview"
                             className="w-full h-32 object-contain rounded-lg"
                           />
-                          <p className="text-sm text-muted-foreground">Click to replace</p>
+                          <p className="text-sm text-muted-foreground">{t("backgrounds.clickToReplace")}</p>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                           <TypeIcon className="w-8 h-8" />
-                          <p className="text-sm">Click to upload font style image</p>
-                          <p className="text-xs">PNG or JPG recommended</p>
+                          <p className="text-sm">{t("fontStyles.clickToUploadFontStyle")}</p>
+                          <p className="text-xs">{t("fontStyles.pngJpgRecommended")}</p>
                         </div>
                       )}
                     </div>
@@ -271,9 +273,7 @@ const FontStyles = () => {
                 <div className="text-center space-y-3 p-6 rounded-lg bg-muted/30">
                   <TypeIcon className="w-12 h-12 mx-auto text-muted-foreground" />
                   <p className="text-sm text-muted-foreground max-w-xs">
-                    Upload images that clearly show the font style you want. 
-                    This could be text rendered in a specific style, a logo, 
-                    or any typography reference.
+                    {t("fontStyles.uploadDescription")}
                   </p>
                 </div>
               </div>
@@ -288,12 +288,12 @@ const FontStyles = () => {
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
+                  {t("fontStyles.uploading")}
                 </>
               ) : (
                 <>
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload Font Style
+                  {t("fontStyles.uploadFontStyle")}
                 </>
               )}
             </Button>
@@ -305,7 +305,7 @@ const FontStyles = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-amber-500" />
-              <h3 className="text-lg font-semibold">Pre-made Font Styles</h3>
+              <h3 className="text-lg font-semibold">{t("fontStyles.premadeFontStyles")}</h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {systemStyles.map((fontStyle) => (
@@ -324,7 +324,7 @@ const FontStyles = () => {
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-xs">
                         <Crown className="w-3 h-3 mr-1" />
-                        System
+                        {t("fontStyles.system")}
                       </Badge>
                     </div>
                     <p className="font-medium text-sm truncate">{fontStyle.name}</p>
@@ -334,7 +334,7 @@ const FontStyles = () => {
                       className="w-full h-7 text-xs"
                       onClick={() => navigate("/create")}
                     >
-                      Use in create
+                      {t("fontStyles.useInCreate")}
                     </Button>
                   </div>
                 </div>
@@ -345,12 +345,12 @@ const FontStyles = () => {
 
         {/* User Font Styles */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Your Font Styles</h3>
+          <h3 className="text-lg font-semibold">{t("fontStyles.yourFontStyles")}</h3>
           {userStyles.length === 0 ? (
             <div className="border border-dashed border-border rounded-lg p-8 text-center">
               <TypeIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
               <p className="text-muted-foreground">
-                No custom font styles yet. Upload one above to get started!
+                {t("fontStyles.noCustomFontStyles")}
               </p>
             </div>
           ) : (
@@ -388,7 +388,7 @@ const FontStyles = () => {
                       className="w-full h-7 text-xs"
                       onClick={() => navigate("/create")}
                     >
-                      Use in create
+                      {t("fontStyles.useInCreate")}
                     </Button>
                   </div>
                 </div>

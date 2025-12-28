@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ interface Product {
 }
 
 const Products = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
@@ -73,7 +75,7 @@ const Products = () => {
       setProducts(data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
-      toast.error("Failed to load elements");
+      toast.error(t("products.errors.failedLoad"));
     } finally {
       setLoading(false);
     }
@@ -109,10 +111,10 @@ const Products = () => {
 
       const urls = await Promise.all(uploadPromises);
       setUploadedImages([...uploadedImages, ...urls]);
-      toast.success(`${urls.length} image(s) uploaded`);
+      toast.success(t("products.errors.imagesUploaded", { count: urls.length }));
     } catch (error) {
       console.error("Error uploading images:", error);
-      toast.error("Failed to upload images");
+      toast.error(t("products.errors.failedUpload"));
     } finally {
       setUploading(false);
     }
@@ -127,7 +129,7 @@ const Products = () => {
     const brandValue = brand.trim();
 
     if (!titleValue || uploadedImages.length === 0) {
-      toast.error("Add a title and at least one image");
+      toast.error(t("products.errors.addTitleAndImage"));
       return;
     }
 
@@ -137,7 +139,7 @@ const Products = () => {
 
       // Check free tier limit
       if (!subscription?.subscribed && products.length >= 3) {
-        toast.error("Free tier users can only create 3 elements. Upgrade to add more.");
+        toast.error(t("products.errors.freeLimit"));
         return;
       }
 
@@ -165,7 +167,7 @@ const Products = () => {
 
       if (imagesError) throw imagesError;
 
-      toast.success("Element created successfully");
+      toast.success(t("products.errors.createdSuccess"));
       setShowDialog(false);
       setTitle("");
       setBrand("");
@@ -173,7 +175,7 @@ const Products = () => {
       fetchProducts();
     } catch (error) {
       console.error("Error creating product:", error);
-      toast.error("Failed to create element");
+      toast.error(t("products.errors.failedCreate"));
     }
   };
 
@@ -181,14 +183,14 @@ const Products = () => {
     <div className="min-h-screen">
       <main className="container mx-auto px-6 py-4">
         <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Elements</h1>
+          <h1 className="text-2xl font-bold">{t("products.title")}</h1>
           <Button 
             onClick={() => setShowDialog(true)}
             disabled={!subscription?.subscribed && products.length >= 3}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Element
-            {!subscription?.subscribed && products.length >= 3 && " (Limit Reached)"}
+            {t("products.addElement")}
+            {!subscription?.subscribed && products.length >= 3 && t("products.limitReached")}
           </Button>
         </div>
 
@@ -204,11 +206,11 @@ const Products = () => {
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-20 bg-card border border-border rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">No elements yet</h3>
-            <p className="text-muted-foreground mb-6">Create your first element to get started</p>
+            <h3 className="text-xl font-semibold mb-2">{t("products.noElements")}</h3>
+            <p className="text-muted-foreground mb-6">{t("products.createFirst")}</p>
             <Button onClick={() => setShowDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Element
+              {t("products.createElement")}
             </Button>
           </div>
         ) : (
@@ -232,7 +234,7 @@ const Products = () => {
                   <p className="text-sm text-muted-foreground truncate">{product.brand}</p>
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs text-muted-foreground">
-                      {product.images.length} image{product.images.length !== 1 ? "s" : ""}
+                      {product.images.length} {product.images.length !== 1 ? t("products.imagesPlural") : t("products.images")}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(product.created_at).toLocaleDateString()}
@@ -248,34 +250,34 @@ const Products = () => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Element</DialogTitle>
+            <DialogTitle>{t("products.createNewElement")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Element Title *</Label>
+              <Label htmlFor="title">{t("products.elementTitle")}</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter element title"
+                placeholder={t("products.enterTitle")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="brand">Brand (optional)</Label>
+              <Label htmlFor="brand">{t("products.brand")}</Label>
               <Input
                 id="brand"
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                placeholder="Enter brand name (optional)"
+                placeholder={t("products.enterBrand")}
               />
             </div>
             <div className="space-y-2">
-              <Label>Element Images * (at least 1)</Label>
+              <Label>{t("products.elementImages")}</Label>
               <label htmlFor="images-upload">
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors">
                   <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Click to upload images (multiple allowed)
+                    {t("products.clickToUpload")}
                   </p>
                 </div>
                 <input
@@ -311,10 +313,10 @@ const Products = () => {
             )}
             <div className="flex gap-4">
               <Button variant="outline" onClick={() => setShowDialog(false)} className="flex-1">
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleCreateProduct} className="flex-1">
-                Create Element
+                {t("products.createElement")}
               </Button>
             </div>
           </div>

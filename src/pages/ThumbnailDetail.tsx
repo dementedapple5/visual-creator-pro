@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +91,7 @@ interface MentionItem {
 }
 
 const ThumbnailDetail = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [thumbnail, setThumbnail] = useState<Thumbnail | null>(null);
@@ -157,7 +159,7 @@ const ThumbnailDetail = () => {
           id: "original",
           image_url: data.image_url,
           created_at: data.created_at,
-          prompt: "Original generation"
+          prompt: t("thumbnailDetail.originalGeneration")
         };
 
         if (!versionsError && versionsData && versionsData.length > 0) {
@@ -182,7 +184,7 @@ const ThumbnailDetail = () => {
           id: "original",
           image_url: data.image_url,
           created_at: data.created_at,
-          prompt: "Original generation"
+          prompt: t("thumbnailDetail.originalGeneration")
         };
         setVersions([originalVersion]);
         setSelectedVersion(originalVersion);
@@ -231,7 +233,7 @@ const ThumbnailDetail = () => {
       }
     } catch (error) {
       console.error("Error fetching thumbnail:", error);
-      toast.error("Failed to load thumbnail");
+      toast.error(t("thumbnailDetail.errors.failedLoad"));
       navigate("/dashboard");
     } finally {
       setLoading(false);
@@ -477,10 +479,10 @@ const ThumbnailDetail = () => {
       setThumbnail({ ...thumbnail, image_url: result.imageUrl });
       setPrompt("");
 
-      toast.success("New version generated!");
+      toast.success(t("thumbnailDetail.errors.newVersionGenerated"));
     } catch (error) {
       console.error("Error iterating thumbnail:", error);
-      toast.error("Failed to generate new version");
+      toast.error(t("thumbnailDetail.errors.failedGenerate"));
     } finally {
       setIterating(false);
     }
@@ -498,10 +500,10 @@ const ThumbnailDetail = () => {
         height: option.height,
         fileName: `${thumbnail?.title || "thumbnail"}-${option.width}x${option.height}.png`,
       });
-      toast.success(`${option.label} download started`);
+      toast.success(t("thumbnailDetail.errors.downloadStarted", { label: option.label }));
     } catch (error) {
       console.error("Error downloading thumbnail:", error);
-      toast.error("Failed to download thumbnail");
+      toast.error(t("thumbnailDetail.errors.failedDownload"));
     } finally {
       setDownloading(false);
     }
@@ -529,11 +531,11 @@ const ThumbnailDetail = () => {
         }
       }
 
-      toast.success("Thumbnail deleted successfully!");
+      toast.success(t("thumbnailDetail.errors.deletedSuccess"));
       navigate("/dashboard");
     } catch (error) {
       console.error("Error deleting thumbnail:", error);
-      toast.error("Failed to delete thumbnail");
+      toast.error(t("thumbnailDetail.errors.failedDelete"));
     }
   };
 
@@ -579,7 +581,7 @@ const ThumbnailDetail = () => {
       {selectedVersion && (
         <div className="space-y-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Selected Version
+            {t("thumbnailDetail.selectedVersion")}
           </h3>
           <div
             className="rounded-[8px] overflow-hidden border border-border bg-muted"
@@ -594,14 +596,14 @@ const ThumbnailDetail = () => {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground font-medium">Created</span>
+              <span className="text-muted-foreground font-medium">{t("thumbnailDetail.created")}</span>
               <span className="text-foreground">
                 {new Date(selectedVersion.created_at).toLocaleDateString()}
               </span>
             </div>
             {selectedVersion.prompt && (
               <div className="pt-3 border-t border-border">
-                <span className="text-[10px] text-muted-foreground block mb-2 font-semibold uppercase tracking-wider">Prompt used</span>
+                <span className="text-[10px] text-muted-foreground block mb-2 font-semibold uppercase tracking-wider">{t("thumbnailDetail.promptUsed")}</span>
                 <p className="text-xs text-foreground leading-relaxed bg-muted/50 p-3 rounded-lg border border-border/50">
                   {selectedVersion.prompt}
                 </p>
@@ -613,17 +615,17 @@ const ThumbnailDetail = () => {
 
       <div className="pt-6 border-t border-border">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-          Base Settings
+          {t("thumbnailDetail.baseSettings")}
         </h3>
         <div className="space-y-4">
           <div>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block mb-1.5 font-semibold">Title</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block mb-1.5 font-semibold">{t("thumbnailDetail.title")}</span>
             <p className="text-sm text-foreground leading-relaxed font-medium bg-muted/30 p-2 rounded border border-border/30">
-              {thumbnail?.title || "Untitled"}
+              {thumbnail?.title || t("thumbnailDetail.untitled")}
             </p>
           </div>
           <div className="flex items-center justify-between bg-muted/30 p-2 rounded border border-border/30">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Total Versions</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("thumbnailDetail.totalVersions")}</span>
             <span className="text-sm text-foreground font-bold">{versions.length}</span>
           </div>
         </div>
@@ -631,7 +633,7 @@ const ThumbnailDetail = () => {
 
       <div className="pt-6 border-t border-border">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-          Generation Config
+          {t("thumbnailDetail.generationConfig")}
         </h3>
         <div className="flex flex-wrap gap-2 mb-6">
           <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground text-[10px] px-2.5 py-1 border-border rounded-md flex items-center gap-2">
@@ -660,7 +662,7 @@ const ThumbnailDetail = () => {
 
         {(avatar || products.length > 0) && (
           <div className="space-y-4 pt-4 border-t border-border/50">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block font-semibold">Assets Used</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block font-semibold">{t("thumbnailDetail.assetsUsed")}</span>
             <div className="flex flex-wrap items-center gap-3">
               {avatar && (
                 <div className="group relative">
@@ -696,7 +698,7 @@ const ThumbnailDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-muted-foreground">{t("thumbnailDetail.loading")}</div>
       </div>
     );
   }
@@ -718,14 +720,16 @@ const ThumbnailDetail = () => {
               className="text-muted-foreground hover:text-foreground hover:bg-accent -ml-2 shrink-0"
             >
               <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Back</span>
+              <span className="hidden sm:inline">{t("thumbnailDetail.back")}</span>
             </Button>
             <div className="flex flex-col min-w-0">
               <h1 className="text-sm font-semibold text-foreground truncate max-w-[120px] sm:max-w-[200px]">
-                {thumbnail.title || "Untitled"}
+                {thumbnail.title || t("thumbnailDetail.untitled")}
               </h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {versions.length} version{versions.length !== 1 ? 's' : ''}
+                {versions.length === 1 
+                  ? t("thumbnailDetail.versions", { count: versions.length })
+                  : t("thumbnailDetail.versionsPlural", { count: versions.length })}
               </p>
             </div>
           </div>
@@ -738,7 +742,7 @@ const ThumbnailDetail = () => {
               disabled={downloading}
             >
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-              <span className="text-xs sm:text-sm">{downloading ? "..." : "Download"}</span>
+              <span className="text-xs sm:text-sm">{downloading ? t("thumbnailDetail.downloading") : t("thumbnailDetail.download")}</span>
             </Button>
             
             <Sheet open={showDetailsSheet} onOpenChange={setShowDetailsSheet}>
@@ -749,8 +753,8 @@ const ThumbnailDetail = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[85vw] sm:w-[400px] overflow-y-auto bg-card border-l border-border px-6 py-8">
                 <SheetHeader className="text-left mb-6">
-                  <SheetTitle className="text-xl font-bold">Thumbnail Details</SheetTitle>
-                  <SheetDescription>Settings and selected version information</SheetDescription>
+                  <SheetTitle className="text-xl font-bold">{t("thumbnailDetail.thumbnailDetails")}</SheetTitle>
+                  <SheetDescription>{t("thumbnailDetail.detailsDescription")}</SheetDescription>
                 </SheetHeader>
                 <div className="mt-4">
                   <ThumbnailInfo />
@@ -828,13 +832,13 @@ const ThumbnailDetail = () => {
                       {/* Selection indicator */}
                       {selectedVersion?.id === version.id && (
                         <div className="absolute top-3 right-3 px-2.5 py-1 bg-rose-500 text-white rounded-full text-[10px] font-bold shadow-lg animate-in zoom-in duration-300 uppercase tracking-wider">
-                          Selected
+                          {t("thumbnailDetail.selected")}
                         </div>
                       )}
 
                       {/* Version number */}
                       <div className="absolute bottom-3 left-3 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold text-white border border-white/10 tracking-widest uppercase">
-                        v{index + 1}
+                        {t("thumbnailDetail.version", { number: index + 1 })}
                       </div>
 
                       {/* Quick action buttons on hover (mobile always visible or simple) */}
@@ -868,8 +872,8 @@ const ThumbnailDetail = () => {
                           <div className="absolute inset-0 w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
                         </div>
                         <div className="flex flex-col items-center">
-                          <span className="text-sm font-semibold text-foreground">Generating Magic...</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Version {versions.length + 1}</span>
+                          <span className="text-sm font-semibold text-foreground">{t("thumbnailDetail.generatingMagic")}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{t("thumbnailDetail.version", { number: versions.length + 1 })}</span>
                         </div>
                       </div>
                     </div>
@@ -887,7 +891,7 @@ const ThumbnailDetail = () => {
               {contextPreviewItems.length > 0 && (
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mr-1">
-                    Context
+                    {t("thumbnailDetail.context")}
                   </span>
                   {contextPreviewItems.map((it) => (
                     <div
@@ -917,7 +921,7 @@ const ThumbnailDetail = () => {
                           }}
                           className={`hover:text-foreground transition-colors ${mentionTab === "all" ? "text-primary font-bold" : ""}`}
                         >
-                          All
+                          {t("thumbnailDetail.mention.all")}
                         </button>
                         <button
                           type="button"
@@ -928,7 +932,7 @@ const ThumbnailDetail = () => {
                           }}
                           className={`hover:text-foreground transition-colors ${mentionTab === "avatar" ? "text-primary font-bold" : ""}`}
                         >
-                          Avatars
+                          {t("thumbnailDetail.mention.avatars")}
                         </button>
                         <button
                           type="button"
@@ -939,7 +943,7 @@ const ThumbnailDetail = () => {
                           }}
                           className={`hover:text-foreground transition-colors ${mentionTab === "product" ? "text-primary font-bold" : ""}`}
                         >
-                          Elements
+                          {t("thumbnailDetail.mention.elements")}
                         </button>
                       </div>
                       <span className="font-semibold opacity-50">{mentionQuery ? `@${mentionQuery}` : "@"}</span>
@@ -947,7 +951,11 @@ const ThumbnailDetail = () => {
                     <div className="max-h-64 overflow-auto">
                       {filteredMentionItems.length === 0 ? (
                         <div className="px-4 py-8 text-center text-xs text-muted-foreground italic">
-                          No {mentionTab === "all" ? "items" : mentionTab === "avatar" ? "avatars" : "elements"} found
+                          {mentionTab === "all" 
+                            ? t("thumbnailDetail.mention.noItems", { type: t("thumbnailDetail.mention.items") })
+                            : mentionTab === "avatar"
+                            ? t("thumbnailDetail.mention.noAvatars")
+                            : t("thumbnailDetail.mention.noElements")}
                         </div>
                       ) : (
                         filteredMentionItems.map((it, idx) => (
@@ -987,7 +995,7 @@ const ThumbnailDetail = () => {
                     openMentionIfNeeded(next, e.target.selectionStart ?? next.length);
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Describe changes for a new version..."
+                  placeholder={t("thumbnailDetail.describeChanges")}
                   rows={1}
                   disabled={iterating}
                   className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/60 px-3 py-2.5 resize-none focus:outline-none text-[16px] sm:text-sm leading-relaxed min-h-[42px] max-h-[150px]"
@@ -1031,7 +1039,7 @@ const ThumbnailDetail = () => {
               </div>
 
               <p className="hidden sm:block text-center text-[10px] text-muted-foreground mt-3 font-medium uppercase tracking-widest opacity-60">
-                Press Enter to send, Shift+Enter for new line
+                {t("thumbnailDetail.pressEnter")}
               </p>
             </div>
           </div>
@@ -1047,20 +1055,20 @@ const ThumbnailDetail = () => {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="bg-background border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">{t("thumbnailDetail.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              This action cannot be undone. This will permanently delete your thumbnail and all versions.
+              {t("thumbnailDetail.deleteDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-secondary text-foreground border-border hover:bg-secondary/80">
-              Cancel
+              {t("thumbnailDetail.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-red-500 text-white hover:bg-red-600"
             >
-              Delete
+              {t("thumbnailDetail.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

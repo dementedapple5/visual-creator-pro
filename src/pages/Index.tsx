@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,22 +18,22 @@ import {
 import { InfiniteScrollExamples } from "@/components/landing/InfiniteScrollExamples";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 
-const subscriptionPlans = [
+const getSubscriptionPlans = (t: (key: string) => string) => [
   {
-    name: "Free",
+    name: t("plans.free.name"),
     monthlyPrice: "$0",
     yearlyPrice: "$0",
     priceId: null,
     yearlyPriceId: null,
     productId: null,
-    desc: "Perfect for trying out Vizion",
+    desc: t("plans.free.description"),
     features: [
-      "5 one-time credits",
-      "Email support"
+      t("plans.free.features.oneTimeCredits"),
+      t("plans.free.features.emailSupport")
     ]
   },
   {
-    name: "Starter",
+    name: t("plans.starter.name"),
     monthlyPrice: "$17.99",
     yearlyPrice: "$172.70",
     monthlySavings: null,
@@ -40,16 +41,16 @@ const subscriptionPlans = [
     priceId: "price_1SX0vtISMAOMUNUM7hJ7Mk45",
     yearlyPriceId: "price_1SXHyGISMAOMUNUMx0LrXEZg",
     productId: "prod_TTytxm2oUYxzXe",
-    desc: "For casual creators",
+    desc: t("plans.starter.description"),
     features: [
-      "50 credits/month",
-      "10 headshots/month",
-      "Advanced customization",
-      "Email support"
+      t("plans.starter.features.credits"),
+      t("plans.starter.features.headshots"),
+      t("plans.starter.features.customization"),
+      t("plans.starter.features.support")
     ]
   },
   {
-    name: "Pro",
+    name: t("plans.pro.name"),
     monthlyPrice: "$29.99",
     yearlyPrice: "$287.90",
     monthlySavings: null,
@@ -58,16 +59,16 @@ const subscriptionPlans = [
     yearlyPriceId: "price_1SXI02ISMAOMUNUMd8oTYJPc",
     productId: "prod_TUGTkbIPU5H2pn",
     popular: true,
-    desc: "For serious creators",
+    desc: t("plans.pro.description"),
     features: [
-      "100 credits/month",
-      "30 headshots/month",
-      "Advanced customization",
-      "Priority support"
+      t("plans.pro.features.credits"),
+      t("plans.pro.features.headshots"),
+      t("plans.pro.features.customization"),
+      t("plans.pro.features.support")
     ]
   },
   {
-    name: "Enterprise",
+    name: t("plans.enterprise.name"),
     monthlyPrice: "$99.99",
     yearlyPrice: "$959.90",
     monthlySavings: null,
@@ -75,113 +76,136 @@ const subscriptionPlans = [
     priceId: "price_1SX0wNISMAOMUNUMTz5N3THc",
     yearlyPriceId: "price_1SXI0FISMAOMUNUMgfSnO0Y0",
     productId: "prod_TTyuNeWPfbeOFz",
-    desc: "For teams and agencies",
+    desc: t("plans.enterprise.description"),
     features: [
-      "300 credits/month",
-      "100 headshots/month",
-      "Advanced customization",
-      "24/7 support"
+      t("plans.enterprise.features.credits"),
+      t("plans.enterprise.features.headshots"),
+      t("plans.enterprise.features.customization"),
+      t("plans.enterprise.features.support")
     ]
   }
 ];
 
-const rotatingWords = [
-  "Thumbnails",
-  "CTR Hooks",
-  "YouTube 16:9",
-  "Variations",
-  "Viral Covers"
+const getRotatingWords = (t: (key: string) => string) => [
+  t("landing.rotatingWords.thumbnails"),
+  t("landing.rotatingWords.ctrHooks"),
+  t("landing.rotatingWords.youtube169"),
+  t("landing.rotatingWords.variations"),
+  t("landing.rotatingWords.viralCovers")
 ];
 
-const bentoFeatures = [
+const getBentoFeatures = (t: (key: string) => string) => [
   {
-    title: "Your identity, automated",
-    desc: "Upload your face once and let AI integrate it into any thumbnail with the perfect expression.",
+    title: t("features.yourIdentityAutomated.title"),
+    desc: t("features.yourIdentityAutomated.description"),
     icon: Camera,
-    badge: "Personalization",
+    badge: t("features.yourIdentityAutomated.badge"),
     span: "lg:col-span-3",
     steps: [
-      { title: "Face library", detail: "Save your best angles and expressions." },
-      { title: "Lighting match", detail: "AI adjusts your face to match the thumbnail background." },
-      { title: "No new shoots", detail: "Reuse your photos without having to pose again." }
+      { title: t("features.yourIdentityAutomated.steps.faceLibrary.title"), detail: t("features.yourIdentityAutomated.steps.faceLibrary.detail") },
+      { title: t("features.yourIdentityAutomated.steps.lightingMatch.title"), detail: t("features.yourIdentityAutomated.steps.lightingMatch.detail") },
+      { title: t("features.yourIdentityAutomated.steps.noNewShoots.title"), detail: t("features.yourIdentityAutomated.steps.noNewShoots.detail") }
     ],
-    footnote: "Compatible with any visual style."
+    footnote: t("features.yourIdentityAutomated.footnote")
   },
   {
-    title: "Design that gets clicks",
-    desc: "Specialized tools for visual hierarchy and contrast to stand out in the YouTube feed.",
+    title: t("features.designThatGetsClicks.title"),
+    desc: t("features.designThatGetsClicks.description"),
     icon: Sparkles,
-    badge: "Conversion",
+    badge: t("features.designThatGetsClicks.badge"),
     span: "lg:col-span-3",
     stats: [
-      { label: "Format", value: "Native 16:9", sub: "Optimal 1280x720 resolution" },
-      { label: "Contrast", value: "Smart-Edge", sub: "Highlight key elements" },
-      { label: "Readability", value: "Mobile-First", sub: "Legible titles on small screens" },
-      { label: "Presets", value: "9 options", sub: "Creator-proven layouts" }
+      { label: t("features.designThatGetsClicks.stats.format.label"), value: t("features.designThatGetsClicks.stats.format.value"), sub: t("features.designThatGetsClicks.stats.format.sub") },
+      { label: t("features.designThatGetsClicks.stats.contrast.label"), value: t("features.designThatGetsClicks.stats.contrast.value"), sub: t("features.designThatGetsClicks.stats.contrast.sub") },
+      { label: t("features.designThatGetsClicks.stats.readability.label"), value: t("features.designThatGetsClicks.stats.readability.value"), sub: t("features.designThatGetsClicks.stats.readability.sub") },
+      { label: t("features.designThatGetsClicks.stats.presets.label"), value: t("features.designThatGetsClicks.stats.presets.value"), sub: t("features.designThatGetsClicks.stats.presets.sub") }
     ],
-    footnote: "Optimized to maximize CTR."
+    footnote: t("features.designThatGetsClicks.footnote")
   },
   {
-    title: "Styles that hook",
-    desc: "Backgrounds, gradients, and text presets optimized to be read instantly.",
+    title: t("features.stylesThatHook.title"),
+    desc: t("features.stylesThatHook.description"),
     icon: Palette,
-    badge: "Visuals",
+    badge: t("features.stylesThatHook.badge"),
     span: "lg:col-span-2",
     swatches: [
-      { label: "Gaming Pro", colors: ["#FF0000", "#000000"] },
-      { label: "Clean IRL", colors: ["#FFFFFF", "#F3F4F6"] },
-      { label: "AI Scenery", colors: ["linear-gradient(135deg, #6366f1, #a855f7)"] }
+      { label: t("features.stylesThatHook.swatches.gamingPro"), colors: ["#FF0000", "#000000"] },
+      { label: t("features.stylesThatHook.swatches.cleanIRL"), colors: ["#FFFFFF", "#F3F4F6"] },
+      { label: t("features.stylesThatHook.swatches.aiScenery"), colors: ["linear-gradient(135deg, #6366f1, #a855f7)"] }
     ],
-    chips: ["AI Backgrounds", "Pro Filters", "Auto Contrast", "Smart Layers"],
-    footnote: "Ever-expanding style library."
+    chips: [
+      t("features.stylesThatHook.chips.aiBackgrounds"),
+      t("features.stylesThatHook.chips.proFilters"),
+      t("features.stylesThatHook.chips.autoContrast"),
+      t("features.stylesThatHook.chips.smartLayers")
+    ],
+    footnote: t("features.stylesThatHook.footnote")
   },
   {
-    title: "Text that cuts through noise",
-    desc: "Typefaces and layouts with shadows and strokes designed to pop on any background.",
+    title: t("features.textThatCutsThroughNoise.title"),
+    desc: t("features.textThatCutsThroughNoise.description"),
     icon: Type,
-    badge: "Impact",
+    badge: t("features.textThatCutsThroughNoise.badge"),
     span: "lg:col-span-2",
     sample: {
-      title: "WATCH THIS NOW!",
-      subtitle: "The secret to higher CTR",
-      tags: ["Bold & Contrast", "Pro Shadows", "Ready to use"]
+      title: t("features.textThatCutsThroughNoise.sample.title"),
+      subtitle: t("features.textThatCutsThroughNoise.sample.subtitle"),
+      tags: [
+        t("features.textThatCutsThroughNoise.sample.tags.boldContrast"),
+        t("features.textThatCutsThroughNoise.sample.tags.proShadows"),
+        t("features.textThatCutsThroughNoise.sample.tags.readyToUse")
+      ]
     }
   },
   {
-    title: "Smart Layouts",
-    desc: "Place key elements, screenshots, and products with professional composition guides.",
+    title: t("features.smartLayouts.title"),
+    desc: t("features.smartLayouts.description"),
     icon: LayoutGrid,
-    badge: "Composition",
+    badge: t("features.smartLayouts.badge"),
     span: "lg:col-span-2",
     stats: [
-      { label: "Rules", value: "Thirds & Gold", sub: "Intelligent visual guides" },
-      { label: "Slots", value: "3 Objects", sub: "Balanced compositions" }
+      { label: t("features.smartLayouts.stats.rules.label"), value: t("features.smartLayouts.stats.rules.value"), sub: t("features.smartLayouts.stats.rules.sub") },
+      { label: t("features.smartLayouts.stats.slots.label"), value: t("features.smartLayouts.stats.slots.value"), sub: t("features.smartLayouts.stats.slots.sub") }
     ],
-    chips: ["Auto-align", "Layer order", "Smart Scaling"]
+    chips: [
+      t("features.smartLayouts.chips.autoAlign"),
+      t("features.smartLayouts.chips.layerOrder"),
+      t("features.smartLayouts.chips.smartScaling")
+    ]
   },
   {
-    title: "Remix & Scale",
-    desc: "Don't settle for one. Generate variations and remix until you find the winner.",
+    title: t("features.remixAndScale.title"),
+    desc: t("features.remixAndScale.description"),
     icon: Repeat2,
-    badge: "Speed",
+    badge: t("features.remixAndScale.badge"),
     span: "lg:col-span-4",
     steps: [
-      { title: "AI Remix", detail: "Change the style or background while keeping your face consistent." },
-      { title: "1-Click Export", detail: "Download your optimized 1280x720 thumbnail." }
+      { title: t("features.remixAndScale.steps.aiRemix.title"), detail: t("features.remixAndScale.steps.aiRemix.detail") },
+      { title: t("features.remixAndScale.steps.oneClickExport.title"), detail: t("features.remixAndScale.steps.oneClickExport.detail") }
     ],
     stats: [
-      { label: "Productivity", value: "10x Faster", sub: "From idea to result in 2 minutes" }
+      { label: t("features.remixAndScale.stats.productivity.label"), value: t("features.remixAndScale.stats.productivity.value"), sub: t("features.remixAndScale.stats.productivity.sub") }
     ],
-    footnote: "Generation history saved automatically."
+    footnote: t("features.remixAndScale.footnote")
   }
 ];
 
 const Index = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("yearly");
+  const rotatingWords = getRotatingWords(t);
   const [displayedWord, setDisplayedWord] = useState(rotatingWords[0].slice(0, 1));
   const [wordIndex, setWordIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Reset displayed word when language changes
+  useEffect(() => {
+    const newWords = getRotatingWords(t);
+    setDisplayedWord(newWords[0].slice(0, 1));
+    setWordIndex(0);
+    setIsDeleting(false);
+  }, [t]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -207,6 +231,9 @@ const Index = () => {
     elements.forEach((el) => observer.observe(el));
     return () => elements.forEach((el) => observer.unobserve(el));
   }, []);
+
+  const subscriptionPlans = getSubscriptionPlans(t);
+  const bentoFeatures = getBentoFeatures(t);
 
   useEffect(() => {
     const currentWord = rotatingWords[wordIndex];
@@ -266,13 +293,13 @@ const Index = () => {
               className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex beam-button"
               onClick={() => navigate("/auth")}
             >
-              Sign In
+              {t("landing.signIn")}
             </Button>
             <Button
               onClick={() => navigate("/auth")}
               className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-6 shadow-glow transition-all beam-button"
             >
-              Get Started
+              {t("landing.getStarted")}
             </Button>
           </div>
         </div>
@@ -308,21 +335,21 @@ const Index = () => {
                 data-animate
                 style={{ ["--delay" as any]: "0.05s" }}
               >
-                Create YouTube thumbnails
+                {t("landing.heroTitle")}
               </span>
               <span
                 className="hero-font-secondary text-gradient text-balance block w-full pb-2"
                 data-animate
                 style={{ ["--delay" as any]: "0.15s" }}
               >
-                that skyrocket your clicks
+                {t("landing.heroSubtitle")}
               </span>
               <span
                 className="flex flex-wrap justify-center items-center gap-3 text-lg md:text-xl text-muted-foreground/90 hero-type w-full"
                 data-animate
                 style={{ ["--delay" as any]: "0.25s" }}
               >
-                Expert workflow for
+                {t("landing.heroDescription")}
                 <span className="typewriter text-foreground">{displayedWord}</span>
                 <span className="type-caret" aria-hidden="true" />
               </span>
@@ -334,7 +361,7 @@ const Index = () => {
             data-animate
             style={{ ["--delay" as any]: "0.35s" }}
           >
-            The specialized design tool for YouTubers. Upload your face, drag in elements, and generate high-CTR thumbnails in seconds. No generic templates—just results.
+            {t("landing.heroTagline")}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
@@ -345,7 +372,7 @@ const Index = () => {
               data-animate
               style={{ ["--delay" as any]: "0.45s" }}
             >
-              Start Creating Free
+              {t("landing.startCreatingFree")}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </div>
@@ -360,10 +387,10 @@ const Index = () => {
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16 space-y-3">
             <h2 className="text-3xl md:text-5xl font-bold" data-animate>
-              Power up your channel with Vizion
+              {t("landing.powerUpTitle")}
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              Everything you need to build viral thumbnails—avatars, backgrounds, and elements—all in one place.
+              {t("landing.powerUpDescription")}
             </p>
           </div>
 
@@ -474,10 +501,10 @@ const Index = () => {
         <div className="relative z-10">
           <div className="text-center mb-16 px-6">
             <h2 className="text-3xl md:text-5xl font-bold mb-6" data-animate>
-              Loved by Creators
+              {t("landing.lovedByCreators")}
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              Join thousands of content creators who trust Vizion to create stunning thumbnails.
+              {t("landing.lovedByCreatorsDescription")}
             </p>
           </div>
 
@@ -489,39 +516,39 @@ const Index = () => {
               <div className="flex gap-6 animate-scroll-left" style={{ width: 'max-content' }}>
                 {[
                   {
-                    text: "Vizion has completely changed my workflow. I used to spend hours on thumbnails, now it takes minutes.",
-                    author: "Sarah Jenkins",
-                    role: "Tech YouTuber (500k subs)",
+                    text: t("testimonials.testimonial1.text"),
+                    author: t("testimonials.testimonial1.author"),
+                    role: t("testimonials.testimonial1.role"),
                     avatar: "SJ"
                   },
                   {
-                    text: "The quality of the AI generation is mind-blowing. It understands exactly what I want from a simple prompt.",
-                    author: "Mike Chen",
-                    role: "Gaming Streamer",
+                    text: t("testimonials.testimonial2.text"),
+                    author: t("testimonials.testimonial2.author"),
+                    role: t("testimonials.testimonial2.role"),
                     avatar: "MC"
                   },
                   {
-                    text: "Finally, a tool that actually helps me get more clicks. My CTR has increased by 40% since using Vizion.",
-                    author: "Jessica Lee",
-                    role: "Lifestyle Vlogger",
+                    text: t("testimonials.testimonial3.text"),
+                    author: t("testimonials.testimonial3.author"),
+                    role: t("testimonials.testimonial3.role"),
                     avatar: "JL"
                   },
                   {
-                    text: "I've tried every thumbnail tool out there. Vizion is the only one that consistently delivers professional results.",
-                    author: "David Park",
-                    role: "Finance Educator",
+                    text: t("testimonials.testimonial4.text"),
+                    author: t("testimonials.testimonial4.author"),
+                    role: t("testimonials.testimonial4.role"),
                     avatar: "DP"
                   },
                   {
-                    text: "The speed is incredible. I can iterate through dozens of ideas in the time it used to take me to make one.",
-                    author: "Emma Wilson",
-                    role: "Travel Creator",
+                    text: t("testimonials.testimonial5.text"),
+                    author: t("testimonials.testimonial5.author"),
+                    role: t("testimonials.testimonial5.role"),
                     avatar: "EW"
                   },
                   {
-                    text: "My subscribers always comment on how great my thumbnails look now. This tool is a game changer.",
-                    author: "Alex Rivera",
-                    role: "Music Producer",
+                    text: t("testimonials.testimonial6.text"),
+                    author: t("testimonials.testimonial6.author"),
+                    role: t("testimonials.testimonial6.role"),
                     avatar: "AR"
                   }
                 ].map((testimonial, i) => (
@@ -541,39 +568,39 @@ const Index = () => {
                 ))}
                 {[
                   {
-                    text: "Vizion has completely changed my workflow. I used to spend hours on thumbnails, now it takes minutes.",
-                    author: "Sarah Jenkins",
-                    role: "Tech YouTuber (500k subs)",
+                    text: t("testimonials.testimonial1.text"),
+                    author: t("testimonials.testimonial1.author"),
+                    role: t("testimonials.testimonial1.role"),
                     avatar: "SJ"
                   },
                   {
-                    text: "The quality of the AI generation is mind-blowing. It understands exactly what I want from a simple prompt.",
-                    author: "Mike Chen",
-                    role: "Gaming Streamer",
+                    text: t("testimonials.testimonial2.text"),
+                    author: t("testimonials.testimonial2.author"),
+                    role: t("testimonials.testimonial2.role"),
                     avatar: "MC"
                   },
                   {
-                    text: "Finally, a tool that actually helps me get more clicks. My CTR has increased by 40% since using Vizion.",
-                    author: "Jessica Lee",
-                    role: "Lifestyle Vlogger",
+                    text: t("testimonials.testimonial3.text"),
+                    author: t("testimonials.testimonial3.author"),
+                    role: t("testimonials.testimonial3.role"),
                     avatar: "JL"
                   },
                   {
-                    text: "I've tried every thumbnail tool out there. Vizion is the only one that consistently delivers professional results.",
-                    author: "David Park",
-                    role: "Finance Educator",
+                    text: t("testimonials.testimonial4.text"),
+                    author: t("testimonials.testimonial4.author"),
+                    role: t("testimonials.testimonial4.role"),
                     avatar: "DP"
                   },
                   {
-                    text: "The speed is incredible. I can iterate through dozens of ideas in the time it used to take me to make one.",
-                    author: "Emma Wilson",
-                    role: "Travel Creator",
+                    text: t("testimonials.testimonial5.text"),
+                    author: t("testimonials.testimonial5.author"),
+                    role: t("testimonials.testimonial5.role"),
                     avatar: "EW"
                   },
                   {
-                    text: "My subscribers always comment on how great my thumbnails look now. This tool is a game changer.",
-                    author: "Alex Rivera",
-                    role: "Music Producer",
+                    text: t("testimonials.testimonial6.text"),
+                    author: t("testimonials.testimonial6.author"),
+                    role: t("testimonials.testimonial6.role"),
                     avatar: "AR"
                   }
                 ].map((testimonial, i) => (
@@ -601,15 +628,15 @@ const Index = () => {
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-bold mb-6" data-animate>
-              Simple Pricing
+              {t("landing.simplePricing")}
             </h2>
             <p className="text-muted-foreground text-lg mb-8" data-animate style={{ ["--delay" as any]: "0.1s" }}>
-              Start for free, upgrade when you grow.
+              {t("landing.simplePricingDescription")}
             </p>
 
             <div className="flex items-center justify-center gap-4" data-animate style={{ ["--delay" as any]: "0.2s" }}>
               <span className={`text-sm font-medium transition-colors ${billingInterval === "monthly" ? "text-foreground" : "text-muted-foreground"}`}>
-                Monthly
+                {t("common.monthly")}
               </span>
               <button
                 onClick={() => setBillingInterval(billingInterval === "monthly" ? "yearly" : "monthly")}
@@ -622,11 +649,11 @@ const Index = () => {
                 />
               </button>
               <span className={`text-sm font-medium transition-colors ${billingInterval === "yearly" ? "text-foreground" : "text-muted-foreground"}`}>
-                Yearly
+                {t("common.yearly")}
               </span>
               {billingInterval === "yearly" && (
                 <span className="text-xs font-bold bg-gradient-to-r from-rose-500 to-pink-500 text-white px-3 py-1 rounded-full animate-pulse">
-                  Save 20%
+                  {t("landing.save20")}
                 </span>
               )}
             </div>
@@ -650,7 +677,7 @@ const Index = () => {
                 >
                   {plan.popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-bold shadow-lg">
-                      Most Popular
+                      {t("common.mostPopular")}
                     </div>
                   )}
                   <div className="mb-6">
@@ -659,7 +686,7 @@ const Index = () => {
                       {billingInterval === "monthly" ? (
                         <div className="flex items-baseline gap-1">
                           <span className="text-4xl font-bold text-foreground">{plan.monthlyPrice}</span>
-                          {!isFree && <span className="text-muted-foreground">/month</span>}
+                          {!isFree && <span className="text-muted-foreground">{t("landing.perMonth")}</span>}
                         </div>
                       ) : (
                         <>
@@ -673,9 +700,9 @@ const Index = () => {
                                   ${discountedMonthlyPrice.toFixed(2)}
                                 </span>
                               </div>
-                              <span className="text-muted-foreground text-sm">/month</span>
+                              <span className="text-muted-foreground text-sm">{t("landing.perMonth")}</span>
                               <div className="text-xs text-muted-foreground mt-1">
-                                Billed annually at {plan.yearlyPrice}
+                                {t("landing.billedAnnually")} {plan.yearlyPrice}
                               </div>
                             </>
                           ) : (
@@ -703,7 +730,7 @@ const Index = () => {
                       }`}
                     onClick={() => navigate("/auth")}
                   >
-                    {isFree ? "Get Started" : "Start Now"}
+                    {isFree ? t("common.getStartedButton") : t("common.startNow")}
                   </Button>
                 </div>
               );
@@ -725,7 +752,7 @@ const Index = () => {
             <span className="font-bold text-lg">Vizion</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            © 2025 Vizion AI. All rights reserved.
+            {t("footer.copyright")}
           </div>
         </div>
       </footer>
