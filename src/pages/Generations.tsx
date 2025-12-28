@@ -5,9 +5,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { calculateRemainingGenerations, getGenerationLimitLabel, getGenerationWindowStart, type SubscriptionInfo } from "@/lib/generationLimits";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 type GenerationRecord = {
   id: string;
@@ -51,6 +60,8 @@ const modeLabel: Record<string, string> = {
   iterate: "Iterate",
 };
 
+const ITEMS_PER_PAGE = 15;
+
 const Generations = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -58,6 +69,8 @@ const Generations = () => {
   const [generations, setGenerations] = useState<GenerationRecord[]>([]);
   const [usedCount, setUsedCount] = useState(0);
   const [remaining, setRemaining] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [subscription, setSubscription] = useState<SubscriptionData>({
     subscribed: false,
     product_id: null,
@@ -74,7 +87,7 @@ const Generations = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentPage]);
 
   const loadData = async () => {
     try {
@@ -95,13 +108,17 @@ const Generations = () => {
 
       const windowStart = getGenerationWindowStart(activeSubscription || {});
 
-      const [{ data, error: generationsError }, { data: usageData, error: countError }] =
+      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      const [{ data, error: generationsError, count }, { data: usageData, error: countError }] =
         await Promise.all([
           supabase
             .from("generations")
-            .select("id, status, mode, created_at, completed_at, image_url, title, subtitle, aspect_ratio, thumbnail_id, error_message, remix_prompt, prompt, credits_used")
+            .select("id, status, mode, created_at, completed_at, image_url, title, subtitle, aspect_ratio, thumbnail_id, error_message, remix_prompt, prompt, credits_used", { count: "exact" })
             .eq("user_id", session.user.id)
-            .order("created_at", { ascending: false }),
+            .order("created_at", { ascending: false })
+            .range(from, to),
           supabase
             .from("generations")
             .select("credits_used")
@@ -122,6 +139,7 @@ const Generations = () => {
       const completed = usageData?.reduce((acc, curr) => acc + (curr.credits_used || 0), 0) || 0;
 
       setGenerations(records as GenerationRecord[]);
+      setTotalCount(count || 0);
       setUsedCount(completed);
       setRemaining(calculateRemainingGenerations(activeSubscription || {}, completed));
     } catch (error) {
@@ -243,6 +261,8 @@ const Generations = () => {
     ? `${formatShortDate(subscriptionStartDate)} - ${formatShortDate(subscriptionEndDate)}`
     : t("generations.freeTier");
 
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
@@ -315,7 +335,7 @@ const Generations = () => {
                 {t("generations.noGenerations")}
               </div>
             ) : (
-              <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-6">
                 <div className="relative pl-4">
                   <div className="absolute left-1 top-0 bottom-0 w-px bg-border" />
                   {generations.map((item, index) => (
@@ -383,7 +403,65 @@ const Generations = () => {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+
+                {totalPages > 1 && (
+                  <Pagination className="mt-8">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          className={cn(
+                            "cursor-pointer",
+                            currentPage === 1 && "pointer-events-none opacity-50"
+                          )}
+                        />
+                      </PaginationItem>
+                      
+                      {[...Array(totalPages)].map((_, i) => {
+                        const page = i + 1;
+                        // Logic to show only a subset of pages if there are many
+                        if (
+                          totalPages > 7 &&
+                          page !== 1 &&
+                          page !== totalPages &&
+                          Math.abs(page - currentPage) > 1
+                        ) {
+                          if (Math.abs(page - currentPage) === 2) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            );
+                          }
+                          return null;
+                        }
+
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          className={cn(
+                            "cursor-pointer",
+                            currentPage === totalPages && "pointer-events-none opacity-50"
+                          )}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
