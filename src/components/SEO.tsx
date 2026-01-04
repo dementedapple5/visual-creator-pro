@@ -15,7 +15,7 @@ const SEO = ({
   title,
   description,
   keywords,
-  image = "/favicon.png",
+  image = "/logo.png",
   type = "website",
   noindex = false,
 }: SEOProps) => {

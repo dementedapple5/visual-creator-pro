@@ -116,7 +116,7 @@ Considera agregar más Schema.org:
   "@type": "Organization",
   "name": "Vizion",
   "url": "https://vizionai.app",
-  "logo": "https://vizionai.app/favicon.png",
+  "logo": "https://vizionai.app/logo.png",
   "sameAs": [
     "https://twitter.com/vizion",
     "https://facebook.com/vizion"

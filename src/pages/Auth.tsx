@@ -61,9 +61,9 @@ const Auth = () => {
           <div className="flex items-center gap-3">
             <div className="w-12 h-12">
               <img
-                src="/favicon.png"
+                src="/logo.png"
                 alt="Vizion logo"
-                className="w-full h-full rounded-xl object-contain shadow-lg shadow-primary/30 bg-white/80"
+                className="w-full h-full rounded-lg p-1 object-contain shadow-lg shadow-primary/30 bg-white/80"
               />
             </div>
             <div>
