@@ -38,6 +38,15 @@ const Index = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+  };
+
   // Auth check
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -215,11 +224,9 @@ const Index = () => {
             <span className="font-bold text-lg tracking-tight">Vizion</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="hidden sm:flex" onClick={() => navigate("/auth")}>
-              Sign In
-            </Button>
-            <Button onClick={() => navigate("/auth")} className="rounded-full px-6">
+            <Button onClick={() => navigate("/auth")} className="rounded-full px-6 flex items-center gap-2">
               Get Started
+              <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -230,7 +237,7 @@ const Index = () => {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
         {/* Faded Grid Background */}
         <div 
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px),
                               linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)`,
@@ -239,7 +246,7 @@ const Index = () => {
             WebkitMaskImage: 'radial-gradient(ellipse 100% 80% at 50% 0%, black 0%, transparent 90%)'
           }}
         />
-        <div className="container mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="container mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
           <div className="text-left space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/50 border border-border text-sm font-medium animate-slide-up-fade">
               <span className="relative flex h-2 w-2">
@@ -263,12 +270,12 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row items-center justify-start gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto h-12 px-8 rounded-full text-base shadow-lg shadow-primary/20" 
-                style={{ backgroundColor: 'rgba(225, 29, 72, 0.99)' }}
-                onClick={() => navigate("/auth")}
+                className="w-full sm:w-auto h-12 px-8 rounded-full text-base shadow-lg shadow-primary/20 flex items-center gap-3" 
+                style={{ backgroundColor: 'white', color: 'black' }}
+                onClick={handleGoogleSignIn}
               >
-                Start Creating Free
-                <ArrowRight className="ml-2 w-4 h-4" />
+                <img src="/google.png" alt="Google" className="w-5 h-5" />
+                Start with Google
               </Button>
               <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 px-8 rounded-full text-base backdrop-blur-sm" onClick={() => document.getElementById('demos')?.scrollIntoView({ behavior: 'smooth' })}>
                 <Play className="mr-2 w-4 h-4 fill-current" />
@@ -278,13 +285,13 @@ const Index = () => {
           </div>
 
           {/* Hero Visual */}
-          <div className="relative overflow-hidden aspect-square lg:aspect-[4/3] animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+          <div className="relative aspect-square lg:aspect-[4/3] animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
             <img
               src="/hero.png"
               alt="Vizion AI Hero Illustration"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/20 via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-background/20 via-transparent to-transparent pointer-events-none"></div>
           </div>
         </div>
       </section>
@@ -434,7 +441,7 @@ const Index = () => {
 
       {/* CTA Section */}
       <section className="py-24 px-6 relative bg-foreground text-background overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
         </div>
         <div className="container mx-auto max-w-4xl text-center relative z-10 space-y-8">
@@ -446,10 +453,11 @@ const Index = () => {
           </p>
           <Button
             size="lg"
-            className="h-14 px-10 rounded-full text-lg font-bold bg-background text-foreground hover:bg-background/90"
-            onClick={() => navigate("/auth")}
+            className="h-14 px-10 rounded-full text-lg font-bold bg-background text-foreground hover:bg-background/90 flex items-center gap-3 mx-auto"
+            onClick={handleGoogleSignIn}
           >
-            Get Started Now
+            <img src="/google.png" alt="Google" className="w-6 h-6" />
+            Get Started with Google
           </Button>
         </div>
       </section>
