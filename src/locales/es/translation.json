@@ -10,7 +10,7 @@
     "processing": "Procesando...",
     "monthly": "Mensual",
     "yearly": "Anual",
-    "save": "Ahorrar",
+    "save": "Guardar",
     "mostPopular": "Más Popular",
     "chooseYourPlan": "Elige tu plan",
     "upgradeToUnlock": "Mejora para desbloquear más créditos y funciones premium",
@@ -31,7 +31,75 @@
     "elements": "Elementos",
     "backgrounds": "Fondos",
     "fontStyles": "Estilos de fuente",
+    "sketch": "Sketch Studio",
+    "sketches": "Mis Sketches",
     "content": "Contenido"
+  },
+  "sketches": {
+    "title": "Mis Sketches",
+    "subtitle": "Gestiona y reutiliza tus sketches en todos tus dispositivos.",
+    "newSketch": "Nuevo Sketch",
+    "noSketches": "Aún no hay sketches",
+    "noSketchesDesc": "Crea tu primer sketch y aparecerá aquí para usarlo más tarde.",
+    "startNow": "Empezar a dibujar",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar este sketch?",
+    "deleteError": "Error al eliminar el sketch",
+    "deleted": "Sketch eliminado",
+    "duplicateSuccess": "Sketch duplicado",
+    "duplicateError": "Error al duplicar el sketch",
+    "loadCloud": "Sketch cargado desde la nube",
+    "loadLocal": "Borrador de sketch cargado localmente",
+    "saveCloud": "Guardar Sketch en la Nube",
+    "saveCloudDesc": "Dale un nombre a tu sketch para encontrarlo fácilmente más tarde.",
+    "sketchName": "Nombre del Sketch",
+    "sketchPlaceholder": "Mi Increíble Sketch",
+    "saving": "Guardando...",
+    "saveButton": "Guardar en la Nube",
+    "updateSuccess": "Sketch actualizado en la nube",
+    "saveSuccess": "Sketch guardado en la nube",
+    "restoredFromCache": "Se han restaurado los cambios no guardados de la caché local",
+    "restoredNew": "Se ha restaurado tu borrador de sketch"
+  },
+  "sketch": {
+    "title": "Sketch Studio",
+    "subtitle": "Dibuja tu idea y deja que la IA la haga realidad",
+    "canvas": "Lienzo de Sketch",
+    "generate": "Generar Miniatura Profesional",
+    "generating": "Generando desde sketch...",
+    "clear": "Limpiar",
+    "tools": {
+      "pencil": "Pincel",
+      "line": "Línea",
+      "eraser": "Borrador",
+      "label": "Etiqueta",
+      "avatar": "Avatar"
+    },
+    "assets": {
+      "title": "Añadir Assets",
+      "description": "Selecciona elementos, sube imágenes o usa fondos guardados",
+      "tabs": {
+        "elements": "Elementos",
+        "upload": "Subir Imagen",
+        "backgrounds": "Fondos"
+      },
+      "noElements": "No hay elementos disponibles",
+      "noBackgrounds": "No hay fondos guardados",
+      "uploadButton": "Seleccionar imagen"
+    },
+    "labels": {
+      "placeholder": "ej. cielo, mar, coche...",
+      "add": "Añadir etiqueta"
+    },
+    "prompt": {
+      "label": "Instrucciones adicionales (opcional)",
+      "placeholder": "ej. iluminación dramática, estilo cinematográfico..."
+    },
+    "success": {
+      "generated": "¡Miniatura generada exitosamente!"
+    },
+    "errors": {
+      "failed": "Error al generar desde el sketch"
+    }
   },
   "drawer": {
     "vizion": "VIZION",

@@ -19,6 +19,8 @@ import ThumbnailDetail from "./pages/ThumbnailDetail";
 import Backgrounds from "./pages/Backgrounds";
 import FontStyles from "./pages/FontStyles";
 import QuickCreate from "./pages/QuickCreate";
+import SketchToThumbnail from "./pages/SketchToThumbnail";
+import Sketches from "./pages/Sketches";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -90,6 +92,22 @@ const App = () => (
               element={
                 <AppLayout>
                   <QuickCreate />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/sketch"
+              element={
+                <AppLayout>
+                  <SketchToThumbnail />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/sketches"
+              element={
+                <AppLayout>
+                  <Sketches />
                 </AppLayout>
               }
             />

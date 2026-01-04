@@ -161,82 +161,80 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}`;
 
     const referenceFrameDataUrls = referenceFrames.map((img) => `data:${img.mimeType};base64,${img.data}`);
 
-    // Retry logic for Replicate API calls
-    const maxRetries = 3;
-    const baseDelay = 2000; // 2 seconds
-    let lastError: Error | null = null;
-    let response: Response | null = null;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        logger.info(`Replicate API call attempt ${attempt + 1}`, { maxRetries });
-
-        response = await fetch(
-          "https://api.replicate.com/v1/models/google/nano-banana-pro/predictions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${REPLICATE_API_KEY}`,
-              "Content-Type": "application/json",
-              // Block until complete for a simpler server contract
-              Prefer: "wait",
-            },
-            body: JSON.stringify({
-              input: {
-                prompt: gridPrompt,
-                resolution: "2K",
-                ...(referenceFrameDataUrls.length > 0 ? { image_input: referenceFrameDataUrls } : {}),
-                // The output is the full 2x2 grid (3840x2160), which is 16:9 overall.
-                aspect_ratio: "16:9",
-                output_format: "png",
-                safety_filter_level: "block_only_high",
-              },
-            }),
+    // Replicate API call with polling logic
+    logger.info("Starting Replicate prediction for grid...");
+    
+    // 1. Create prediction
+    const createResponse = await fetch(
+      "https://api.replicate.com/v1/models/google/nano-banana-pro/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${REPLICATE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          input: {
+            prompt: gridPrompt,
+            resolution: "2K",
+            ...(referenceFrameDataUrls.length > 0 ? { image_input: referenceFrameDataUrls } : {}),
+            aspect_ratio: "16:9",
+            output_format: "png",
+            safety_filter_level: "block_only_high",
           },
-        );
+        }),
+      }
+    );
 
-        if (response.ok) {
-          logger.info("Replicate API call successful");
-          break; // Success, exit retry loop
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      throw new Error(`Failed to create Replicate prediction: ${createResponse.status} ${errorText}`);
+    }
+
+    let prediction = await createResponse.json();
+    const predictionId = prediction.id;
+    logger.info(`Prediction created: ${predictionId}`);
+
+    // 2. Poll for completion
+    const maxPollAttempts = 40; // ~2 minutes total (with 3s delay)
+    const pollInterval = 3000;
+    let succeeded = false;
+
+    for (let i = 0; i < maxPollAttempts; i++) {
+      if (prediction.status === "succeeded") {
+        succeeded = true;
+        break;
+      } else if (prediction.status === "failed" || prediction.status === "canceled") {
+        throw new Error(`Replicate prediction ${prediction.status}: ${prediction.error || "No error details"}`);
+      }
+
+      logger.info(`Polling prediction ${predictionId} (attempt ${i + 1}, status: ${prediction.status})...`);
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+      const pollResponse = await fetch(
+        `https://api.replicate.com/v1/predictions/${predictionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${REPLICATE_API_KEY}`,
+          },
         }
+      );
 
-        const errorText = await response.text();
-        logger.error(`Replicate API error on attempt ${attempt + 1}`, { status: response.status, error: errorText });
-
-        // Handle retryable status codes
-        if (response.status === 429 || response.status === 503 || response.status === 500) {
-          if (attempt < maxRetries - 1) {
-            const delay = baseDelay * Math.pow(2, attempt);
-            logger.info(`Retrying after ${delay}ms...`);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            continue;
-          }
-        }
-
-        lastError = new Error(`Replicate API error: ${response.status} ${errorText}`);
-        break; // Don't retry on 400, 401, 403, etc.
-      } catch (error) {
-        logger.error(`Network error on attempt ${attempt + 1}`, error);
-        lastError = error instanceof Error ? error : new Error(String(error));
-
-        if (attempt < maxRetries - 1) {
-          const delay = baseDelay * Math.pow(2, attempt);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
+      if (pollResponse.ok) {
+        prediction = await pollResponse.json();
+      } else {
+        const pollError = await pollResponse.text();
+        logger.error(`Poll failed: ${pollResponse.status} ${pollError}`);
+        if (pollResponse.status >= 500) continue;
+        throw new Error(`Failed to poll Replicate prediction: ${pollResponse.status}`);
       }
     }
 
-    if (!response || !response.ok) {
-      throw lastError || new Error("Failed to generate image after multiple attempts");
+    if (!succeeded) {
+      throw new Error("Replicate prediction timed out");
     }
 
-    const prediction = await response.json();
-    const status = prediction?.status;
-    if (status && status !== "succeeded") {
-      logger.error("Replicate prediction did not succeed", { status, id: prediction?.id, error: prediction?.error, logs: prediction?.logs });
-      throw new Error(`Replicate prediction failed with status: ${status}`);
-    }
+    logger.info("Replicate prediction successful");
 
     const output = prediction?.output;
     const outputUrl =

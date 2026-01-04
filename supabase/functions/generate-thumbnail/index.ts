@@ -1,11 +1,29 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const logger = createLogger("generate-thumbnail");
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  // Avoid stack overflow on large images by chunking
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+async function fetchImageAsDataUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  const contentType = response.headers.get("content-type") || "image/jpeg";
+  const base64 = arrayBufferToBase64(arrayBuffer);
+  return `data:${contentType};base64,${base64}`;
+}
 
 interface ThumbnailData {
   avatarId?: string;
@@ -38,6 +56,7 @@ interface ThumbnailData {
   backgroundValue?: string;
   aspectRatio?: string;
   iterationPrompt?: string;
+  customPrompt?: string;
   // AI decide modes
   titleMode?: 'custom' | 'ai';
   subtitleMode?: 'custom' | 'ai';
@@ -60,7 +79,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!;
+    const replicateApiKey = Deno.env.get("REPLICATE_API_KEY")!;
 
     supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -77,6 +96,7 @@ serve(async (req) => {
     };
 
     const authHeader = req.headers.get("Authorization");
+    logger.info("Generating thumbnail", { mode: remixImageUrl ? "remix" : iterationImageUrl ? "iterate" : "create", thumbnailId });
     if (!authHeader) {
       throw new Error("No authorization header");
     }
@@ -86,7 +106,7 @@ serve(async (req) => {
     );
 
     if (userError || !user) {
-      console.error("User auth error:", userError);
+      logger.error("User auth error", userError);
       throw new Error("User not authenticated");
     }
 
@@ -130,11 +150,15 @@ serve(async (req) => {
     const platformType = thumbnailData?.aspectRatio === "9:16" ? "TikTok/Instagram story" : "YouTube";
     const aspectRatio = thumbnailData?.aspectRatio || "16:9";
 
-    // For iterations and remixes, always use single thumbnail mode with 1K resolution
+    // For iterations, remixes and sketches, always use single thumbnail mode (no grid).
     const isIterationOrRemix = !!iterationImageUrl || !!remixImageUrl;
-    const gridCount = isIterationOrRemix ? 1 : (thumbnailData?.gridCount || (thumbnailData?.gridMode !== false ? 9 : 1));
+    const isSketch = contextImageLabels?.includes("sketch-reference");
+    const gridCount = (isIterationOrRemix || isSketch) ? 1 : (thumbnailData?.gridCount || (thumbnailData?.gridMode !== false ? 9 : 1));
     const isGridMode = gridCount > 1;
-    const resolution = isIterationOrRemix ? "1K" : (thumbnailData?.resolution || (isGridMode ? "4K" : "1K"));
+    // Iterations/remixes stay at 1K to reduce latency/memory; sketches can request higher resolution.
+    const resolution = isIterationOrRemix
+      ? "1K"
+      : (thumbnailData?.resolution || (isGridMode ? (gridCount === 4 ? "2K" : "4K") : "1K"));
 
     console.log("Grid mode:", isGridMode, "Grid count:", gridCount, "Resolution:", resolution);
 
@@ -474,63 +498,43 @@ CRITICAL INSTRUCTIONS:
         });
         prompt += `\nMake sure all elements/products are prominently featured and recognizable in the thumbnail.`;
       }
+
+      // Add custom prompt if provided
+      if (thumbnailData.customPrompt) {
+        prompt += `\n\nADDITIONAL INSTRUCTIONS: ${thumbnailData.customPrompt}`;
+      }
     }
 
-    // Build content parts array for Gemini API
-    const contentParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
-      { text: prompt }
-    ];
-
-    // Helper function to fetch and convert image to base64 (without data URI prefix)
-    const fetchImageAsBase64 = async (url: string): Promise<string> => {
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      const arr = new Uint8Array(arrayBuffer);
-      // Use reduce to avoid stack overflow with large images
-      const base64 = btoa(arr.reduce((data, byte) => data + String.fromCharCode(byte), ''));
-      return base64;
-    };
+    // Build image input array for Replicate API
+    const imageInput: string[] = [];
 
     // If this is an iteration, add the source image (the version being iterated on)
     if (iterationImageUrl) {
-      console.log("Adding iteration source image:", iterationImageUrl);
-      const base64Image = await fetchImageAsBase64(iterationImageUrl);
-      contentParts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image
-        }
-      });
+      logger.info("Adding iteration source image", { url: iterationImageUrl });
+      imageInput.push(await fetchImageAsDataUrl(iterationImageUrl));
     }
     // If this is a remix, add the source image
     else if (remixImageUrl) {
-      const base64Image = await fetchImageAsBase64(remixImageUrl);
-      contentParts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image
-        }
-      });
+      imageInput.push(await fetchImageAsDataUrl(remixImageUrl));
     }
 
     // Add extra context images (works for create + remix + iterate)
     if (contextImageUrls && Array.isArray(contextImageUrls) && contextImageUrls.length > 0) {
-      console.log(`Adding ${contextImageUrls.length} context image(s)`);
+      logger.info(`Adding ${contextImageUrls.length} context image(s)`);
       for (let i = 0; i < contextImageUrls.length; i++) {
         const url = contextImageUrls[i];
-        if (!url) continue;
         const label = contextImageLabels?.[i] || `context-${i + 1}`;
+        if (!url) continue;
+        
         try {
-          contentParts.push({ text: `Additional context image (${label}):` });
-          const base64Image = await fetchImageAsBase64(url);
-          contentParts.push({
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: base64Image
-            }
-          });
+          if (url.startsWith("data:")) {
+            imageInput.push(url);
+          } else {
+            imageInput.push(await fetchImageAsDataUrl(url));
+          }
+          logger.info(`Successfully added context image: ${label}`);
         } catch (e) {
-          console.warn("Failed to add context image:", url, e);
+          logger.error(`Failed to add context image ${label}`, e);
         }
       }
     }
@@ -538,16 +542,8 @@ CRITICAL INSTRUCTIONS:
     // Add avatar image (skip in remix/iteration mode - they work from existing complete image)
     if (!remixImageUrl && !iterationImageUrl) {
       if (thumbnailData.customAvatarUrl) {
-        // Use custom uploaded avatar
-        const base64Image = await fetchImageAsBase64(thumbnailData.customAvatarUrl);
-        contentParts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: base64Image
-          }
-        });
+        imageInput.push(await fetchImageAsDataUrl(thumbnailData.customAvatarUrl));
       } else if (thumbnailData.avatarId) {
-        // Fetch avatar from DB
         const { data: avatar } = await supabase
           .from("avatars")
           .select("image_url")
@@ -555,13 +551,7 @@ CRITICAL INSTRUCTIONS:
           .single();
 
         if (avatar?.image_url) {
-          const base64Image = await fetchImageAsBase64(avatar.image_url);
-          contentParts.push({
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: base64Image
-            }
-          });
+          imageInput.push(await fetchImageAsDataUrl(avatar.image_url));
         }
       }
     }
@@ -569,20 +559,10 @@ CRITICAL INSTRUCTIONS:
     // Add element images (skip in remix/iteration mode)
     if (!remixImageUrl && !iterationImageUrl) {
       if (thumbnailData.elements && thumbnailData.elements.length > 0) {
-        console.log(`Processing ${thumbnailData.elements.length} elements for the prompt`);
-        // Process new elements structure
-        for (const [index, element] of thumbnailData.elements.entries()) {
+        for (const element of thumbnailData.elements) {
           if (element.url) {
-            console.log(`Adding custom element image from URL at index ${index}: ${element.url}`);
-            const base64Image = await fetchImageAsBase64(element.url);
-            contentParts.push({
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: base64Image
-              }
-            });
+            imageInput.push(await fetchImageAsDataUrl(element.url));
           } else if (element.id) {
-            console.log(`Adding library element with ID: ${element.id}`);
             const { data: productImages } = await supabase
               .from("product_images")
               .select("image_url")
@@ -590,33 +570,20 @@ CRITICAL INSTRUCTIONS:
               .limit(1);
 
             if (productImages && productImages.length > 0 && productImages[0].image_url) {
-              const base64Image = await fetchImageAsBase64(productImages[0].image_url);
-              contentParts.push({
-                inlineData: {
-                  mimeType: "image/jpeg",
-                  data: base64Image
-                }
-              });
+              imageInput.push(await fetchImageAsDataUrl(productImages[0].image_url));
             }
           }
         }
       } else if (thumbnailData.productIds && thumbnailData.productIds.length > 0) {
-        // Legacy support for productIds
         const { data: productImages } = await supabase
           .from("product_images")
           .select("image_url")
           .in("product_id", thumbnailData.productIds);
 
-        if (productImages && productImages.length > 0) {
+        if (productImages) {
           for (const productImage of productImages) {
             if (productImage.image_url) {
-              const base64Image = await fetchImageAsBase64(productImage.image_url);
-              contentParts.push({
-                inlineData: {
-                  mimeType: "image/jpeg",
-                  data: base64Image
-                }
-              });
+              imageInput.push(await fetchImageAsDataUrl(productImage.image_url));
             }
           }
         }
@@ -627,202 +594,116 @@ CRITICAL INSTRUCTIONS:
     if (!remixImageUrl && !iterationImageUrl && 
         (thumbnailData?.backgroundType === "custom" || thumbnailData?.backgroundType === "image") && 
         thumbnailData?.backgroundValue) {
-      console.log(`Adding custom background image: ${thumbnailData.backgroundValue}`);
-      const base64Image = await fetchImageAsBase64(thumbnailData.backgroundValue);
-      contentParts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image
-        }
-      });
+      imageInput.push(await fetchImageAsDataUrl(thumbnailData.backgroundValue));
     }
 
     // Add font style reference image (skip in remix/iteration mode)
     if (!remixImageUrl && !iterationImageUrl && thumbnailData?.fontStyleImageUrl) {
-      console.log("Adding font style reference image");
-      const base64Image = await fetchImageAsBase64(thumbnailData.fontStyleImageUrl);
-      contentParts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image
-        }
-      });
+      imageInput.push(await fetchImageAsDataUrl(thumbnailData.fontStyleImageUrl));
     }
 
-    console.log("Generated prompt:", prompt);
-    console.log("Number of content parts:", contentParts.length);
+    logger.info("Generated prompt", { prompt });
+    logger.info("Number of image inputs", { count: imageInput.length });
 
-    // Retry logic for Gemini API calls
-    const maxRetries = 3;
-    const baseDelay = 2000; // 2 seconds
-    let lastError: Error | null = null;
-    let response: Response | null = null;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        console.log(`Attempt ${attempt + 1} of ${maxRetries} to call Gemini API`);
-
-        // Call Google Gemini image generation model directly
-        // Using gemini-3-pro-image-preview as requested
-        response = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": geminiApiKey,
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: contentParts,
-                },
-              ],
-              generationConfig: {
-                responseModalities: ["IMAGE"],
-                imageConfig: {
-                  aspectRatio: aspectRatio,
-                  imageSize: resolution as "1K" | "2K" | "4K", // Use resolution from request
-                },
-              },
-            }),
-          }
-        );
-
-        if (response.ok) {
-          console.log("Gemini API call successful");
-          break; // Success, exit retry loop
-        }
-
-        const errorText = await response.text();
-        console.error(`Gemini API error on attempt ${attempt + 1}:`, response.status, errorText);
-
-        // Handle specific error codes
-        if (response.status === 429) {
-          // Update generation status to failed before returning
-          if (generationId && supabase) {
-            await supabase
-              .from("generations")
-              .update({
-                status: "failed",
-                error_message: "Rate limit exceeded",
-                completed_at: new Date().toISOString(),
-                duration_ms: Date.now() - startedAt,
-              })
-              .eq("id", generationId);
-          }
-          return new Response(
-            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        if (response.status === 403) {
-          // Update generation status to failed before returning
-          if (generationId && supabase) {
-            await supabase
-              .from("generations")
-              .update({
-                status: "failed",
-                error_message: "API key invalid or quota exceeded",
-                completed_at: new Date().toISOString(),
-                duration_ms: Date.now() - startedAt,
-              })
-              .eq("id", generationId);
-          }
-          return new Response(
-            JSON.stringify({ error: "API key invalid or quota exceeded. Please check your Gemini API configuration." }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        // For 503 and 500 errors, retry with exponential backoff
-        if (response.status === 503 || response.status === 500) {
-          if (attempt < maxRetries - 1) {
-            const delay = baseDelay * Math.pow(2, attempt);
-            console.log(`Retrying after ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
-          }
-        }
-
-        lastError = new Error(`Gemini API error: ${response.status} ${errorText}`);
-
-      } catch (error) {
-        console.error(`Network error on attempt ${attempt + 1}:`, error);
-        lastError = error instanceof Error ? error : new Error(String(error));
-
-        // Retry on network errors
-        if (attempt < maxRetries - 1) {
-          const delay = baseDelay * Math.pow(2, attempt);
-          console.log(`Retrying after network error in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-      }
-    }
-
-    // If all retries failed
-    if (!response || !response.ok) {
-      const errorMessage = lastError?.message || "Failed to generate thumbnail after multiple attempts";
-      console.error("All retry attempts failed:", errorMessage);
-
-      // Update generation status to failed before returning
-      if (generationId && supabase) {
-        await supabase
-          .from("generations")
-          .update({
-            status: "failed",
-            error_message: errorMessage,
-            completed_at: new Date().toISOString(),
-            duration_ms: Date.now() - startedAt,
-          })
-          .eq("id", generationId);
-      }
-
-      return new Response(
-        JSON.stringify({
-          error: "The AI service is temporarily unavailable. Please try again in a few moments.",
-          details: errorMessage
+    // Replicate API call with polling logic
+    logger.info("Starting Replicate prediction...");
+    
+    // 1. Create prediction
+    const createResponse = await fetch(
+      "https://api.replicate.com/v1/models/google/nano-banana-pro/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${replicateApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          input: {
+            prompt,
+            resolution,
+            ...(imageInput.length > 0 ? { image_input: imageInput } : {}),
+            aspect_ratio: aspectRatio,
+            output_format: "png",
+            safety_filter_level: "block_only_high",
+          },
         }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      }
+    );
+
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      throw new Error(`Failed to create Replicate prediction: ${createResponse.status} ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log("Gemini API response received");
+    let prediction = await createResponse.json();
+    const predictionId = prediction.id;
+    logger.info(`Prediction created: ${predictionId}`);
 
-    // Extract the base64 image from the Gemini response
-    let imageData: string | null = null;
+    // 2. Poll for completion
+    const maxPollAttempts = 40; // ~2 minutes total (with 3s delay)
+    const pollInterval = 3000;
+    let succeeded = false;
 
-    // Gemini API response format: candidates[0].content.parts[].inlineData.data
-    if (data.candidates?.[0]?.content?.parts) {
-      for (const part of data.candidates[0].content.parts) {
-        if (part.inlineData?.data) {
-          imageData = part.inlineData.data;
-          break;
+    for (let i = 0; i < maxPollAttempts; i++) {
+      if (prediction.status === "succeeded") {
+        succeeded = true;
+        break;
+      } else if (prediction.status === "failed" || prediction.status === "canceled") {
+        throw new Error(`Replicate prediction ${prediction.status}: ${prediction.error || "No error details"}`);
+      }
+
+      logger.info(`Polling prediction ${predictionId} (attempt ${i + 1}, status: ${prediction.status})...`);
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+      const pollResponse = await fetch(
+        `https://api.replicate.com/v1/predictions/${predictionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${replicateApiKey}`,
+          },
         }
+      );
+
+      if (pollResponse.ok) {
+        prediction = await pollResponse.json();
+      } else {
+        const pollError = await pollResponse.text();
+        logger.error(`Poll failed: ${pollResponse.status} ${pollError}`);
+        // Continue polling unless we get a terminal error
+        if (pollResponse.status >= 500) continue;
+        throw new Error(`Failed to poll Replicate prediction: ${pollResponse.status}`);
       }
     }
 
-    if (!imageData) {
-      console.error("No image in response. Response structure:", JSON.stringify(data, null, 2));
-      throw new Error("No image returned from AI");
+    if (!succeeded) {
+      throw new Error("Replicate prediction timed out");
     }
 
-    console.log("Image data received, length:", imageData.length);
+    logger.info("Replicate prediction successful");
 
-    // For grid mode (2K or 4K images), skip storage upload to avoid memory issues
-    // Return base64 directly - frontend will handle displaying and letting user select thumbnails
+    const output = prediction?.output;
+    const outputUrl = typeof output === "string" ? output : (Array.isArray(output) && typeof output[0] === "string" ? output[0] : null);
+
+    if (!outputUrl) {
+      throw new Error("No image output received from Replicate");
+    }
+
+    // Download the generated image
+    const imageRes = await fetch(outputUrl);
+    if (!imageRes.ok) {
+      throw new Error(`Failed to download output image: ${imageRes.status}`);
+    }
+    const contentType = imageRes.headers.get("content-type") || "image/png";
+    const imageArrayBuffer = await imageRes.arrayBuffer();
+
+    // For grid mode, return base64 directly
     if (isGridMode) {
-      console.log(`Grid mode: returning base64 directly to avoid memory issues with ${resolution} images`);
-
+      const imageData = arrayBufferToBase64(imageArrayBuffer);
       if (generationId) {
         await supabase
           .from("generations")
           .update({
             status: "completed",
-            // No image_url for grid mode - the individual thumbnails will be saved separately
             completed_at: new Date().toISOString(),
             duration_ms: Date.now() - startedAt,
           })
@@ -835,37 +716,23 @@ CRITICAL INSTRUCTIONS:
           generationId,
           isGridMode: true
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // For single thumbnail mode, upload to storage as before
-    console.log("Single mode: uploading to storage");
+    // For single mode, upload to storage
     const fileName = `${userId}/${Date.now()}.png`;
-
-    // Convert base64 to binary (imageData is already without the data URI prefix)
-    const binaryData = Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0));
-
-    console.log("Uploading image to storage, size:", binaryData.length);
+    const binaryData = new Uint8Array(imageArrayBuffer);
 
     const { error: uploadError } = await supabase.storage
       .from("thumbnails")
-      .upload(fileName, binaryData, {
-        contentType: "image/png",
-      });
+      .upload(fileName, binaryData, { contentType });
 
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
     const { data: { publicUrl } } = supabase.storage
       .from("thumbnails")
       .getPublicUrl(fileName);
-
-    console.log("Image uploaded successfully:", publicUrl);
 
     if (generationId) {
       await supabase
@@ -881,9 +748,7 @@ CRITICAL INSTRUCTIONS:
 
     return new Response(
       JSON.stringify({ imageUrl: publicUrl, generationId }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     if (generationId && supabase) {
@@ -899,7 +764,7 @@ CRITICAL INSTRUCTIONS:
         .eq("id", generationId);
     }
 
-    console.error("Error in generate-thumbnail function:", error);
+    logger.error("Error in generate-thumbnail function", error);
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",

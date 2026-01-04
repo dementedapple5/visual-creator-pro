@@ -26,6 +26,7 @@ const getMainMenuItems = (t: (key: string) => string) => [
   { icon: Home, label: t("navigation.dashboard"), path: "/dashboard" },
   { icon: Zap, label: t("navigation.quickCreate"), path: "/quick-create" },
   { icon: Sparkles, label: t("navigation.create"), path: "/create" },
+  { icon: PenTool, label: t("navigation.sketches"), path: "/sketches" },
   { icon: History, label: t("navigation.generations"), path: "/generations" },
 ];
 
@@ -361,9 +362,9 @@ export const AppDrawer = () => {
               {mainMenuItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 const Icon = item.icon;
-                const isCreate = item.path === "/create";
+                const isCreateOrSketch = item.path === "/create";
                 const isLimitReached = remainingCredits <= 0;
-                const isDisabled = isCreate && isLimitReached;
+                const isDisabled = isCreateOrSketch && isLimitReached;
                 
                 return (
                   <div key={item.path} className="space-y-1">
@@ -381,7 +382,7 @@ export const AppDrawer = () => {
                       <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : ""}`} />
                       <span>{item.label}</span>
                     </button>
-                    {isCreate && isLimitReached && (
+                    {isCreateOrSketch && isLimitReached && (
                       <p className="text-xs text-muted-foreground px-4">
                         {limitLabel} {t("drawer.limitReached")}
                       </p>

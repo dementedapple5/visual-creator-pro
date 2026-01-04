@@ -31,7 +31,75 @@
     "elements": "Elements",
     "backgrounds": "Backgrounds",
     "fontStyles": "Font Styles",
+    "sketch": "Sketch Studio",
+    "sketches": "My Sketches",
     "content": "Content"
+  },
+  "sketches": {
+    "title": "My Sketches",
+    "subtitle": "Manage and reuse your sketches across all your devices.",
+    "newSketch": "New Sketch",
+    "noSketches": "No sketches yet",
+    "noSketchesDesc": "Create your first sketch and it will appear here for later use.",
+    "startNow": "Start Sketching",
+    "deleteConfirm": "Are you sure you want to delete this sketch?",
+    "deleteError": "Failed to delete sketch",
+    "deleted": "Sketch deleted",
+    "duplicateSuccess": "Sketch duplicated",
+    "duplicateError": "Failed to duplicate sketch",
+    "loadCloud": "Sketch loaded from cloud",
+    "loadLocal": "Sketch draft loaded locally",
+    "saveCloud": "Save Sketch to Cloud",
+    "saveCloudDesc": "Give your sketch a name to find it easily later.",
+    "sketchName": "Sketch Name",
+    "sketchPlaceholder": "My Awesome Sketch",
+    "saving": "Saving...",
+    "saveButton": "Save to Cloud",
+    "updateSuccess": "Sketch updated in cloud",
+    "saveSuccess": "Sketch saved to cloud",
+    "restoredFromCache": "Unsaved changes restored from local cache",
+    "restoredNew": "Restored your unsaved sketch draft"
+  },
+  "sketch": {
+    "title": "Sketch Studio",
+    "subtitle": "Sketch your idea and let AI bring it to life",
+    "canvas": "Sketch Canvas",
+    "generate": "Generate Professional Thumbnail",
+    "generating": "Generating from sketch...",
+    "clear": "Clear",
+    "tools": {
+      "pencil": "Pincel",
+      "line": "Line",
+      "eraser": "Eraser",
+      "label": "Label",
+      "avatar": "Avatar"
+    },
+    "assets": {
+      "title": "Add Assets",
+      "description": "Select elements, upload images, or use saved backgrounds",
+      "tabs": {
+        "elements": "Elements",
+        "upload": "Upload Image",
+        "backgrounds": "Backgrounds"
+      },
+      "noElements": "No elements available",
+      "noBackgrounds": "No saved backgrounds",
+      "uploadButton": "Select Image"
+    },
+    "labels": {
+      "placeholder": "e.g. sky, sea, car...",
+      "add": "Add label"
+    },
+    "prompt": {
+      "label": "Additional instructions (optional)",
+      "placeholder": "e.g. dramatic lighting, cinematic style..."
+    },
+    "success": {
+      "generated": "Thumbnail generated successfully!"
+    },
+    "errors": {
+      "failed": "Error generating from sketch"
+    }
   },
   "drawer": {
     "vizion": "VIZION",
