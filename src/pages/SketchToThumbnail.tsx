@@ -21,15 +21,20 @@ import {
   MousePointer2,
   Tags,
   Plus,
+  Bot,
   GripVertical,
   Layers as LayersIcon,
   Eye,
   EyeOff,
+  Lock,
+  Unlock,
   Save,
   FileText,
   Edit,
-  Image as ImageIcon,
-  Upload
+  Maximize,
+  Image as   ImageIcon,
+  Upload,
+  Grid3X3
 } from "lucide-react";
 import { motion, Reorder, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -98,6 +103,7 @@ interface LayerData {
   name: string;
   elements: CanvasElement[];
   isVisible?: boolean;
+  isLocked?: boolean;
   x: number;
   y: number;
   scaleX: number;
@@ -148,6 +154,26 @@ const SketchToThumbnail = () => {
   const [currentPressure, setCurrentPressure] = useState(0.5);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [editingTextPosition, setEditingTextPosition] = useState<{ x: number; y: number; fontSize: number; fill: string; rotation: number } | null>(null);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const GRID_SIZE = 15;
+
+  // Handle clicking outside the canvas to deselect
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        // Only deselect if we are not clicking on a UI element like a button, dialog, or sidebar panels
+        const isClickingUI = (event.target as HTMLElement).closest('button, .dialog-content, input, select, [role="dialog"], .bg-card, .sidebar, .lucide');
+        if (!isClickingUI) {
+          setSelectedId(null);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   
   const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -238,14 +264,114 @@ const SketchToThumbnail = () => {
     setIsSaveDialogOpen(true);
   };
 
+  const handleSaveThumbnail = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Not authenticated");
+      return;
+    }
+
+    const loadingToast = toast.loading("Saving thumbnail...");
+    try {
+      // Export canvas at standard 1280x720 resolution
+      const dataUrl = getCanvasDataUrl({ width: 1280 });
+      if (!dataUrl) throw new Error("Failed to export canvas");
+      const base64 = dataUrl.split(",")[1];
+      const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+      // Upload to storage
+      const fileName = `${user.id}/${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("thumbnails")
+        .upload(fileName, binaryData, { contentType: "image/png" });
+      
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("thumbnails")
+        .getPublicUrl(fileName);
+
+      // Insert into thumbnails table
+      const { error: insertError } = await supabase.from("thumbnails").insert({
+        user_id: user.id,
+        image_url: publicUrl,
+        title: "",
+        subtitle: "",
+        visual_style: "Sketch to Thumbnail",
+        text_style: "Sketch to Thumbnail",
+        background_type: "generated",
+        aspect_ratio: "16:9",
+      });
+
+      if (insertError) throw insertError;
+
+      toast.success("Thumbnail saved to library!", {
+        id: loadingToast,
+        action: {
+          label: "View",
+          onClick: () => navigate("/dashboard")
+        }
+      });
+    } catch (err: any) {
+      console.error("Save error:", err);
+      toast.error(err.message || "Failed to save thumbnail", { id: loadingToast });
+    }
+  };
+
+  const getCanvasDataUrl = (options: any = { pixelRatio: 2 }) => {
+    if (!stageRef.current) return null;
+    
+    const stage = stageRef.current;
+    
+    // If a target width is provided, calculate the exact pixelRatio needed
+    // to reach that width from the current stage width
+    const exportOptions = { ...options };
+    if (options.width && stageSize.width > 0) {
+      exportOptions.pixelRatio = options.width / stageSize.width;
+      // Remove width and height from exportOptions to prevent Konva from cropping
+      // We want to scale the entire stage using pixelRatio instead
+      delete exportOptions.width;
+      delete exportOptions.height;
+    }
+    
+    // Find all transformers and hide them
+    const transformers = stage.find("Transformer");
+    const visibilityStates = transformers.map(tr => tr.visible());
+    
+    // Find grid layer and hide it
+    const gridLayer = stage.findOne(".grid-layer");
+    const gridWasVisible = gridLayer ? gridLayer.visible() : false;
+    if (gridLayer) gridLayer.hide();
+    
+    transformers.forEach(tr => tr.hide());
+    
+    // Force redraw to ensure UI elements are hidden
+    stage.batchDraw();
+    
+    // Get the data URL
+    const dataUrl = stage.toDataURL(exportOptions);
+    
+    // Show them back
+    transformers.forEach((tr, i) => {
+      if (visibilityStates[i]) tr.show();
+    });
+    
+    if (gridLayer && gridWasVisible) gridLayer.show();
+    
+    stage.batchDraw();
+    
+    return dataUrl;
+  };
+
   const saveToCloud = async () => {
     try {
       setIsSaving(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Export preview
-      const previewBase64 = stageRef.current.toDataURL({ pixelRatio: 0.5 }); // Lower res for preview
+      // Export preview with fixed width
+      const previewBase64 = getCanvasDataUrl({ width: 320 });
+      if (!previewBase64) throw new Error("Failed to export preview");
       const previewBinary = Uint8Array.from(atob(previewBase64.split(",")[1]), c => c.charCodeAt(0));
       
       const previewFileName = `${user.id}/${Date.now()}-preview.png`;
@@ -323,6 +449,17 @@ const SketchToThumbnail = () => {
     }
   };
 
+  const handleDragMove = (e: any) => {
+    if (!snapToGrid) return;
+    
+    const node = e.target;
+    const x = Math.round(node.x() / GRID_SIZE) * GRID_SIZE;
+    const y = Math.round(node.y() / GRID_SIZE) * GRID_SIZE;
+    
+    node.x(x);
+    node.y(y);
+  };
+
   const updateCursor = (newTool: string) => {
     if (!stageRef.current) return;
     const stage = stageRef.current;
@@ -361,8 +498,10 @@ const SketchToThumbnail = () => {
         // This prevents incremental expansion from minor layout recalculations
         if (Math.abs(containerWidth - lastWidth) > 1) {
           lastWidth = containerWidth;
-          const width = containerWidth;
-          const height = (containerWidth * 9) / 16;
+          // Use Math.floor to ensure we have integer dimensions for the canvas
+          // to prevent sub-pixel rendering issues during export
+          const width = Math.floor(containerWidth);
+          const height = Math.floor((width * 9) / 16);
           setStageSize({ width, height });
         }
       }
@@ -516,6 +655,18 @@ const SketchToThumbnail = () => {
   };
 
   const handlePointerDown = (e: any) => {
+    // Check if active layer is locked
+    const activeLayer = layers.find(l => l.id === activeLayerId);
+    if (activeLayer?.isLocked && tool !== "select" && tool !== "instructions") {
+      toast.error("Layer is locked");
+      return;
+    }
+
+    // Handle deselection when clicking background, regardless of tool
+    if (e.target === e.target.getStage() || e.target.name() === "background") {
+      setSelectedId(null);
+    }
+
     // If we click on an empty area, we might want to add a label or text
     if (tool === "label" || tool === "text") {
       // Check if we clicked on an existing text or label element
@@ -543,7 +694,6 @@ const SketchToThumbnail = () => {
       if (!pos) return;
 
       // Transform coordinates
-      const activeLayer = layers.find(l => l.id === activeLayerId);
       let transformPos = pos;
       if (activeLayer) {
         const layerNode = stage.findOne("#" + activeLayerId);
@@ -629,10 +779,6 @@ const SketchToThumbnail = () => {
     }
 
     if (tool === "select") {
-      // Handle deselection when clicking background
-      if (e.target === e.target.getStage() || e.target.name() === "background") {
-        setSelectedId(null);
-      }
       return;
     }
 
@@ -655,7 +801,6 @@ const SketchToThumbnail = () => {
     if (!pos) return;
     
     // Transform coordinates if the active layer has transformations
-    const activeLayer = layers.find(l => l.id === activeLayerId);
     let transformPos = pos;
     
     if (activeLayer) {
@@ -851,6 +996,11 @@ const SketchToThumbnail = () => {
   };
 
   const addImageToCanvas = (url: string, type: "avatar" = "avatar", isBackground = false) => {
+    const activeLayer = layers.find(l => l.id === activeLayerId);
+    if (activeLayer?.isLocked) {
+      toast.error("Layer is locked");
+      return;
+    }
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -955,6 +1105,11 @@ const SketchToThumbnail = () => {
   };
 
   const handleAddBackground = (background: any) => {
+    const activeLayer = layers.find(l => l.id === activeLayerId);
+    if (activeLayer?.isLocked) {
+      toast.error("Layer is locked");
+      return;
+    }
     const meta = (background.metadata as Record<string, any>) || {};
     
     if (background.type === "image" || background.type === "avatar") {
@@ -1044,8 +1199,8 @@ const SketchToThumbnail = () => {
         throw new Error("Stage reference is not available");
       }
       
-      // Export sketch as PNG with higher pixel ratio for better quality
-      const sketchBase64 = stageRef.current.toDataURL({ pixelRatio: 2 });
+      // Export sketch as PNG with standard width for consistent generation
+      const sketchBase64 = getCanvasDataUrl({ width: 1280 });
       
       // Validate the export worked
       if (!sketchBase64 || !sketchBase64.startsWith("data:")) {
@@ -1135,10 +1290,11 @@ If avatars are provided as context images, use them as the main subject and pres
             type: "avatar",
             id: Math.random().toString(36).substr(2, 9),
             url: response.data.imageUrl,
-            x: 0,
-            y: 0,
-            width: stageSize.width,
-            height: stageSize.height,
+            // Add a small overflow to prevent sub-pixel gaps on export
+            x: -2,
+            y: -2,
+            width: stageSize.width + 4,
+            height: stageSize.height + 4,
             rotation: 0
           }],
           x: 0,
@@ -1218,6 +1374,43 @@ If avatars are provided as context images, use them as the main subject and pres
         : layer
     ));
     setSelectedId(newId);
+  };
+
+  const fillElement = (id: string) => {
+    saveToUndo();
+    // Check if it's a layer
+    if (layers.find(l => l.id === id)) {
+      setLayers(layers.map(layer => 
+        layer.id === id ? { 
+          ...layer, 
+          x: 0, 
+          y: 0, 
+          scaleX: 1, 
+          scaleY: 1, 
+          rotation: 0 
+        } : layer
+      ));
+      return;
+    }
+
+    // Otherwise it's an element
+    setLayers(layers.map(layer => ({
+      ...layer,
+      elements: layer.elements.map(el => {
+        if (el.id === id) {
+          // If it's an image/avatar or shape, make it fill the stage
+          return {
+            ...el,
+            x: 0,
+            y: 0,
+            width: stageSize.width,
+            height: stageSize.height,
+            rotation: 0,
+          };
+        }
+        return el;
+      })
+    })));
   };
 
   const handleReorder = (newLayers: LayerData[]) => {
@@ -1326,23 +1519,15 @@ If avatars are provided as context images, use them as the main subject and pres
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleSaveSketch}>
               <Save className="w-4 h-4 mr-2" />
-              {t("common.save")}
+              {t("common.saveSketch")}
+            </Button>
+            <Button variant="outline" onClick={handleSaveThumbnail}>
+              <Save className="w-4 h-4 mr-2" />
+              {t("common.saveThumbnail")}
             </Button>
             <Button variant="outline" onClick={handleClear}>
               <Trash2 className="w-4 h-4 mr-2" />
               {t("sketch.clear")}
-            </Button>
-            <Button 
-              disabled={isGenerating} 
-              onClick={handleGenerate}
-              className="bg-[#FF2D55] hover:bg-[#FF2D55]/90 text-white border-0 shadow-lg hover:shadow-[#FF2D55]/20"
-            >
-              {isGenerating ? (
-                <Sparkles className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              {isGenerating ? t("sketch.generating") : t("sketch.generate")}
             </Button>
           </div>
         </div>
@@ -1600,6 +1785,7 @@ If avatars are provided as context images, use them as the main subject and pres
                 </DialogContent>
               </Dialog>
               <div className="h-[1px] bg-border mx-1 my-1" />
+              <ToolbarButton active={snapToGrid} onClick={() => setSnapToGrid(!snapToGrid)} icon={Grid3X3} title="Snap to Grid" />
               <ToolbarButton active={false} onClick={handleUndo} icon={Undo} title="Undo" />
               <ToolbarButton active={false} onClick={handleRedo} icon={Redo} title="Redo" />
             </div>
@@ -1607,7 +1793,7 @@ If avatars are provided as context images, use them as the main subject and pres
             <div className="flex-1 space-y-4 min-w-0">
               <div 
                 ref={containerRef}
-                className={`relative bg-white rounded-xl shadow-xl overflow-hidden border-4 border-muted transition-colors ${getCursorClass()}`}
+                className={`relative bg-white shadow-xl overflow-hidden border-2 border-muted transition-colors ${getCursorClass()}`}
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1690,12 +1876,21 @@ If avatars are provided as context images, use them as the main subject and pres
                   }}
                   ref={stageRef}
                 >
+                  <CanvasGrid 
+                    width={stageSize.width} 
+                    height={stageSize.height} 
+                    gridSize={GRID_SIZE} 
+                    visible={snapToGrid} 
+                  />
                   <Layer>
                     {/* Background Rect to ensure white background on export */}
+                    {/* Added small overflow to prevent sub-pixel gaps on export */}
                     <Rect 
                       name="background"
-                      width={stageSize.width} 
-                      height={stageSize.height} 
+                      x={-2}
+                      y={-2}
+                      width={stageSize.width + 4} 
+                      height={stageSize.height + 4} 
                       fill="#ffffff" 
                     />
                     
@@ -1704,6 +1899,7 @@ If avatars are provided as context images, use them as the main subject and pres
                         key={layer.id} 
                         id={layer.id}
                         visible={layer.isVisible !== false}
+                        listening={layer.isLocked !== true}
                         x={layer.x}
                         y={layer.y}
                         scaleX={layer.scaleX}
@@ -1796,19 +1992,20 @@ If avatars are provided as context images, use them as the main subject and pres
                           }
                           if (el.type === "avatar") {
                             return (
-                              <AvatarImage
-                                key={el.id}
-                                avatar={el}
-                                isSelected={el.id === selectedId}
-                                onSelect={(e: any) => {
-                              if (e) e.cancelBubble = true;
-                              setSelectedId(el.id);
-                              setTool("select");
-                              setActiveLayerId(layer.id);
-                            }}
-                                onChange={(newAttrs: any) => updateElement(el.id, newAttrs)}
-                                tool={tool}
-                              />
+                            <AvatarImage
+                              key={el.id}
+                              avatar={el}
+                              isSelected={el.id === selectedId}
+                              onSelect={(e: any) => {
+                                if (e) e.cancelBubble = true;
+                                setSelectedId(el.id);
+                                setTool("select");
+                                setActiveLayerId(layer.id);
+                              }}
+                              onChange={(newAttrs: any) => updateElement(el.id, newAttrs)}
+                              tool={tool}
+                              onDragMove={handleDragMove}
+                            />
                             );
                           }
                         if (el.type === "label") {
@@ -1833,6 +2030,7 @@ If avatars are provided as context images, use them as the main subject and pres
                               onChange={(newAttrs: any) => updateElement(el.id, newAttrs)}
                               onEdit={() => openEditDialog(el.id, el.text, "label")}
                               tool={tool}
+                              onDragMove={handleDragMove}
                             />
                           );
                         }
@@ -1885,6 +2083,7 @@ If avatars are provided as context images, use them as the main subject and pres
                               onChange={(newAttrs: any) => updateElement(el.id, newAttrs)}
                               onEdit={() => openEditDialog(el.id, el.text, "text")}
                               tool={tool}
+                              onDragMove={handleDragMove}
                             />
                           );
                         }
@@ -1903,6 +2102,7 @@ If avatars are provided as context images, use them as the main subject and pres
                               onChange={(newAttrs: any) => updateElement(el.id, newAttrs)}
                               onEdit={() => openEditDialog(el.id, el.text || "", "shape")}
                               tool={tool}
+                              onDragMove={handleDragMove}
                             />
                           );
                         }
@@ -1987,13 +2187,14 @@ If avatars are provided as context images, use them as the main subject and pres
                   onDelete={deleteElement}
                   onDuplicate={duplicateElement}
                   onEdit={openEditDialog}
+                  onFill={fillElement}
                 />
               </div>
             </div>
           </div>
 
           {/* Side Panel: Properties and Layers */}
-          <div className="flex flex-col gap-6 h-[calc(100vh-10rem)]">
+          <div className="flex flex-col gap-6">
             {/* Properties Section (only if selected) */}
             {selectedId && (
               <div className="bg-card border border-border rounded-xl p-4 shrink-0 overflow-visible">
@@ -2117,73 +2318,16 @@ If avatars are provided as context images, use them as the main subject and pres
             )}
 
             {/* Layers Section (always visible) */}
-            <div className="bg-card border border-border rounded-xl p-4 flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div 
+              className="bg-card border border-border rounded-xl p-4 flex flex-col min-h-0 overflow-hidden"
+              style={{ height: stageSize.height > 0 ? stageSize.height : 'auto' }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold flex items-center gap-2 shrink-0">
                   <LayersIcon className="w-4 h-4" />
                   Layers
                 </h3>
                 <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" 
-                    onClick={async () => {
-                      const { data: { user } } = await supabase.auth.getUser();
-                      if (!user) {
-                        toast.error("Not authenticated");
-                        return;
-                      }
-
-                      const loadingToast = toast.loading("Saving thumbnail...");
-                      try {
-                        // Export canvas
-                        const dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
-                        const base64 = dataUrl.split(",")[1];
-                        const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-
-                        // Upload to storage
-                        const fileName = `${user.id}/${Date.now()}.png`;
-                        const { error: uploadError } = await supabase.storage
-                          .from("thumbnails")
-                          .upload(fileName, binaryData, { contentType: "image/png" });
-                        
-                        if (uploadError) throw uploadError;
-
-                        const { data: { publicUrl } } = supabase.storage
-                          .from("thumbnails")
-                          .getPublicUrl(fileName);
-
-                        // Insert into thumbnails table
-                        const { error: insertError } = await supabase.from("thumbnails").insert({
-                          user_id: user.id,
-                          image_url: publicUrl,
-                          title: "",
-                          subtitle: "",
-                          visual_style: "Sketch to Thumbnail",
-                          text_style: "Sketch to Thumbnail",
-                          background_type: "generated",
-                          aspect_ratio: "16:9",
-                        });
-
-                        if (insertError) throw insertError;
-
-                        toast.success("Thumbnail saved to library!", {
-                          id: loadingToast,
-                          action: {
-                            label: "View",
-                            onClick: () => navigate("/dashboard")
-                          }
-                        });
-                      } catch (err: any) {
-                        console.error("Save error:", err);
-                        toast.error(err.message || "Failed to save thumbnail", { id: loadingToast });
-                      }
-                    }}
-                    title="Save current result to library"
-                  >
-                    <Save className="w-4 h-4" />
-                  </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleAddLayer}>
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -2211,9 +2355,12 @@ If avatars are provided as context images, use them as the main subject and pres
                       >
                       <GripVertical className="w-4 h-4 text-muted-foreground/40 shrink-0 cursor-grab active:cursor-grabbing" />
                       
-                      <div className="w-8 h-8 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden border border-border/50">
-                        <LayersIcon className="w-4 h-4 text-muted-foreground" />
-                      </div>
+                      <LayerPreview 
+                        layer={layer} 
+                        width={64} 
+                        height={36} 
+                        stageSize={stageSize} 
+                      />
                       
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
@@ -2242,13 +2389,37 @@ If avatars are provided as context images, use them as the main subject and pres
                           <EyeOff className="w-3.5 h-3.5 text-muted-foreground/50" />
                         )}
                       </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newLayers = layers.map(l => 
+                            l.id === layer.id ? { ...l, isLocked: !l.isLocked } : l
+                          );
+                          setLayers(newLayers);
+                        }}
+                      >
+                        {layer.isLocked ? (
+                          <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                        ) : (
+                          <Unlock className="w-3.5 h-3.5 text-muted-foreground/50" />
+                        )}
+                      </Button>
                       
                       <Button 
                         variant="ghost" 
                         size="icon" 
                         className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0"
+                        disabled={layer.isLocked}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (layer.isLocked) {
+                            toast.error("Layer is locked");
+                            return;
+                          }
                           if (layers.length > 1) {
                             saveToUndo();
                             setLayers(layers.filter(l => l.id !== layer.id));
@@ -2269,6 +2440,20 @@ If avatars are provided as context images, use them as the main subject and pres
                   )}
                 </Reorder.Group>
               </div>
+
+              <Button 
+                variant="outline"
+                disabled={isGenerating} 
+                onClick={handleGenerate}
+                className="w-full mt-4 border-[#FF2D55] text-[#FF2D55] hover:bg-[#FF2D55]/10 hover:text-[#FF2D55] shadow-sm shrink-0"
+              >
+                {isGenerating ? (
+                  <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Bot className="w-4 h-4 mr-2" />
+                )}
+                {isGenerating ? t("sketch.generating") : t("sketch.generate")}
+              </Button>
             </div>
           </div>
         </div>
@@ -2372,7 +2557,7 @@ const ToolbarButton = React.forwardRef<HTMLButtonElement, { active: boolean; onC
 );
 ToolbarButton.displayName = "ToolbarButton";
 
-const AvatarImage = ({ avatar, isSelected, onSelect, onChange, tool }: any) => {
+const AvatarImage = ({ avatar, isSelected, onSelect, onChange, tool, onDragMove }: any) => {
   // Use crossOrigin="anonymous" to prevent canvas tainting when exporting
   const [img] = useImage(avatar.url, "anonymous");
   const shapeRef = useRef<any>();
@@ -2405,6 +2590,7 @@ const AvatarImage = ({ avatar, isSelected, onSelect, onChange, tool }: any) => {
         const stage = e.target.getStage();
         stage.container().style.cursor = "grabbing";
       }}
+      onDragMove={onDragMove}
       onDragEnd={(e) => {
         const stage = e.target.getStage();
         stage.container().style.cursor = "grab";
@@ -2440,7 +2626,7 @@ const AvatarImage = ({ avatar, isSelected, onSelect, onChange, tool }: any) => {
   );
 };
 
-const SketchLabelElement = ({ label, isSelected, onSelect, onChange, onEdit, tool }: any) => {
+const SketchLabelElement = ({ label, isSelected, onSelect, onChange, onEdit, tool, onDragMove }: any) => {
   const textRef = useRef<any>(null);
   const [textHeight, setTextHeight] = useState(20);
 
@@ -2485,6 +2671,7 @@ const SketchLabelElement = ({ label, isSelected, onSelect, onChange, onEdit, too
         const stage = e.target.getStage();
         stage.container().style.cursor = "grabbing";
       }}
+      onDragMove={onDragMove}
       onDragEnd={(e) => {
         const stage = e.target.getStage();
         stage.container().style.cursor = "grab";
@@ -2528,7 +2715,7 @@ const SketchLabelElement = ({ label, isSelected, onSelect, onChange, onEdit, too
   );
 };
 
-const TextElementComponent = ({ textElement, isSelected, isEditing, onSelect, onChange, onEdit, tool }: any) => {
+const TextElementComponent = ({ textElement, isSelected, isEditing, onSelect, onChange, onEdit, tool, onDragMove }: any) => {
   const handleMouseEnter = (e: any) => {
     if (tool === "select") {
       const stage = e.target.getStage();
@@ -2575,6 +2762,7 @@ const TextElementComponent = ({ textElement, isSelected, isEditing, onSelect, on
         const stage = e.target.getStage();
         stage.container().style.cursor = "grabbing";
       }}
+      onDragMove={onDragMove}
       onDragEnd={(e) => {
         const stage = e.target.getStage();
         stage.container().style.cursor = "grab";
@@ -2672,7 +2860,41 @@ const SelectionTransformer = ({ selectedId, layers, onEdit }: any) => {
   );
 };
 
-const ShapeElement = ({ shape, isSelected, onSelect, onChange, onEdit, tool }: any) => {
+const CanvasGrid = ({ width, height, gridSize, visible }: { width: number, height: number, gridSize: number, visible: boolean }) => {
+  if (!visible) return null;
+  
+  const lines = [];
+  
+  // Vertical lines
+  for (let i = 0; i <= width / gridSize; i++) {
+    lines.push(
+      <Line
+        key={`v-${i}`}
+        points={[i * gridSize, 0, i * gridSize, height]}
+        stroke="#ddd"
+        strokeWidth={0.5}
+        listening={false}
+      />
+    );
+  }
+  
+  // Horizontal lines
+  for (let i = 0; i <= height / gridSize; i++) {
+    lines.push(
+      <Line
+        key={`h-${i}`}
+        points={[0, i * gridSize, width, i * gridSize]}
+        stroke="#ddd"
+        strokeWidth={0.5}
+        listening={false}
+      />
+    );
+  }
+  
+  return <Layer name="grid-layer">{lines}</Layer>;
+};
+
+const ShapeElement = ({ shape, isSelected, onSelect, onChange, onEdit, tool, onDragMove }: any) => {
   const handleMouseEnter = (e: any) => {
     if (tool === "select") {
       const stage = e.target.getStage();
@@ -2700,7 +2922,14 @@ const ShapeElement = ({ shape, isSelected, onSelect, onChange, onEdit, tool }: a
     onDblTap: handleDblClick,
     onMouseEnter: handleMouseEnter,
     onMouseLeave: handleMouseLeave,
+    onDragStart: (e: any) => {
+      const stage = e.target.getStage();
+      if (stage) stage.container().style.cursor = "grabbing";
+    },
+    onDragMove: onDragMove,
     onDragEnd: (e: any) => {
+      const stage = e.target.getStage();
+      if (stage) stage.container().style.cursor = "grab";
       onChange({
         x: e.target.x(),
         y: e.target.y(),
@@ -2806,7 +3035,7 @@ const ShapeElement = ({ shape, isSelected, onSelect, onChange, onEdit, tool }: a
   );
 };
 
-const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate, onEdit }: any) => {
+const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate, onEdit, onFill }: any) => {
   const [pos, setPos] = useState({ x: 0, y: 0, width: 0 });
 
   useEffect(() => {
@@ -2836,6 +3065,7 @@ const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate,
   const allElements = layers.flatMap(l => l.elements);
   const selectedElement = allElements.find(el => el.id === selectedId);
   const isShape = selectedElement?.type === "shape";
+  const canFill = selectedElement?.type === "avatar" || selectedElement?.type === "shape" || layers.find(l => l.id === selectedId);
 
   return (
     <div 
@@ -2854,6 +3084,17 @@ const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate,
           title="Edit Text"
         >
           <Edit className="w-4 h-4" />
+        </Button>
+      )}
+      {canFill && (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 text-muted-foreground hover:text-primary"
+          onClick={() => onFill(selectedId)}
+          title="Fill Canvas"
+        >
+          <Maximize className="w-4 h-4" />
         </Button>
       )}
       <Button 
@@ -2876,6 +3117,175 @@ const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate,
       </Button>
     </div>
   );
+};
+
+const LayerPreview = ({ 
+  layer, 
+  width = 64, 
+  height = 36, 
+  stageSize 
+}: { 
+  layer: LayerData, 
+  width?: number, 
+  height?: number, 
+  stageSize: { width: number, height: number } 
+}) => {
+  // If stageSize is not yet set, use a default or don't render
+  if (stageSize.width === 0) return <div className="rounded bg-muted shrink-0 border border-border/50" style={{ width, height }} />;
+
+  const scale = Math.min(width / stageSize.width, height / stageSize.height);
+  
+  return (
+    <div className="rounded shrink-0 overflow-hidden border border-border/50 bg-white shadow-sm" style={{ width, height }}>
+      <Stage width={width} height={height} listening={false}>
+        <Layer scaleX={scale} scaleY={scale}>
+          <Group
+            x={layer.x}
+            y={layer.y}
+            scaleX={layer.scaleX}
+            scaleY={layer.scaleY}
+            rotation={layer.rotation}
+          >
+            {layer.elements.map((el) => (
+              <PreviewElement key={el.id} el={el} />
+            ))}
+          </Group>
+        </Layer>
+      </Stage>
+    </div>
+  );
+};
+
+const PreviewElement = ({ el }: { el: CanvasElement }) => {
+  const [img] = useImage(el.type === "avatar" ? el.url : "", "anonymous");
+
+  if (el.type === "line") {
+    return (
+      <Line
+        points={el.points}
+        stroke={el.stroke}
+        strokeWidth={el.strokeWidth}
+        tension={0.5}
+        lineCap="round"
+        lineJoin="round"
+        globalCompositeOperation={
+          el.tool === "eraser" ? "destination-out" : "source-over"
+        }
+      />
+    );
+  }
+  
+  if (el.type === "avatar" && img) {
+    return (
+      <KonvaImage
+        image={img}
+        x={el.x}
+        y={el.y}
+        width={el.width}
+        height={el.height}
+        rotation={el.rotation}
+      />
+    );
+  }
+
+  if (el.type === "label") {
+    return (
+      <Group x={el.x} y={el.y}>
+        <Arrow
+          points={[0, 0, el.targetX - el.x, el.targetY - el.y]}
+          pointerLength={10}
+          pointerWidth={10}
+          fill="#000000"
+          stroke="#000000"
+          strokeWidth={2}
+        />
+        <Rect
+          x={-50}
+          y={-25}
+          width={100}
+          height={20}
+          fill="#ffffff"
+          stroke="#000000"
+          strokeWidth={1}
+          cornerRadius={4}
+        />
+        <Text
+          x={-50}
+          y={-25}
+          width={100}
+          padding={5}
+          text={el.text}
+          fontSize={10}
+          align="center"
+          fill="#000000"
+        />
+      </Group>
+    );
+  }
+
+  if (el.type === "text") {
+    return (
+      <Text
+        text={el.text}
+        x={el.x}
+        y={el.y}
+        fontSize={el.fontSize}
+        fill={el.fill}
+        rotation={el.rotation}
+      />
+    );
+  }
+
+  if (el.type === "shape") {
+    if (el.shapeType === "rectangle") {
+      return (
+        <Rect
+          x={el.x}
+          y={el.y}
+          width={el.width}
+          height={el.height}
+          stroke={el.stroke}
+          strokeWidth={el.strokeWidth}
+          fill={el.fill}
+          rotation={el.rotation}
+        />
+      );
+    }
+    if (el.shapeType === "circle") {
+      return (
+        <Ellipse
+          x={el.x + el.width / 2}
+          y={el.y + el.height / 2}
+          radiusX={Math.abs(el.width / 2)}
+          radiusY={Math.abs(el.height / 2)}
+          stroke={el.stroke}
+          strokeWidth={el.strokeWidth}
+          fill={el.fill}
+          rotation={el.rotation}
+        />
+      );
+    }
+    if (el.shapeType === "triangle") {
+      return (
+        <Line
+          x={el.x}
+          y={el.y}
+          points={[
+            el.width / 2, 0,
+            el.width, el.height,
+            0, el.height,
+          ]}
+          closed
+          stroke={el.stroke}
+          strokeWidth={el.strokeWidth}
+          fill={el.fill}
+          rotation={el.rotation}
+        />
+      );
+    }
+  }
+
+  return null;
 };
 
 export default SketchToThumbnail;

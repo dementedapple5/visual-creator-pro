@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles, Download, Zap, User } from "lucide-react";
+import { Plus, Search, CalendarDays, SlidersHorizontal, Loader2, Sparkles, Download, Zap, User, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -301,7 +301,7 @@ const Dashboard = () => {
         </div>
 
         {/* Navigation Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <button
             onClick={() => navigate("/create")}
             className="group relative overflow-hidden rounded-xl border border-border/60 bg-card/70 p-6 text-left transition-all hover:border-primary/50 hover:bg-card hover:shadow-lg hover:shadow-primary/10"
@@ -335,6 +335,25 @@ const Dashboard = () => {
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {t("dashboard.quickCreateCardDescription")}
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate("/sketch")}
+            className="group relative overflow-hidden rounded-xl border border-border/60 bg-card/70 p-6 text-left transition-all hover:border-primary/50 hover:bg-card hover:shadow-lg hover:shadow-primary/10"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg bg-primary/10 p-3 group-hover:bg-primary/20 transition-colors">
+                <Pencil className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {t("navigation.sketch")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t("dashboard.sketchCardDescription")}
                 </p>
               </div>
             </div>
