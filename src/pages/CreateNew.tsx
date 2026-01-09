@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseLongRunning } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -899,7 +899,8 @@ const CreateNew = () => {
       console.log("Generation mode:", generationMode, "Thumbnails:", selectedMode.thumbnailCount, "Credits:", requiredCredits);
 
       // Call edge function to generate thumbnail
-      const { data: functionData, error: functionError } = await supabase.functions.invoke(
+      // Use supabaseLongRunning for the generation as it can take up to 2 minutes
+      const { data: functionData, error: functionError } = await supabaseLongRunning.functions.invoke(
         "generate-thumbnail",
         {
           body: {

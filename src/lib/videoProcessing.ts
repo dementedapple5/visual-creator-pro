@@ -1,10 +1,9 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseLongRunning } from "@/integrations/supabase/client";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
 export interface GenerationResult {
   thumbnails: string[];
-  titles: string[];
   transcription: string;
   prompt?: string;
 }
@@ -13,9 +12,9 @@ export interface ProcessingCallbacks {
   onProgress: (step: number, message: string) => void;
   onTranscriptionUpdate?: (text: string) => void;
   onThumbnailUpdate?: (thumbnails: string[]) => void;
-  onTitleUpdate?: (titles: string[]) => void;
   onFramesUpdate?: (frames: string[]) => void;
   onAudioUpdate?: (audioDataUrl: string) => void;
+  onFramesReady?: (frames: string[]) => Promise<string[]>;
 }
 
 let ffmpeg: FFmpeg | null = null;
@@ -383,12 +382,12 @@ export async function generateThumbnails(
   frames?: string[],
   videoTitle?: string,
   onUpdate?: (thumbnails: string[]) => void,
-  isViral?: boolean
-): Promise<{ thumbnails: string[]; prompt: string }> {
+  creditsUsed: number = 2
+): Promise<{ thumbnails: string[]; prompt: string; generationId?: string }> {
   // Step 1: Generate thumbnail prompts with Gemini
   console.log('Step 1: Generating thumbnail prompts...');
   const { data: promptsData, error: promptsError } = await supabase.functions.invoke('generate-thumbnail-prompts', {
-    body: { transcription, frames, videoTitle, isViral }
+    body: { transcription, frames, videoTitle, isViral: true }
   });
 
   if (promptsError) throw new Error(promptsError.message);
@@ -401,11 +400,13 @@ export async function generateThumbnails(
 
   console.log('Step 2: Generating 2x2 grid...');
   // Step 2: Generate 2x2 grid with Gemini
-  const { data: gridData, error: gridError } = await supabase.functions.invoke('generate-thumbnails', {
+  // Use supabaseLongRunning for the 2x2 grid generation as it can take up to 2 minutes
+  const { data: gridData, error: gridError } = await supabaseLongRunning.functions.invoke('generate-thumbnails', {
     body: { 
       thumbnailPrompts, 
       frames,
-      isViral
+      isViral: true,
+      creditsUsed
     }
   });
 
@@ -414,6 +415,8 @@ export async function generateThumbnails(
   
   const gridImage = gridData?.gridImage;
   const prompt = gridData?.prompt || "";
+  const generationId = gridData?.generationId;
+
   if (!gridImage) {
     throw new Error('No grid image received from generate-thumbnails');
   }
@@ -430,39 +433,14 @@ export async function generateThumbnails(
     }
   }
   
-  return { thumbnails, prompt };
-}
-
-export async function generateTitles(
-  transcription: string,
-  onUpdate?: (titles: string[]) => void
-): Promise<string[]> {
-  const { data, error } = await supabase.functions.invoke('generate-titles', {
-    body: { transcription }
-  });
-
-  if (error) throw new Error(error.message);
-  if (data.error) throw new Error(data.error);
-  
-  const titles = data.titles || [];
-  
-  // Simulate progressive loading for better UX
-  if (onUpdate) {
-    for (let i = 0; i < titles.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      onUpdate(titles.slice(0, i + 1));
-    }
-  }
-  
-  return titles;
+  return { thumbnails, prompt, generationId };
 }
 
 export async function processVideoContent(
-  input: { type: "url" | "file"; value: string | File; isViral?: boolean },
+  input: { type: "url" | "file"; value: string | File; creditsUsed?: number },
   callbacks: ProcessingCallbacks
-): Promise<GenerationResult> {
-  const { onProgress, onTranscriptionUpdate, onThumbnailUpdate, onTitleUpdate, onFramesUpdate, onAudioUpdate } = callbacks;
-  const isViral = input.isViral;
+): Promise<GenerationResult & { generationId?: string }> {
+  const { onProgress, onTranscriptionUpdate, onThumbnailUpdate, onFramesUpdate, onAudioUpdate, onFramesReady } = callbacks;
   
   // Step 0: Extract frames and audio from video
   onProgress(0, "Extracting frames and audio...");
@@ -507,6 +485,11 @@ export async function processVideoContent(
       const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
       onAudioUpdate(audioDataUrl);
     }
+
+    // Wait for user to confirm/edit frames if callback provided
+    if (onFramesReady) {
+      extractedFrames = await onFramesReady(extractedFrames);
+    }
   } else {
     throw new Error("YouTube URL processing not yet implemented. Please upload a video file.");
   }
@@ -520,22 +503,18 @@ export async function processVideoContent(
     onTranscriptionUpdate(transcription);
   }
 
-  // Step 2: Generate titles
-  onProgress(2, "Generating titles...");
-  const titles = await generateTitles(transcription, onTitleUpdate);
-
-  // Step 3: Generate thumbnails
-  onProgress(3, "Creating thumbnails...");
-  const thumbnailResult = await generateThumbnails(transcription, extractedFrames, undefined, onThumbnailUpdate, isViral);
+  // Step 2: Generate thumbnails
+  onProgress(2, "Creating thumbnails...");
+  const thumbnailResult = await generateThumbnails(transcription, extractedFrames, undefined, onThumbnailUpdate, input.creditsUsed);
 
   // Small delay to show completion state
   await new Promise(resolve => setTimeout(resolve, 800));
 
   return {
     thumbnails: thumbnailResult.thumbnails,
-    titles,
     transcription,
-    prompt: thumbnailResult.prompt
+    prompt: thumbnailResult.prompt,
+    generationId: thumbnailResult.generationId
   };
 }
 

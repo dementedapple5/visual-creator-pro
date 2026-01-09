@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { VideoInput } from "@/components/quick-create/VideoInput";
-import { ProcessingState } from "@/components/quick-create/ProcessingState";
 import { ProcessingPanel } from "@/components/quick-create/ProcessingPanel";
+import { FrameSelector } from "@/components/quick-create/FrameSelector";
+import { FrameReplacerModal } from "@/components/quick-create/FrameReplacerModal";
 import { ResultsView } from "@/components/quick-create/ResultsView";
 import { processVideoContent } from "@/lib/videoProcessing";
 import { uploadDataUrlToStorage, isDataUrl } from "@/lib/imageUtils";
@@ -62,7 +63,6 @@ const QuickCreate = () => {
   const [processingStep, setProcessingStep] = useState(0);
   const [processingMessage, setProcessingMessage] = useState("");
   const [thumbnails, setThumbnails] = useState<string[]>([]);
-  const [titles, setTitles] = useState<string[]>([]);
   const [transcription, setTranscription] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
@@ -70,9 +70,13 @@ const QuickCreate = () => {
   // Preview states during processing
   const [transcriptionPreview, setTranscriptionPreview] = useState("");
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
-  const [titlePreviews, setTitlePreviews] = useState<string[]>([]);
   const [framesPreviews, setFramesPreviews] = useState<string[]>([]);
   const [audioPreview, setAudioPreview] = useState<string | null>(null);
+  const [isFrameSelectionStep, setIsFrameSelectionStep] = useState(false);
+  const [currentVideoFile, setCurrentVideoFile] = useState<File | null>(null);
+  const [isFrameReplacerOpen, setIsFrameReplacerOpen] = useState(false);
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(null);
+  const frameSelectionResolveRef = useRef<((frames: string[]) => void) | null>(null);
   const submitInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -86,7 +90,7 @@ const QuickCreate = () => {
     }
   };
 
-  const handleSubmit = async (input: { type: "url" | "file"; value: string | File; isViral: boolean }) => {
+  const handleSubmit = async (input: { type: "url" | "file"; value: string | File }) => {
     // Prevent duplicate submits (double click, lag, etc.)
     if (submitInFlightRef.current) return;
     submitInFlightRef.current = true;
@@ -121,59 +125,51 @@ const QuickCreate = () => {
       return;
     }
 
-    // 1. Create initial generation record
-    const { data: generationData, error: initialGenError } = await supabase
-      .from("generations")
-      .insert({
-        user_id: user.id,
-        status: "processing",
-        credits_used: requiredCredits,
-        mode: "create",
-      })
-      .select("id")
-      .single();
-
-    if (initialGenError) {
-      console.warn("Could not create initial generation record:", initialGenError);
-      toast.error(t("quickCreate.errors.couldNotStart"));
-      return;
-    }
-
-    const generationId = generationData?.id;
-
     setAppState("processing");
     setProcessingStep(0);
     setProcessingMessage(t("quickCreate.success.preparing"));
     setTranscriptionPreview("");
     setThumbnailPreviews([]);
-    setTitlePreviews([]);
     setFramesPreviews([]);
     setAudioPreview(null);
+    setIsFrameSelectionStep(false);
+    setCurrentVideoFile(input.type === "file" && input.value instanceof File ? input.value : null);
 
     try {
-      const result = await processVideoContent(input, {
-        onProgress: (step, message) => {
-          setProcessingStep(step);
-          setProcessingMessage(message);
-        },
-        onFramesUpdate: (frames) => {
-          setFramesPreviews(frames);
-        },
-        onAudioUpdate: (audio) => {
-          setAudioPreview(audio);
-        },
-        onTranscriptionUpdate: (text) => {
-          setTranscriptionPreview(text);
-        },
-        onThumbnailUpdate: (thumbs) => {
-          setThumbnailPreviews(thumbs);
-        },
-        onTitleUpdate: (newTitles) => {
-          setTitlePreviews(newTitles);
+      const result = await processVideoContent(
+        { ...input, creditsUsed: requiredCredits },
+        {
+          onProgress: (step, message) => {
+            setProcessingStep(step);
+            setProcessingMessage(message);
+          },
+          onFramesUpdate: (frames) => {
+            setFramesPreviews(frames);
+          },
+          onAudioUpdate: (audio) => {
+            setAudioPreview(audio);
+          },
+          onFramesReady: (frames) => {
+            setFramesPreviews(frames);
+            setIsFrameSelectionStep(true);
+            return new Promise<string[]>((resolve) => {
+              frameSelectionResolveRef.current = resolve;
+            });
+          },
+          onTranscriptionUpdate: (text) => {
+            setIsFrameSelectionStep(false);
+            setTranscriptionPreview(text);
+          },
+          onThumbnailUpdate: (thumbs) => {
+            setThumbnailPreviews(thumbs);
+          }
         }
-      });
+      );
 
-      // 2. Update generation record to completed
+      const generationId = result.generationId;
+
+      // 2. Update generation record to completed if it exists
+      // Note: the edge function already does this, but we update extra fields here if needed
       if (generationId) {
         const { error: genUpdateError } = await supabase
           .from("generations")
@@ -191,25 +187,15 @@ const QuickCreate = () => {
       }
 
       setThumbnails(result.thumbnails);
-      setTitles(result.titles);
       setTranscription(result.transcription);
       setPrompt(result.prompt || "");
       setAppState("results");
     } catch (error) {
       console.error("Processing error:", error);
       
-      // 3. Mark generation as failed
-      if (generationId) {
-        await supabase
-          .from("generations")
-          .update({
-            status: "failed",
-            error_message: error instanceof Error ? error.message : "Error processing video",
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", generationId);
-      }
-
+      // We don't have generationId here anymore if it fails early, 
+      // but the edge function will mark it as failed if it reached that point.
+      
       toast.error(error instanceof Error ? error.message : t("quickCreate.errors.errorProcessing"));
       setAppState("input");
     }
@@ -223,14 +209,35 @@ const QuickCreate = () => {
     setProcessingStep(0);
     setProcessingMessage("");
     setThumbnails([]);
-    setTitles([]);
     setTranscription("");
     setPrompt("");
     setTranscriptionPreview("");
     setThumbnailPreviews([]);
-    setTitlePreviews([]);
     setFramesPreviews([]);
     setAudioPreview(null);
+    setIsFrameSelectionStep(false);
+    setCurrentVideoFile(null);
+  };
+
+  const handleFrameContinue = () => {
+    if (frameSelectionResolveRef.current) {
+      frameSelectionResolveRef.current(framesPreviews);
+      frameSelectionResolveRef.current = null;
+      setIsFrameSelectionStep(false);
+    }
+  };
+
+  const handleFrameClick = (index: number) => {
+    setSelectedFrameIndex(index);
+    setIsFrameReplacerOpen(true);
+  };
+
+  const handleFrameCapture = (dataUrl: string) => {
+    if (selectedFrameIndex !== null) {
+      const newFrames = [...framesPreviews];
+      newFrames[selectedFrameIndex] = dataUrl;
+      setFramesPreviews(newFrames);
+    }
   };
 
   const handleSave = async (index?: number) => {
@@ -401,21 +408,48 @@ const QuickCreate = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, y: -20 }}
-              className="min-h-[calc(100vh-10rem)] flex gap-6 relative z-10"
+              className="min-h-[calc(100vh-10rem)] flex flex-col items-center justify-center gap-8 relative z-10"
             >
-              {/* Main processing state */}
-              <div className="flex-1 flex items-center justify-center">
-                <ProcessingState currentStep={processingStep} message={processingMessage} />
-              </div>
-              
-              {/* Side panel with previews */}
-              <ProcessingPanel
-                currentStep={processingStep}
-                transcriptionPreview={transcriptionPreview}
-                thumbnailPreviews={thumbnailPreviews}
-                titlePreviews={titlePreviews}
-                framesPreviews={framesPreviews}
-                audioPreview={audioPreview}
+              <AnimatePresence mode="wait">
+                {isFrameSelectionStep ? (
+                  <motion.div
+                    key="frame-selection"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full"
+                  >
+                    <FrameSelector
+                      frames={framesPreviews}
+                      onFrameClick={handleFrameClick}
+                      onContinue={handleFrameContinue}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="processing-panel"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="w-full flex justify-center"
+                  >
+                    <ProcessingPanel
+                      currentStep={processingStep}
+                      transcriptionPreview={transcriptionPreview}
+                      thumbnailPreviews={thumbnailPreviews}
+                      framesPreviews={framesPreviews}
+                      audioPreview={audioPreview}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <FrameReplacerModal
+                isOpen={isFrameReplacerOpen}
+                onClose={() => setIsFrameReplacerOpen(false)}
+                videoFile={currentVideoFile}
+                onCapture={handleFrameCapture}
+                currentIndex={selectedFrameIndex ?? 0}
               />
             </motion.div>
           )}
@@ -430,7 +464,6 @@ const QuickCreate = () => {
             >
               <ResultsView
                 thumbnails={thumbnails}
-                titles={titles}
                 transcription={transcription}
                 onReset={handleReset}
                 onSave={handleSave}

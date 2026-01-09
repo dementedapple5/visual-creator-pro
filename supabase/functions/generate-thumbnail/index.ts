@@ -640,7 +640,7 @@ CRITICAL INSTRUCTIONS:
     logger.info(`Prediction created: ${predictionId}`);
 
     // 2. Poll for completion
-    const maxPollAttempts = 40; // ~2 minutes total (with 3s delay)
+    const maxPollAttempts = 120; // ~6 minutes total (with 3s delay)
     const pollInterval = 3000;
     let succeeded = false;
 

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createLogger } from "../_shared/logger.ts";
 
@@ -58,10 +59,37 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startedAt = Date.now();
+  let generationId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+
   try {
-    const { thumbnailPrompts, frames, isViral } = await req.json();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { thumbnailPrompts, frames, isViral, creditsUsed } = await req.json();
     logger.info("Starting thumbnail grid generation", { isViral, promptCount: thumbnailPrompts?.length });
     
+    // Create initial generation record
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+      if (user) {
+        const { data: genRecord } = await supabase
+          .from("generations")
+          .insert({
+            user_id: user.id,
+            status: "processing",
+            credits_used: creditsUsed || 2,
+            mode: "create",
+          })
+          .select("id")
+          .single();
+        generationId = genRecord?.id || null;
+      }
+    }
+
     if (!thumbnailPrompts || !Array.isArray(thumbnailPrompts) || thumbnailPrompts.length !== 4) {
       logger.error("Invalid thumbnailPrompts", { thumbnailPrompts });
       throw new Error('Invalid thumbnailPrompts: must be an array with exactly 4 items');
@@ -196,7 +224,7 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}`;
     logger.info(`Prediction created: ${predictionId}`);
 
     // 2. Poll for completion
-    const maxPollAttempts = 40; // ~2 minutes total (with 3s delay)
+    const maxPollAttempts = 120; // ~6 minutes total (with 3s delay)
     const pollInterval = 3000;
     let succeeded = false;
 
@@ -263,14 +291,38 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}`;
 
     logger.info('Generated 2x2 grid image successfully');
 
+    if (generationId && supabase) {
+      await supabase
+        .from("generations")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          duration_ms: Date.now() - startedAt,
+        })
+        .eq("id", generationId);
+    }
+
     return new Response(
-      JSON.stringify({ gridImage, prompt: gridPrompt }),
+      JSON.stringify({ gridImage, prompt: gridPrompt, generationId }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     logger.error('Thumbnail generation failed', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (generationId && supabase) {
+      await supabase
+        .from("generations")
+        .update({
+          status: "failed",
+          error_message: errorMessage,
+          completed_at: new Date().toISOString(),
+          duration_ms: Date.now() - startedAt,
+        })
+        .eq("id", generationId);
+    }
+
     return new Response(
       JSON.stringify({ 
         error: errorMessage,

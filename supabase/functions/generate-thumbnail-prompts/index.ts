@@ -24,7 +24,7 @@ type ThumbnailPrompt = {
   textPosition?: string;
   viralStyleGuidelines?: string;
   elements?: Array<{
-    type?: string; // icon | prop | badge | sticker | shape | product | ui
+    type?: string; // icon | prop | badge | sticker | shape | product | ui | flag | logo | arrow
     description?: string;
     position?: string;
   }>;
@@ -342,6 +342,12 @@ Tag-to-thumbnail heuristics (MANDATORY when relevant):
 - gaming: show the game scene/HUD/character clearly + creator face; use high-contrast, dynamic elements tied to the game.
 - news/documentary: editorial, credible, less gimmicky; use relevant imagery and clean composition.
 
+Contextual visual elements (APPLY when mentioned in transcription):
+- COUNTRIES/PLACES: If the video mentions specific countries, cities, or geographic locations, include the country FLAG as an element in at least 1-2 thumbnails (e.g. small flag icon in corner, flag overlay, or flag-themed accent). This adds instant visual context and recognition.
+- BRAND LOGOS: If the video discusses recognizable brands (tech companies, car brands, food chains, sports teams, etc.), include the brand LOGO as an element in thumbnails where relevant. Place logos clearly but not as the main focus—use them to reinforce what the video is about.
+- ARROWS & HIGHLIGHTS: Use bold arrows (curved, straight, or hand-drawn style) to point at key elements being discussed—especially useful for product reviews, comparisons, tutorials, or when highlighting specific features/details. Arrows draw attention and create visual hierarchy. Use in 1-2 thumbnails, not all.
+- ELEMENT PLACEMENT: Flags typically work well as small overlays (corner badges, behind subject), logos near the product/topic they reference, arrows pointing from text toward the subject or feature being highlighted.
+
 ${isViral ? `STYLE GOAL (MANDATORY):
 - Apply this compact viral style spec: ${viralStyleGuidelines}
 - Keep ALL text fields short (avoid long paragraphs).` : ''}
@@ -390,7 +396,11 @@ Return JSON with exactly this structure (array length must be 4, positions fixed
       "faceExpression": "...",
       "textPosition": "...",
       "viralStyleGuidelines": "...",
-      "elements": [{ "type": "...", "description": "...", "position": "..." }],
+      "elements": [
+        { "type": "flag", "description": "Spanish flag small overlay", "position": "top-right corner" },
+        { "type": "logo", "description": "Apple logo near product", "position": "beside iPhone" },
+        { "type": "arrow", "description": "bold red arrow pointing to feature", "position": "from text to subject" }
+      ],
       "description": "..."
     },
     { "position": "top-right",  "...": "..." },
@@ -398,6 +408,12 @@ Return JSON with exactly this structure (array length must be 4, positions fixed
     { "position": "bottom-right","...": "..." }
   ]
 }
+
+Element types reference:
+- "flag": country/region flag (use when locations are mentioned)
+- "logo": brand/company logo (use when brands are discussed)
+- "arrow": directional arrow to highlight elements (use for emphasis)
+- "icon", "prop", "badge", "sticker", "shape", "product", "ui": other visual elements
 
 Position style guidelines:
 - top-left: Bold, vibrant, dramatic, high contrast.

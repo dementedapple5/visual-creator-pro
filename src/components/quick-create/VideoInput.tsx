@@ -6,19 +6,18 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 interface VideoInputProps {
-  onSubmit: (input: { type: "url" | "file"; value: string | File; isViral: boolean }) => void;
+  onSubmit: (input: { type: "url" | "file"; value: string | File }) => void;
   isLoading?: boolean;
 }
 
 export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [isViral, setIsViral] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     if (file) {
-      onSubmit({ type: "file", value: file, isViral });
+      onSubmit({ type: "file", value: file });
     }
   };
 
@@ -69,7 +68,7 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-3 p-4 rounded-xl bg-secondary border border-border"
+            className="flex items-center gap-3 p-4 rounded-lg bg-secondary border border-border"
           >
             <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
               <Upload className="w-5 h-5 text-muted-foreground" />
@@ -100,7 +99,7 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
             onClick={() => fileInputRef.current?.click()}
             className={cn(
               "relative flex flex-col items-center justify-center gap-3 p-8",
-              "rounded-xl border-2 border-dashed cursor-pointer",
+              "rounded-lg border-2 border-dashed cursor-pointer",
               "transition-all duration-200",
               dragActive
                 ? "border-foreground bg-muted/50"
@@ -129,29 +128,6 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
         )}
       </AnimatePresence>
 
-      {/* Viral Style Switch */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <Label htmlFor="viral-mode" className="text-sm font-medium cursor-pointer">Viral Style</Label>
-            <p className="text-xs text-muted-foreground">High-impact, click-driven YouTube design</p>
-          </div>
-        </div>
-        <Switch
-          id="viral-mode"
-          checked={isViral}
-          onCheckedChange={setIsViral}
-          disabled={isLoading}
-        />
-      </motion.div>
-
       {/* Submit Button */}
       <motion.button
         whileHover={{ scale: canSubmit && !isLoading ? 1.01 : 1 }}
@@ -159,7 +135,7 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
         onClick={handleSubmit}
         disabled={!canSubmit || isLoading}
         className={cn(
-          "w-full h-14 rounded-xl font-medium text-base",
+          "w-full h-14 rounded-lg font-medium text-base",
           "transition-all duration-200",
           canSubmit && !isLoading
             ? "bg-primary text-primary-foreground hover:opacity-90 shadow-lg"
