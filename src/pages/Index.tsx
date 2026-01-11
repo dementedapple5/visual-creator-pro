@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import SEO from "@/components/SEO";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import FAQ from "@/components/landing/FAQ";
 
 const Index = () => {
   const { t } = useTranslation();
@@ -208,23 +209,114 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background font-sans selection:bg-primary/20">
+    <div className="min-h-screen bg-background font-sans selection:bg-primary/20 relative">
+      {/* Global Background Blobs */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-slate-200/40 dark:bg-slate-800/20 rounded-full blur-[120px] animate-blob"></div>
+        <div className="absolute top-[20%] right-[-5%] w-[40%] h-[40%] bg-zinc-200/30 dark:bg-zinc-800/10 rounded-full blur-[100px] animate-blob" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-[10%] left-[5%] w-[45%] h-[45%] bg-gray-200/40 dark:bg-gray-800/20 rounded-full blur-[120px] animate-blob" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-slate-100/20 dark:bg-slate-900/10 rounded-full blur-[150px]"></div>
+      </div>
+
       <SEO
-        title="Vizion - AI Thumbnail Generator"
-        description="Create viral YouTube thumbnails in seconds with AI. Four powerful modes: Create, Quick Gen, Sketch, and Pro Editor."
-        keywords="YouTube thumbnails, AI generator, content creator tools, thumbnail editor"
-        image="/logo.png"
+        title="AI YouTube Thumbnail Generator - Vizion"
+        description="Create viral YouTube thumbnails instantly with AI. 4 powerful modes: Standard, Quick, Sketch & Editor. Professional results in seconds."
+        keywords="YouTube thumbnail generator, AI thumbnail creator, thumbnail maker, viral thumbnails, CTR optimization, YouTube thumbnail tool"
+        image="/hero.webp"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "SoftwareApplication",
+              "name": "Vizion AI Thumbnail Generator",
+              "applicationCategory": "DesignApplication",
+              "operatingSystem": "Web",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+              },
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.8",
+                "ratingCount": "2500"
+              },
+              "description": "Create viral YouTube thumbnails instantly with AI. Professional thumbnail generator with 4 powerful creation modes.",
+              "image": "https://vizionai.app/hero.webp",
+              "url": "https://vizionai.app",
+              "author": {
+                "@type": "Organization",
+                "name": "Vizion"
+              },
+              "featureList": [
+                "AI-powered thumbnail generation",
+                "Quick thumbnail creator",
+                "Sketch to thumbnail conversion",
+                "Smart thumbnail editor",
+                "Face replacement technology",
+                "High CTR optimization"
+              ]
+            },
+            {
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "What is Vizion AI Thumbnail Generator?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Vizion is an advanced AI-powered YouTube thumbnail generator that helps content creators design professional, high-CTR thumbnails in seconds. Using Google's Gemini 3 Pro AI, it offers four creation modes: Standard Creation, Quick Create, Sketch to Image, and AI Editor."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How does the AI thumbnail generator work?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Our AI analyzes viral YouTube thumbnails and trends to create optimized designs. Simply describe what you want, upload your face (optional), and the AI generates professional thumbnails tailored to maximize click-through rates and viewer engagement."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Is Vizion free to use?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes! Vizion offers a free tier that allows you to create YouTube thumbnails and explore all our AI-powered features. Premium plans are available for content creators who need unlimited generations and advanced features."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How long does it take to create a thumbnail?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "With Quick Create mode, you can generate professional YouTube thumbnails in just 10-15 seconds. Standard Creation mode takes 30-60 seconds for more detailed, layered designs."
+                  }
+                }
+              ]
+            },
+            {
+              "@type": "WebSite",
+              "name": "Vizion",
+              "url": "https://vizionai.app",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://vizionai.app/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            }
+          ]
+        }}
       />
 
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Vizion" className="w-8 h-8 rounded-lg" />
+            <img src="/logo.png" alt="Vizion AI - YouTube Thumbnail Generator Logo" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-lg tracking-tight">Vizion</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button onClick={() => navigate("/auth")} className="rounded-full px-6 flex items-center gap-2">
+            <Button onClick={() => navigate("/auth")} className="rounded px-6 flex items-center gap-2">
               Get Started
               <ArrowRight className="w-4 h-4" />
             </Button>
@@ -234,16 +326,15 @@ const Index = () => {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
         {/* Faded Grid Background */}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            maskImage: 'radial-gradient(ellipse 100% 80% at 50% 0%, black 0%, transparent 90%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 100% 80% at 50% 0%, black 0%, transparent 90%)'
+            backgroundImage: `linear-gradient(to right, rgba(120,120,120,0.1) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(120,120,120,0.1) 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
+            maskImage: 'radial-gradient(ellipse 80% 50% at 50% 0%, black, transparent)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 50% at 50% 0%, black, transparent)'
           }}
         />
         <div className="container mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
@@ -256,28 +347,28 @@ const Index = () => {
               v2.0 Now Live
             </div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-balance animate-slide-up-fade" style={{ animationDelay: "0.1s" }}>
+            <h1 className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tight text-balance animate-slide-up-fade hero-font-primary" style={{ animationDelay: "0.1s" }}>
               The All-in-One <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-rose-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 animate-gradient-x">
                 AI Thumbnail Studio
               </span>
             </h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed animate-slide-up-fade" style={{ animationDelay: "0.2s" }}>
-              Stop struggling with complex tools. Create viral-ready thumbnails in seconds using our suite of 4 powerful AI modes.
+              Stop struggling with complex design tools. Create viral-ready YouTube thumbnails in seconds using our suite of <a href="#demos" className="text-primary hover:underline font-semibold">4 powerful AI modes</a>. Perfect for content creators, YouTubers, and digital marketers.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-start gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto h-12 px-8 rounded-full text-base shadow-lg shadow-primary/20 flex items-center gap-3" 
+                className="w-full sm:w-auto h-12 px-8 rounded text-base shadow-lg shadow-primary/20 flex items-center gap-3" 
                 style={{ backgroundColor: 'white', color: 'black' }}
                 onClick={handleGoogleSignIn}
               >
-                <img src="/google.png" alt="Google" className="w-5 h-5" />
+                <img src="/google.png" alt="Sign in with Google" className="w-5 h-5" />
                 Start with Google
               </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 px-8 rounded-full text-base backdrop-blur-sm" onClick={() => document.getElementById('demos')?.scrollIntoView({ behavior: 'smooth' })}>
+              <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 px-8 rounded text-base backdrop-blur-sm" onClick={() => document.getElementById('demos')?.scrollIntoView({ behavior: 'smooth' })}>
                 <Play className="mr-2 w-4 h-4 fill-current" />
                 Watch Demos
               </Button>
@@ -288,7 +379,7 @@ const Index = () => {
           <div className="relative aspect-square lg:aspect-[4/3] animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
             <img
               src="/hero.webp"
-              alt="Vizion AI Hero Illustration"
+              alt="AI-powered YouTube thumbnail generator showing multiple creation modes and examples"
               className="w-full h-full object-contain object-center"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/20 via-transparent to-transparent pointer-events-none"></div>
@@ -297,14 +388,17 @@ const Index = () => {
       </section>
 
       {/* Feature Showcase Section */}
-      <section id="demos" className="py-24 px-6">
-        <div className="container mx-auto max-w-6xl space-y-12">
-          <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Four Ways to Create</h2>
-            <p className="text-lg text-muted-foreground">From automated generation to professional prompt-based editing, we have the perfect tool for your workflow.</p>
+      <section id="demos" className="py-24 px-6 relative overflow-hidden">
+        <div className="container mx-auto max-w-6xl space-y-12 relative z-10">
+          <div className="text-center space-y-4 max-w-3xl mx-auto" data-animate>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight hero-font-secondary">
+              Four Ways to Create <br className="hidden md:block" />
+              YouTube Thumbnails
+            </h2>
+            <p className="text-lg text-muted-foreground">From automated AI generation to professional prompt-based editing, we have the perfect thumbnail creation tool for your workflow.</p>
           </div>
 
-          <div className="space-y-0 border border-border rounded-xl overflow-hidden shadow-2xl bg-background">
+          <div className="space-y-0 border border-border rounded overflow-hidden shadow-2xl bg-background">
             {/* Horizontal Tabs */}
             <div className="grid grid-cols-2 md:grid-cols-4">
               {features.map((feature, index) => (
@@ -385,11 +479,14 @@ const Index = () => {
       </section>
 
       {/* Examples Gallery */}
-      <section className="py-24 px-6 bg-muted/20">
-        <div className="container mx-auto max-w-7xl space-y-12">
-          <div className="text-center space-y-4 max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Created with Vizion</h2>
-            <p className="text-lg text-muted-foreground">High-CTR thumbnails generated across different niches and styles.</p>
+      <section id="examples" className="py-24 px-6 relative">
+        <div className="container mx-auto max-w-7xl space-y-12 relative z-10">
+          <div className="text-center space-y-4 max-w-3xl mx-auto mb-16" data-animate>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight hero-font-secondary">
+              YouTube Thumbnails <br className="hidden md:block" />
+              Created with Vizion AI
+            </h2>
+            <p className="text-lg text-muted-foreground">High-CTR thumbnails generated across different niches and styles using our AI thumbnail generator.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-10">
@@ -399,7 +496,7 @@ const Index = () => {
                 <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
                   <img
                     src={item.src}
-                    alt={item.title}
+                    alt={`AI-generated YouTube thumbnail example: ${item.title}`}
                     className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
@@ -439,24 +536,101 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 px-6 relative bg-foreground text-background overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+      {/* Benefits Section - SEO Content */}
+      <section className="py-24 px-6 relative overflow-hidden">
+        <div className="container mx-auto max-w-6xl space-y-16 relative z-10">
+          <div className="text-center space-y-4 max-w-3xl mx-auto" data-animate>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight hero-font-secondary">
+              Why Choose <br className="hidden md:block" />
+              Vizion AI Thumbnail Generator?
+            </h2>
+            <p className="text-lg text-muted-foreground">The most powerful and easy-to-use YouTube thumbnail creator for content creators</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="space-y-3 p-6 rounded border border-border bg-background hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-blue-500" />
+              </div>
+              <h3 className="text-xl font-bold">AI-Powered Design</h3>
+              <p className="text-muted-foreground">
+                Our advanced AI thumbnail generator uses Google's Gemini 3 Pro to create stunning, high-converting YouTube thumbnails that boost your CTR and views.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6 rounded border border-border bg-background hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-bold">Create in Seconds</h3>
+              <p className="text-muted-foreground">
+                Generate professional YouTube thumbnails in seconds, not hours. Perfect for busy content creators and YouTubers who need quick, quality results.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6 rounded border border-border bg-background hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                <PenTool className="w-6 h-6 text-rose-500" />
+              </div>
+              <h3 className="text-xl font-bold">Sketch to Thumbnail</h3>
+              <p className="text-muted-foreground">
+                Draw a rough sketch and watch our AI transform it into a polished, professional YouTube thumbnail. Perfect for creators with specific layout ideas.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6 rounded border border-border bg-background hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <Layers className="w-6 h-6 text-purple-500" />
+              </div>
+              <h3 className="text-xl font-bold">Smart Editing</h3>
+              <p className="text-muted-foreground">
+                Edit your thumbnails using natural language. Just describe what you want to change, and our AI thumbnail editor makes it happen instantly.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6 rounded border border-border bg-background hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Check className="w-6 h-6 text-green-500" />
+              </div>
+              <h3 className="text-xl font-bold">High CTR Optimization</h3>
+              <p className="text-muted-foreground">
+                Our AI analyzes viral YouTube thumbnails to ensure your designs are optimized for maximum click-through rates and viewer engagement.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-6 rounded border border-border bg-background hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-orange-500" />
+              </div>
+              <h3 className="text-xl font-bold">Face Replacement</h3>
+              <p className="text-muted-foreground">
+                Upload your face once and seamlessly integrate it into any thumbnail design. Perfect for personal branding and channel consistency.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="container mx-auto max-w-4xl text-center relative z-10 space-y-8">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
-            Ready to transform your content?
+      </section>
+
+      {/* FAQ Section */}
+      <FAQ />
+
+      {/* CTA Section */}
+      <section className="py-32 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-slate-950/5 dark:bg-white/5 backdrop-blur-[2px] pointer-events-none border-y border-border/50"></div>
+        <div className="container mx-auto max-w-4xl text-center relative z-10 space-y-8" data-animate>
+          <h2 className="text-3xl md:text-6xl font-bold tracking-tight hero-font-secondary text-balance">
+            Ready to create <br />
+            viral YouTube thumbnails?
           </h2>
-          <p className="text-lg md:text-xl text-background/70 max-w-2xl mx-auto">
-            Join thousands of creators who are growing their channels with Vizion. Start creating for free today.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            Join thousands of YouTubers and content creators who are growing their channels with Vizion's AI thumbnail generator. Start creating professional thumbnails for free today.
           </p>
           <Button
             size="lg"
-            className="h-14 px-10 rounded-full text-lg font-bold bg-background text-foreground hover:bg-background/90 flex items-center gap-3 mx-auto"
+            className="h-14 px-10 rounded text-lg font-bold bg-foreground text-background hover:bg-foreground/90 flex items-center gap-3 mx-auto shadow-2xl"
             onClick={handleGoogleSignIn}
           >
-            <img src="/google.png" alt="Google" className="w-6 h-6" />
+            <img src="/google.png" alt="Start with Google Sign-in" className="w-6 h-6" />
             Get Started with Google
           </Button>
         </div>
@@ -468,11 +642,6 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <span className="font-bold text-foreground">Vizion</span>
             <span>© {new Date().getFullYear()}</span>
-          </div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
           </div>
         </div>
       </footer>

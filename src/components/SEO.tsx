@@ -9,6 +9,7 @@ interface SEOProps {
   image?: string;
   type?: string;
   noindex?: boolean;
+  jsonLd?: object;
 }
 
 const SEO = ({
@@ -18,6 +19,7 @@ const SEO = ({
   image = "/logo.png",
   type = "website",
   noindex = false,
+  jsonLd,
 }: SEOProps) => {
   const location = useLocation();
   const { i18n } = useTranslation();
@@ -123,7 +125,18 @@ const SEO = ({
       document.head.appendChild(defaultAlternate);
     }
     defaultAlternate.setAttribute("href", `${baseUrl}${location.pathname}`);
-  }, [title, description, keywords, image, type, noindex, canonicalUrl, fullImageUrl, currentLang, location.pathname, baseUrl]);
+
+    // JSON-LD Structured Data
+    if (jsonLd) {
+      let jsonLdScript = document.querySelector('script[type="application/ld+json"]');
+      if (!jsonLdScript) {
+        jsonLdScript = document.createElement('script');
+        jsonLdScript.setAttribute('type', 'application/ld+json');
+        document.head.appendChild(jsonLdScript);
+      }
+      jsonLdScript.textContent = JSON.stringify(jsonLd);
+    }
+  }, [title, description, keywords, image, type, noindex, canonicalUrl, fullImageUrl, currentLang, location.pathname, baseUrl, jsonLd]);
 
   return null;
 };

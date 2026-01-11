@@ -6,16 +6,16 @@
   <!-- Homepage -->
   <url>
     <loc>https://vizionai.app/</loc>
-    <lastmod>2026-01-10</lastmod>
+    <lastmod>2026-01-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://vizionai.app/?lang=en" />
     <xhtml:link rel="alternate" hreflang="es" href="https://vizionai.app/?lang=es" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://vizionai.app/" />
     <image:image>
-      <image:loc>https://vizionai.app/logo.png</image:loc>
-      <image:title>Vizion - AI-Powered YouTube Thumbnail Generator</image:title>
-      <image:caption>Create stunning YouTube thumbnails with AI</image:caption>
+      <image:loc>https://vizionai.app/hero.webp</image:loc>
+      <image:title>Vizion - AI YouTube Thumbnail Generator</image:title>
+      <image:caption>Create viral YouTube thumbnails with AI in seconds</image:caption>
     </image:image>
   </url>
   
