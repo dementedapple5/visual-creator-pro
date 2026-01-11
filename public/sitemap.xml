@@ -6,7 +6,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://vizionai.app/</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://vizionai.app/?lang=en" />
@@ -22,7 +22,7 @@
   <!-- Auth Page -->
   <url>
     <loc>https://vizionai.app/auth</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://vizionai.app/auth?lang=en" />
@@ -32,7 +32,7 @@
   <!-- Dashboard (may require authentication, but included for SEO) -->
   <url>
     <loc>https://vizionai.app/dashboard</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -40,14 +40,14 @@
   <!-- Create Pages -->
   <url>
     <loc>https://vizionai.app/create</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   
   <url>
     <loc>https://vizionai.app/quick-create</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -55,7 +55,7 @@
   <!-- Generations -->
   <url>
     <loc>https://vizionai.app/generations</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
@@ -63,7 +63,7 @@
   <!-- Avatars -->
   <url>
     <loc>https://vizionai.app/avatars</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -71,7 +71,7 @@
   <!-- Backgrounds -->
   <url>
     <loc>https://vizionai.app/backgrounds</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -79,7 +79,7 @@
   <!-- Font Styles -->
   <url>
     <loc>https://vizionai.app/font-styles</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -87,7 +87,7 @@
   <!-- Products -->
   <url>
     <loc>https://vizionai.app/products</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -95,7 +95,7 @@
   <!-- Profile -->
   <url>
     <loc>https://vizionai.app/profile</loc>
-    <lastmod>2024-01-15</lastmod>
+    <lastmod>2026-01-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

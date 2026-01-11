@@ -115,7 +115,7 @@ const Index = () => {
 
   const exampleImages = [
     {
-      src: "/examples/ex_1.png",
+      src: "/examples/ex_1.webp",
       title: "5 HISTORIAS TERRORIFICAS - Basadas en Hechos Reales",
       channel: "Terror Nocturno",
       views: "1.2M views",
@@ -125,7 +125,7 @@ const Index = () => {
       verified: true
     },
     {
-      src: "/examples/ex_2.png",
+      src: "/examples/ex_2.webp",
       title: "DJI Osmo Action 6 - ¿Mejor que mi iPhone?",
       channel: "Aventura Digital",
       views: "856K views",
@@ -135,7 +135,7 @@ const Index = () => {
       verified: true
     },
     {
-      src: "/examples/ex_3.png",
+      src: "/examples/ex_3.webp",
       title: "100x Your Online Sales - Easiest Way to Scale",
       channel: "E-commerce Empire",
       views: "2.4M views",
@@ -145,7 +145,7 @@ const Index = () => {
       verified: true
     },
     {
-      src: "/examples/ex_4.png",
+      src: "/examples/ex_4.webp",
       title: "VENEZUELA LIBRE: ¿Qué está pasando realmente?",
       channel: "Noticias Global",
       views: "450K views",
@@ -155,7 +155,7 @@ const Index = () => {
       verified: false
     },
     {
-      src: "/examples/ex_5.png",
+      src: "/examples/ex_5.webp",
       title: "This Helped me To Make My 1st Million",
       channel: "Entrepreneur Mindset",
       views: "5.1M views",
@@ -165,7 +165,7 @@ const Index = () => {
       verified: true
     },
     {
-      src: "/examples/ex_6.png",
+      src: "/examples/ex_6.webp",
       title: "Como Vender en Shopify - ¡Aumenta tus Ventas Hoy!",
       channel: "Emprendedor Online",
       views: "920K views",
@@ -175,7 +175,7 @@ const Index = () => {
       verified: true
     },
     {
-      src: "/examples/ex_7.png",
+      src: "/examples/ex_7.webp",
       title: "iPhone 16 Pro vs Sony FX30 - Test de Cámara Extremo",
       channel: "Tech Review",
       views: "1.1M views",
@@ -185,7 +185,7 @@ const Index = () => {
       verified: false
     },
     {
-      src: "/examples/ex_9.png",
+      src: "/examples/ex_9.webp",
       title: "100x Your Online Sales - No Ads, Free Strategy!",
       channel: "Marketing Pro",
       
@@ -196,7 +196,7 @@ const Index = () => {
       verified: true
     },
     {
-      src: "/examples/ex_3.jpeg",
+      src: "/examples/ex_0.webp",
       title: "HOW TO GET YOUR 1ST MILLION - Step by Step",
       channel: "Wealth Academy",
       views: "2.8M views",
