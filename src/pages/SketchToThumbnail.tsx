@@ -1209,15 +1209,19 @@ const SketchToThumbnail = () => {
       
       console.log("Sketch exported successfully, length:", sketchBase64.length);
 
-      // 2. Prepare generation data
+      // 2. Prepare generation data - FILTER EMPTY VALUES
       const labelTexts = allElements
         .filter((el): el is Extract<CanvasElement, { type: "label" | "shape" }> => 
           el.type === "label" || (el.type === "shape" && !!el.text)
         )
-        .map(el => el.text!);
+        .map(el => el.text!)
+        .filter(text => text && text.trim() !== ""); // Filter empty labels
+      
       const visualTexts = allElements
         .filter((el): el is Extract<CanvasElement, { type: "text" }> => el.type === "text")
-        .map(t => ({ text: t.text, fill: t.fill }));
+        .map(t => ({ text: t.text, fill: t.fill }))
+        .filter(t => t.text && t.text.trim() !== ""); // Filter empty texts
+      
       const avatarUrls = allElements
         .filter((el): el is Extract<CanvasElement, { type: "avatar" }> => el.type === "avatar")
         .map(a => a.url);
@@ -1232,11 +1236,8 @@ const SketchToThumbnail = () => {
         "Viral YouTube look: high contrast, warm key/cool rim lighting, dark/blur background, " +
         "bokeh/flares, clean cutout + strong rim/subject glow, subtle 3D depth, no clutter, mobile-sharp 16:9.";
 
-      const textStyleGuidelines = 
-        "Typography: bold condensed ALL-CAPS (Anton/Bebas/Impact vibe), " +
-        "high contrast with 3D shadows and glows, readable on mobile.";
-
       const hasText = visualTexts.length > 0;
+      const hasLabels = labelTexts.length > 0;
 
       const response = await supabase.functions.invoke("generate-thumbnail", {
         body: {
@@ -1248,29 +1249,64 @@ const SketchToThumbnail = () => {
             resolution: "1K",
             customPrompt: `Create a professional YouTube thumbnail based on the attached sketch-reference.
 
-IMPORTANT: Treat the sketch-reference as a precise layout blueprint. Recreate the scene so it matches the sketch in composition and placement.
+CRITICAL COMPOSITION RULES:
+- Create ONE unified, cohesive scene - NOT separate images pasted together
+- All elements must blend naturally with consistent lighting, shadows, and atmosphere
+- Fill the ENTIRE 16:9 canvas - NO white space, NO blank areas, NO empty corners
+- Use cinematic depth: background, midground, foreground layers that flow together seamlessly
+- Apply atmospheric effects (fog, light rays, bokeh) to integrate all elements into a single scene
 
-SKETCH INTERPRETATION RULES (CRITICAL):
-- Do NOT omit any clearly drawn object, symbol, prop, or shape in the sketch, even if it has NO tag/label. Every stroke is intentional.
-- If an object is recognizable (e.g. a flag, microphones, lights, icons, signs, sun, etc.), include it in the final image.
-- If a drawn object is ambiguous, still include it as a simple realistic prop that matches the shape and position.
-- Preserve relative sizes, distances, orientation, and layering (foreground/background) exactly as shown.
-- Do NOT re-frame, center, crop out, or move elements from their sketched positions.
+SKETCH LAYOUT BLUEPRINT:
+- Treat the sketch-reference as a precise layout guide
+- Recreate the scene matching the sketch in composition, positioning, and scale
+- Do NOT omit any clearly drawn object, symbol, prop, or shape - every stroke is intentional
+- If an object is recognizable (flag, microphones, lights, icons, signs, etc.), include it
+- If a drawn object is ambiguous, include it as a realistic prop matching the shape and position
+- Preserve relative sizes, distances, orientation, and layering (foreground/background) exactly as shown
+- Do NOT re-frame, center, crop out, or move elements from their sketched positions
 
-LABELS (for understanding only):
-The sketch contains labels (tags) that describe some elements: ${labelTexts.join(", ")}.
-CRITICAL: These labels must NOT be rendered as text in the thumbnail (unless explicitly listed in TEXT below).
-STYLE: Render elements described by labels in a highly realistic and photographic style, unless a different specific artistic style is requested in the guidelines below.
+${hasLabels ? `LABELS = PRIVATE INSTRUCTIONS (DO NOT RENDER AS TEXT):
+The sketch has annotation tags that tell you WHAT to draw, not what text to write.
+These labels are FOR YOUR UNDERSTANDING ONLY: ${labelTexts.join(", ")}
 
-TEXT:
-${hasText ? `Include ONLY these text elements exactly: ${visualTexts.map(vt => `"${vt.text}" (color: ${vt.fill})`).join(", ")}. ${textStyleGuidelines} CRITICAL: The color for each text element must be strictly respected and used exactly as specified.` : "CRITICAL: DO NOT add any text overlays, headlines, or labels to the thumbnail."}
+CRITICAL INTERPRETATION:
+- These labels describe visual elements, actions, or expressions to SHOW in the image
+- Example: "RIENDO" means make the person LAUGH (facial expression), NOT write the word "RIENDO"
+- Example: "SORPRENDIDO" means make the person look SURPRISED, NOT write the word "SORPRENDIDO"
+- NEVER render these label words as visible text in the final thumbnail
+- Interpret labels as instructions for what to depict visually
+- Render labeled elements in highly realistic, photographic style
 
-QUALITY:
-Make it high-impact and professional (YouTube viral look), but keep fidelity to the sketch highest priority.
-Style guidelines: ${additionalPrompt || viralStyleGuidelines}.
+` : ""}TEXT TO DISPLAY:
+${hasText ? `Include ONLY these text elements exactly as specified:
+${visualTexts.map(vt => `- "${vt.text}" in color ${vt.fill}`).join("\n")}
 
-AVATARS:
-If avatars are provided as context images, use them as the main subject and preserve their appearance exactly. remove any background from the avatar in the final image.`,
+TYPOGRAPHY REQUIREMENTS FOR TEXT:
+- Font: Heavy condensed sans-serif (Anton, Bebas Neue, or Impact style)
+- ALL-CAPS, ultra-bold weight
+- Strong 3D effect with prominent drop shadow (4-8px offset) and outer glow
+- High contrast against background - add 3-4px white or black stroke/outline if needed for readability
+- Size: Large and bold - main text should occupy at least 50-70% of thumbnail height
+- Position text strategically to not obscure important visual elements
+- Text must be crystal clear and readable on mobile screens
+CRITICAL: Respect the exact color specified for each text element.` : "CRITICAL: DO NOT add any text overlays, headlines, or labels to the thumbnail. The thumbnail should be purely visual."}
+
+VISUAL STYLE & QUALITY:
+- Make it high-impact and professional with YouTube viral aesthetics
+- High contrast with dramatic lighting (warm key light, cool rim light)
+- Dark or blurred background with bokeh, flares, or atmospheric effects
+- Clean subject cutout with strong rim lighting and subtle subject glow
+- Subtle 3D depth with layered composition
+- Mobile-optimized sharpness for 16:9 aspect ratio
+- Keep fidelity to the sketch layout as highest priority
+${additionalPrompt ? `\nAdditional style instructions: ${additionalPrompt}` : ""}
+
+AVATARS & PEOPLE:
+If avatars are provided as context images:
+- Use them as the main subject characters
+- Preserve their exact appearance, face, clothing, and styling
+- Remove any background from the avatar, integrating them naturally into the scene
+- Apply consistent lighting and atmospheric effects to blend with the overall composition`,
           },
           contextImageUrls: [sketchBase64, ...avatarUrls],
           contextImageLabels: ["sketch-reference", ...avatarUrls.map((_, i) => `avatar-${i + 1}`)],

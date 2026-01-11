@@ -146,8 +146,8 @@ const Index = () => {
     },
     {
       src: "/examples/ex_4.webp",
-      title: "VENEZUELA LIBRE: ¿Qué está pasando realmente?",
-      channel: "Noticias Global",
+      title: "Como conseguir una hipoteca Joven",
+      channel: "Wealth Tips",
       views: "450K views",
       time: "3 days ago",
       duration: "10:30",
@@ -197,8 +197,8 @@ const Index = () => {
     },
     {
       src: "/examples/ex_0.webp",
-      title: "HOW TO GET YOUR 1ST MILLION - Step by Step",
-      channel: "Wealth Academy",
+      title: "VENEZUELA LIBRE: ¿Qué está pasando realmente?",
+      channel: "Noticias Global",
       views: "2.8M views",
       time: "2 months ago",
       duration: "30:45",
@@ -287,7 +287,7 @@ const Index = () => {
           {/* Hero Visual */}
           <div className="relative aspect-square lg:aspect-[4/3] animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
             <img
-              src="/hero.png"
+              src="/hero.webp"
               alt="Vizion AI Hero Illustration"
               className="w-full h-full object-contain object-center"
             />
