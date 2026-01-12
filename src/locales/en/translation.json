@@ -66,8 +66,8 @@
     "title": "Sketch Studio",
     "subtitle": "Sketch your idea and let AI bring it to life",
     "canvas": "Sketch Canvas",
-    "generate": "Generate Professional Thumbnail",
-    "generating": "Generating from sketch...",
+    "generate": "Generate Thumbnail",
+    "generating": "Generating...",
     "clear": "Clear",
     "tools": {
       "pencil": "Pincel",

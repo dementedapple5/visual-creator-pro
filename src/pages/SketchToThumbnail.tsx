@@ -60,7 +60,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import useImage from "use-image";
-import { Loader2 } from "lucide-react";
+import { Loader2, Settings2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SketchLabel {
   id: string;
@@ -127,6 +128,7 @@ const INITIAL_LAYERS: LayerData[] = [
 const SketchToThumbnail = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const sketchId = searchParams.get("id");
   
@@ -1477,14 +1479,30 @@ If avatars are provided as context images:
       const updatePosition = () => {
         const rect = instructionsButtonRef.current?.getBoundingClientRect();
         if (rect) {
-          // Center vertically with the button (button height is 36px = h-9)
-          const buttonCenterY = rect.top + rect.height / 2;
-          const inputHeight = 36; // h-9 = 36px
-          setInstructionsInputPos({
-            // Store as document coordinates (works even if layout uses transforms)
-            x: rect.right + 8 + window.scrollX,
-            y: buttonCenterY - inputHeight / 2 + window.scrollY,
-          });
+          if (isMobile) {
+            // On mobile, show below the button and handle potential overflow
+            const inputWidth = 256; // w-64 = 16rem = 256px
+            let xPos = rect.left + window.scrollX;
+            
+            // If it would overflow the right side of the screen
+            if (xPos + inputWidth > window.innerWidth - 16) {
+              xPos = window.innerWidth - inputWidth - 16;
+            }
+            
+            setInstructionsInputPos({
+              x: Math.max(8, xPos),
+              y: rect.bottom + 8 + window.scrollY,
+            });
+          } else {
+            // Center vertically with the button (button height is 36px = h-9)
+            const buttonCenterY = rect.top + rect.height / 2;
+            const inputHeight = 36; // h-9 = 36px
+            setInstructionsInputPos({
+              // Store as document coordinates (works even if layout uses transforms)
+              x: rect.right + 8 + window.scrollX,
+              y: buttonCenterY - inputHeight / 2 + window.scrollY,
+            });
+          }
         }
       };
       updatePosition();
@@ -1534,45 +1552,45 @@ If avatars are provided as context images:
   }, [editingTextId, layers]);
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-6">
-      <div className="max-w-full mx-auto space-y-4 lg:space-y-6">
+    <div className="min-h-screen bg-background p-2 sm:p-4 lg:p-6">
+      <div className="max-w-full mx-auto space-y-3 lg:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button 
               variant="outline" 
               size="icon" 
               onClick={() => navigate("/sketches")}
-              className="shrink-0 h-9 w-9"
+              className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">{t("sketch.title")}</h1>
-              <p className="text-sm text-muted-foreground hidden sm:block">{t("sketch.subtitle")}</p>
+              <h1 className="text-lg sm:text-2xl font-bold tracking-tight leading-none">{t("sketch.title")}</h1>
+              <p className="text-xs text-muted-foreground hidden lg:block">{t("sketch.subtitle")}</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSaveSketch}>
-              <Save className="w-4 h-4 mr-2" />
-              {t("common.saveSketch")}
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0 [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Button variant="outline" size="sm" onClick={handleSaveSketch} className="h-8 sm:h-9 whitespace-nowrap px-2 sm:px-4" title={t("common.saveSketch")}>
+              <Save className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t("common.saveSketch")}</span>
             </Button>
-            <Button variant="outline" onClick={handleSaveThumbnail}>
-              <Save className="w-4 h-4 mr-2" />
-              {t("common.saveThumbnail")}
+            <Button variant="outline" size="sm" onClick={handleSaveThumbnail} className="h-8 sm:h-9 whitespace-nowrap px-2 sm:px-4" title={t("common.saveThumbnail")}>
+              <ImageIcon className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t("common.saveThumbnail")}</span>
             </Button>
-            <Button variant="outline" onClick={handleClear}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              {t("sketch.clear")}
+            <Button variant="outline" size="sm" onClick={handleClear} className="h-8 sm:h-9 whitespace-nowrap px-2 sm:px-4 text-destructive hover:text-destructive">
+              <Trash2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t("sketch.clear")}</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
           {/* Main Canvas Area */}
-          <div className="lg:col-span-4 flex gap-4">
-            {/* Toolbar - Left side */}
-            <div className="flex flex-col gap-1 p-1 bg-background/80 backdrop-blur-md border border-border rounded-xl shadow-lg h-fit sticky top-20 z-10">
+          <div className="lg:col-span-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* Toolbar - Top on mobile, Left on desktop */}
+            <div className="flex flex-row sm:flex-col gap-1 p-1 bg-background/80 backdrop-blur-md border border-border rounded-xl shadow-lg h-fit sm:sticky top-0 sm:top-20 z-10 overflow-x-auto sm:overflow-x-visible [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <ToolbarButton 
                 active={tool === "select"} 
                 onClick={() => setTool("select")} 
@@ -2488,7 +2506,9 @@ If avatars are provided as context images:
                 ) : (
                   <Bot className="w-4 h-4 mr-2" />
                 )}
-                {isGenerating ? t("sketch.generating") : t("sketch.generate")}
+                <span className="truncate">
+                  {isGenerating ? t("sketch.generating") : t("sketch.generate")}
+                </span>
               </Button>
             </div>
           </div>
@@ -3073,6 +3093,7 @@ const ShapeElement = ({ shape, isSelected, onSelect, onChange, onEdit, tool, onD
 
 const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate, onEdit, onFill }: any) => {
   const [pos, setPos] = useState({ x: 0, y: 0, width: 0 });
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!selectedId || !stageRef.current) return;
@@ -3082,9 +3103,16 @@ const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate,
       if (node) {
         const box = node.getClientRect();
         const stageBox = stageRef.current.container().getBoundingClientRect();
+        
+        let yPos = stageBox.top + box.y + box.height;
+        // If it would go off the bottom of the screen, show it above the element
+        if (yPos + 60 > window.innerHeight) {
+          yPos = Math.max(0, stageBox.top + box.y - 50);
+        }
+
         setPos({
           x: stageBox.left + box.x,
-          y: stageBox.top + box.y + box.height,
+          y: yPos,
           width: box.width,
         });
       }
@@ -3103,11 +3131,17 @@ const SelectionActions = ({ selectedId, stageRef, layers, onDelete, onDuplicate,
   const isShape = selectedElement?.type === "shape";
   const canFill = selectedElement?.type === "avatar" || selectedElement?.type === "shape" || layers.find(l => l.id === selectedId);
 
+  // Calculate safe left position to avoid horizontal overflow
+  const leftPos = pos.x + pos.width / 2;
+  const safeLeft = isMobile 
+    ? Math.max(80, Math.min(window.innerWidth - 80, leftPos))
+    : leftPos;
+
   return (
     <div 
-      className="fixed z-50 flex gap-1 p-1 bg-background/80 backdrop-blur-md border border-border rounded-lg shadow-xl -translate-x-1/2"
+      className="fixed z-50 flex gap-1 p-1 bg-background/80 backdrop-blur-md border border-border rounded-lg shadow-xl -translate-x-1/2 whitespace-nowrap"
       style={{ 
-        left: pos.x + pos.width / 2,
+        left: safeLeft,
         top: pos.y + 10,
       }}
     >

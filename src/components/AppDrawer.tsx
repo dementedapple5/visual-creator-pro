@@ -357,7 +357,7 @@ export const AppDrawer = () => {
             </div>
           </div>
 
-          <nav className="flex-1 p-4 space-y-6">
+          <nav className="flex-1 p-4 space-y-6 overflow-y-auto transition-all duration-300">
             <div className="space-y-1">
               {mainMenuItems.map((item) => {
                 const isActive = location.pathname === item.path;

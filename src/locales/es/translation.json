@@ -66,8 +66,8 @@
     "title": "Sketch Studio",
     "subtitle": "Dibuja tu idea y deja que la IA la haga realidad",
     "canvas": "Lienzo de Sketch",
-    "generate": "Generar Miniatura Profesional",
-    "generating": "Generando desde sketch...",
+    "generate": "Generar Miniatura",
+    "generating": "Generando...",
     "clear": "Limpiar",
     "tools": {
       "pencil": "Pincel",
