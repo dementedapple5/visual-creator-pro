@@ -293,8 +293,8 @@ serve(async (req) => {
   }
 
   try {
-    const { transcription, videoTitle, frames, isViral } = await req.json();
-    logger.info("Starting thumbnail prompt generation", { isViral, videoTitle });
+    const { transcription, videoTitle, frames, isViral, styleReferences } = await req.json();
+    logger.info("Starting thumbnail prompt generation", { isViral, videoTitle, hasStyleRefs: !!styleReferences });
     
     if (!transcription) {
       logger.error("No transcription provided");
@@ -308,7 +308,9 @@ serve(async (req) => {
     }
 
     const referenceFrames = pickReferenceFrames(frames, 6);
+    const referenceStyles = pickReferenceFrames(styleReferences, 4);
     logger.info(`Reference frames processed`, { total: Array.isArray(frames) ? frames.length : 0, usable: referenceFrames.length });
+    logger.info(`Reference styles processed`, { total: Array.isArray(styleReferences) ? styleReferences.length : 0, usable: referenceStyles.length });
 
     // Compact style spec (kept short on purpose; full long blocks cause downstream prompt failures)
     const viralStyleGuidelines = `Viral YouTube style: bold condensed ALL-CAPS (Anton/Bebas/Impact vibe), 1–4 word headline, high-contrast colors, subtle 3D+shadow+glow, off-center subject + text opposite face, warm key/cool rim, dark/blur BG, bokeh/flares, clean cutout + strong rim/subject glow, no clutter, mobile-sharp 16:9.`;
@@ -421,6 +423,13 @@ Position style guidelines:
 - bottom-left: Dynamic, action-oriented, warm and energetic.
 - bottom-right: Editorial, sophisticated, premium.
 
+STYLE REFERENCES (OPTIONAL):
+If style reference images are provided below, you MUST analyze them and:
+1. Extract the visual style (specific color palettes, typography vibes, composition patterns, lighting styles).
+2. Note the text placement patterns (where they put titles/subtitles).
+3. Identify recurring design elements (arrows, circles, specific types of icons).
+Apply these style patterns to the generated thumbnails while keeping the subjects and content 100% faithful to the video reference frames and transcription. The goal is "content from the video, style from the references".
+
 IMPORTANT:
 - "elements" can be an empty array when not needed.
 - If there is a human subject in reference frames, include "faceExpression" and keep the person faithful to the reference (same outfit, same face).
@@ -442,7 +451,7 @@ Task:
     ];
 
     // Add reference frames as inline images
-    contentParts.push({ text: "Video Content Reference Frames:" });
+    contentParts.push({ text: "Video Content Reference Frames (SUBJECT & CONTENT):" });
     for (const img of referenceFrames) {
       contentParts.push({
         inlineData: {
@@ -450,6 +459,18 @@ Task:
           data: img.data
         }
       });
+    }
+
+    if (referenceStyles.length > 0) {
+      contentParts.push({ text: "Style Reference Images (VISUAL STYLE & COMPOSITION ONLY):" });
+      for (const img of referenceStyles) {
+        contentParts.push({
+          inlineData: {
+            mimeType: img.mimeType,
+            data: img.data
+          }
+        });
+      }
     }
 
     const response = await fetch(

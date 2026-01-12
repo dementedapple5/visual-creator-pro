@@ -382,12 +382,14 @@ export async function generateThumbnails(
   frames?: string[],
   videoTitle?: string,
   onUpdate?: (thumbnails: string[]) => void,
-  creditsUsed: number = 2
+  creditsUsed: number = 2,
+  styleReferences?: string[]
 ): Promise<{ thumbnails: string[]; prompt: string; generationId?: string }> {
   // Step 1: Generate thumbnail prompts with Gemini
   console.log('Step 1: Generating thumbnail prompts...');
+  console.log(`Style references provided: ${styleReferences?.length || 0}`);
   const { data: promptsData, error: promptsError } = await supabase.functions.invoke('generate-thumbnail-prompts', {
-    body: { transcription, frames, videoTitle, isViral: true }
+    body: { transcription, frames, videoTitle, isViral: true, styleReferences }
   });
 
   if (promptsError) throw new Error(promptsError.message);
@@ -399,6 +401,7 @@ export async function generateThumbnails(
   }
 
   console.log('Step 2: Generating 2x2 grid...');
+  console.log(`Sending to generate-thumbnails: ${styleReferences?.length || 0} style references`);
   // Step 2: Generate 2x2 grid with Gemini
   // Use supabaseLongRunning for the 2x2 grid generation as it can take up to 2 minutes
   const { data: gridData, error: gridError } = await supabaseLongRunning.functions.invoke('generate-thumbnails', {
@@ -406,7 +409,8 @@ export async function generateThumbnails(
       thumbnailPrompts, 
       frames,
       isViral: true,
-      creditsUsed
+      creditsUsed,
+      styleReferences
     }
   });
 
@@ -437,7 +441,12 @@ export async function generateThumbnails(
 }
 
 export async function processVideoContent(
-  input: { type: "url" | "file"; value: string | File; creditsUsed?: number },
+  input: { 
+    type: "url" | "file"; 
+    value: string | File; 
+    creditsUsed?: number;
+    styleReferences?: string[];
+  },
   callbacks: ProcessingCallbacks
 ): Promise<GenerationResult & { generationId?: string }> {
   const { onProgress, onTranscriptionUpdate, onThumbnailUpdate, onFramesUpdate, onAudioUpdate, onFramesReady } = callbacks;
@@ -505,7 +514,14 @@ export async function processVideoContent(
 
   // Step 2: Generate thumbnails
   onProgress(2, "Creating thumbnails...");
-  const thumbnailResult = await generateThumbnails(transcription, extractedFrames, undefined, onThumbnailUpdate, input.creditsUsed);
+  const thumbnailResult = await generateThumbnails(
+    transcription, 
+    extractedFrames, 
+    undefined, 
+    onThumbnailUpdate, 
+    input.creditsUsed,
+    input.styleReferences
+  );
 
   // Small delay to show completion state
   await new Promise(resolve => setTimeout(resolve, 800));

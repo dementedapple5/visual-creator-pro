@@ -1,23 +1,36 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, X, Zap } from "lucide-react";
+import { Upload, X, Zap, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { ReferenceUpload } from "./ReferenceUpload";
+import { useTranslation } from "react-i18next";
 
 interface VideoInputProps {
-  onSubmit: (input: { type: "url" | "file"; value: string | File }) => void;
+  onSubmit: (input: { 
+    type: "url" | "file"; 
+    value: string | File;
+    styleReferences?: string[];
+  }) => void;
   isLoading?: boolean;
 }
 
 export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
+  const [styleReferences, setStyleReferences] = useState<string[]>([]);
+  const [isReferencesOpen, setIsReferencesOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     if (file) {
-      onSubmit({ type: "file", value: file });
+      onSubmit({ 
+        type: "file", 
+        value: file,
+        styleReferences: styleReferences.length > 0 ? styleReferences : undefined
+      });
     }
   };
 
@@ -127,6 +140,44 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Style References (Optional) */}
+      <div className="border border-border rounded-lg bg-secondary/30 overflow-hidden">
+        <button
+          onClick={() => setIsReferencesOpen(!isReferencesOpen)}
+          className="w-full flex items-center justify-between p-4 hover:bg-secondary/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">
+              {t("quickCreate.references.title")}
+            </span>
+            {styleReferences.length > 0 && (
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                {styleReferences.length}
+              </span>
+            )}
+          </div>
+          {isReferencesOpen ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+        
+        <AnimatePresence>
+          {isReferencesOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="px-4 pb-4 overflow-hidden"
+            >
+              <ReferenceUpload onReferencesChange={setStyleReferences} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Submit Button */}
       <motion.button

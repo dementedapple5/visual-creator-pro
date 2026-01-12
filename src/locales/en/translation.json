@@ -434,6 +434,12 @@
       "thumbnailSaved": "Thumbnail saved!",
       "thumbnailsSaved": "Successfully saved {count} thumbnails!",
       "preparing": "Preparing..."
+    },
+    "references": {
+      "title": "Add style references (optional)",
+      "description": "Upload YouTube feed screenshots or individual thumbnails to inspire the visual style.",
+      "dropHint": "Drop or click to add references",
+      "limitReached": "Maximum {{count}} reference images allowed"
     }
   },
   "createNew": {

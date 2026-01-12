@@ -90,7 +90,11 @@ const QuickCreate = () => {
     }
   };
 
-  const handleSubmit = async (input: { type: "url" | "file"; value: string | File }) => {
+  const handleSubmit = async (input: { 
+    type: "url" | "file"; 
+    value: string | File;
+    styleReferences?: string[];
+  }) => {
     // Prevent duplicate submits (double click, lag, etc.)
     if (submitInFlightRef.current) return;
     submitInFlightRef.current = true;

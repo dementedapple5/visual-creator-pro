@@ -68,8 +68,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { thumbnailPrompts, frames, isViral, creditsUsed } = await req.json();
-    logger.info("Starting thumbnail grid generation", { isViral, promptCount: thumbnailPrompts?.length });
+    const { thumbnailPrompts, frames, isViral, creditsUsed, styleReferences } = await req.json();
+    logger.info("Starting thumbnail grid generation", { isViral, promptCount: thumbnailPrompts?.length, hasStyleRefs: !!styleReferences });
     
     // Create initial generation record
     const authHeader = req.headers.get("Authorization");
@@ -102,7 +102,9 @@ serve(async (req) => {
     }
 
     const referenceFrames = pickReferenceFrames(frames, 6);
+    const referenceStyles = pickReferenceFrames(styleReferences, 4);
     logger.info(`Reference frames processed`, { total: Array.isArray(frames) ? frames.length : 0, usable: referenceFrames.length });
+    logger.info(`Reference styles processed`, { total: Array.isArray(styleReferences) ? styleReferences.length : 0, usable: referenceStyles.length });
 
     // Keep this compact: long prompts are a common cause of Gemini image failures/timeouts.
     const viralStyleGuidelines =
@@ -168,6 +170,17 @@ serve(async (req) => {
       return `${desc}${styleBits ? ` ${styleBits}` : ""}${textPosition ? ` ${textPosition}` : ""}${elements ? ` ${elements}` : ""}${overlay}`;
     };
 
+    // Build style reference instructions if provided
+    const styleReferenceInstructions = referenceStyles.length > 0 
+      ? `\n\nSTYLE REFERENCE IMAGES PROVIDED (IMPORTANT - READ CAREFULLY):
+The LAST ${referenceStyles.length} reference image(s) provided are STYLE REFERENCES ONLY.
+- Extract their visual style: color palettes, typography style, text placement patterns, composition, lighting mood
+- Apply these style elements to the 4 thumbnails you generate
+- DO NOT copy the subjects or content from these style references
+- The first ${referenceFrames.length} images show the actual video content/subjects to include
+- Think: "Content from video frames + Visual style from the ${referenceStyles.length} style reference(s)"`
+      : '';
+
     const gridPrompt = `Create ONE 2x2 grid image of YouTube thumbnails (4 distinct variants). Layout:
 
 TOP ROW:
@@ -180,14 +193,23 @@ BOTTOM ROW:
 
 Requirements (strict):
 - NO borders/gaps/lines between cells (perfectly adjacent).
-- Each cell is a complete 16:9 thumbnail, YouTube-optimized, faithful to reference frames.
+- Each cell is a complete 16:9 thumbnail, YouTube-optimized, faithful to reference frames for content and subjects.
 - Place the title/subtitle text EXACTLY ONCE per thumbnail (single clear high-contrast location).
 - Final image size: 3840x2160 (2x2 of 1920x1080).
-${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}`;
+${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styleReferenceInstructions}`;
 
     console.log("Generating grid image via Replicate...");
+    logger.info("Prompt preview (first 500 chars)", { promptPreview: gridPrompt.slice(0, 500) });
 
     const referenceFrameDataUrls = referenceFrames.map((img) => `data:${img.mimeType};base64,${img.data}`);
+    const styleRefDataUrls = referenceStyles.map((img) => `data:${img.mimeType};base64,${img.data}`);
+    const allRefImages = [...referenceFrameDataUrls, ...styleRefDataUrls];
+    
+    logger.info("Image references breakdown", { 
+      totalImages: allRefImages.length, 
+      videoFrames: referenceFrameDataUrls.length, 
+      styleRefs: styleRefDataUrls.length 
+    });
 
     // Replicate API call with polling logic
     logger.info("Starting Replicate prediction for grid...");
@@ -205,7 +227,7 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}`;
           input: {
             prompt: gridPrompt,
             resolution: "2K",
-            ...(referenceFrameDataUrls.length > 0 ? { image_input: referenceFrameDataUrls } : {}),
+            ...(allRefImages.length > 0 ? { image_input: allRefImages } : {}),
             aspect_ratio: "16:9",
             output_format: "png",
             safety_filter_level: "block_only_high",

@@ -434,6 +434,12 @@
       "thumbnailSaved": "¡Miniatura guardada!",
       "thumbnailsSaved": "¡{count} miniaturas guardadas exitosamente!",
       "preparing": "Preparando..."
+    },
+    "references": {
+      "title": "Añadir referencias de estilo (opcional)",
+      "description": "Sube capturas de pantalla de YouTube o miniaturas individuales para inspirar el estilo visual.",
+      "dropHint": "Arrastra o haz clic para añadir referencias",
+      "limitReached": "Máximo {{count}} imágenes de referencia permitidas"
     }
   },
   "createNew": {
