@@ -119,7 +119,7 @@ export function ReferenceUpload({ onReferencesChange, maxReferences = 6 }: Refer
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="relative aspect-video rounded-lg overflow-hidden border border-border group"
+              className="relative aspect-video rounded-lg overflow-hidden border border-border group my-[16px]"
             >
               <img src={ref} alt={`Reference ${index + 1}`} className="w-full h-full object-cover" />
               <button
