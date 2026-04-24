@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createLogger } from "../_shared/logger.ts";
+import { base64ToUint8Array, generateOpenAIImage } from "../_shared/openai-image.ts";
 
 const logger = createLogger("generate-thumbnail");
 
@@ -79,7 +80,11 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const replicateApiKey = Deno.env.get("REPLICATE_API_KEY")!;
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+
+    if (!openAIApiKey) {
+      throw new Error("OPENAI_API_KEY not configured");
+    }
 
     supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -433,7 +438,7 @@ CRITICAL INSTRUCTIONS:
       }
 
       // Elements section (list + positions) - consolidated to avoid repetition
-      let elementsToInclude: Array<{ name: string; brand?: string; position?: string }> = [];
+      const elementsToInclude: Array<{ name: string; brand?: string; position?: string }> = [];
       
       // Collect elements from the elements array (primary source - has complete info including positions)
       if (thumbnailData.elements && thumbnailData.elements.length > 0) {
@@ -505,7 +510,7 @@ CRITICAL INSTRUCTIONS:
       }
     }
 
-    // Build image input array for Replicate API
+    // Build image input array for OpenAI Image API
     const imageInput: string[] = [];
 
     // If this is an iteration, add the source image (the version being iterated on)
@@ -605,100 +610,19 @@ CRITICAL INSTRUCTIONS:
     logger.info("Generated prompt", { prompt });
     logger.info("Number of image inputs", { count: imageInput.length });
 
-    // Replicate API call with polling logic
-    logger.info("Starting Replicate prediction...");
-    
-    // 1. Create prediction
-    const createResponse = await fetch(
-      "https://api.replicate.com/v1/models/google/nano-banana-pro/predictions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${replicateApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          input: {
-            prompt,
-            resolution,
-            ...(imageInput.length > 0 ? { image_input: imageInput } : {}),
-            aspect_ratio: aspectRatio,
-            output_format: "png",
-            safety_filter_level: "block_only_high",
-          },
-        }),
-      }
-    );
-
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text();
-      throw new Error(`Failed to create Replicate prediction: ${createResponse.status} ${errorText}`);
-    }
-
-    let prediction = await createResponse.json();
-    const predictionId = prediction.id;
-    logger.info(`Prediction created: ${predictionId}`);
-
-    // 2. Poll for completion
-    const maxPollAttempts = 120; // ~6 minutes total (with 3s delay)
-    const pollInterval = 3000;
-    let succeeded = false;
-
-    for (let i = 0; i < maxPollAttempts; i++) {
-      if (prediction.status === "succeeded") {
-        succeeded = true;
-        break;
-      } else if (prediction.status === "failed" || prediction.status === "canceled") {
-        throw new Error(`Replicate prediction ${prediction.status}: ${prediction.error || "No error details"}`);
-      }
-
-      logger.info(`Polling prediction ${predictionId} (attempt ${i + 1}, status: ${prediction.status})...`);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-
-      const pollResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${predictionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${replicateApiKey}`,
-          },
-        }
-      );
-
-      if (pollResponse.ok) {
-        prediction = await pollResponse.json();
-      } else {
-        const pollError = await pollResponse.text();
-        logger.error(`Poll failed: ${pollResponse.status} ${pollError}`);
-        // Continue polling unless we get a terminal error
-        if (pollResponse.status >= 500) continue;
-        throw new Error(`Failed to poll Replicate prediction: ${pollResponse.status}`);
-      }
-    }
-
-    if (!succeeded) {
-      throw new Error("Replicate prediction timed out");
-    }
-
-    logger.info("Replicate prediction successful");
-
-    const output = prediction?.output;
-    const outputUrl = typeof output === "string" ? output : (Array.isArray(output) && typeof output[0] === "string" ? output[0] : null);
-
-    if (!outputUrl) {
-      throw new Error("No image output received from Replicate");
-    }
-
-    // Download the generated image
-    const imageRes = await fetch(outputUrl);
-    if (!imageRes.ok) {
-      throw new Error(`Failed to download output image: ${imageRes.status}`);
-    }
-    const contentType = imageRes.headers.get("content-type") || "image/png";
-    const imageArrayBuffer = await imageRes.arrayBuffer();
+    const generatedImage = await generateOpenAIImage({
+      apiKey: openAIApiKey,
+      prompt,
+      resolution,
+      aspectRatio,
+      inputImages: imageInput,
+      userId,
+      logger,
+      logLabel: "OpenAI GPT Image 2 thumbnail generation",
+    });
 
     // For grid mode, return base64 directly
     if (isGridMode) {
-      const imageData = arrayBufferToBase64(imageArrayBuffer);
       if (generationId) {
         await supabase
           .from("generations")
@@ -712,7 +636,7 @@ CRITICAL INSTRUCTIONS:
 
       return new Response(
         JSON.stringify({
-          imageBase64: imageData,
+          imageBase64: generatedImage.b64Json,
           generationId,
           isGridMode: true
         }),
@@ -722,11 +646,11 @@ CRITICAL INSTRUCTIONS:
 
     // For single mode, upload to storage
     const fileName = `${userId}/${Date.now()}.png`;
-    const binaryData = new Uint8Array(imageArrayBuffer);
+    const binaryData = base64ToUint8Array(generatedImage.b64Json);
 
     const { error: uploadError } = await supabase.storage
       .from("thumbnails")
-      .upload(fileName, binaryData, { contentType });
+      .upload(fileName, binaryData, { contentType: generatedImage.contentType });
 
     if (uploadError) throw uploadError;
 

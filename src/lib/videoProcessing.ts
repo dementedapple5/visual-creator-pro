@@ -402,7 +402,7 @@ export async function generateThumbnails(
 
   console.log('Step 2: Generating 2x2 grid...');
   console.log(`Sending to generate-thumbnails: ${styleReferences?.length || 0} style references`);
-  // Step 2: Generate 2x2 grid with Gemini
+  // Step 2: Generate 2x2 grid with GPT
   // Use supabaseLongRunning for the 2x2 grid generation as it can take up to 2 minutes
   const { data: gridData, error: gridError } = await supabaseLongRunning.functions.invoke('generate-thumbnails', {
     body: { 
@@ -533,4 +533,3 @@ export async function processVideoContent(
     generationId: thumbnailResult.generationId
   };
 }
-

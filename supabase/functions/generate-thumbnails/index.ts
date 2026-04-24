@@ -2,20 +2,29 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createLogger } from "../_shared/logger.ts";
+import { generateOpenAIImage } from "../_shared/openai-image.ts";
 
 const logger = createLogger("generate-thumbnails");
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  // Avoid stack overflow on large images by chunking
-  const chunkSize = 0x8000;
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return btoa(binary);
-}
+type ThumbnailPromptElement = {
+  description?: unknown;
+  type?: unknown;
+  position?: unknown;
+};
+
+type ThumbnailPrompt = {
+  position?: unknown;
+  title?: unknown;
+  text?: unknown;
+  subtitle?: unknown;
+  visualStyle?: unknown;
+  textStyle?: unknown;
+  background?: unknown;
+  faceExpression?: unknown;
+  textPosition?: unknown;
+  elements?: ThumbnailPromptElement[];
+  description?: unknown;
+};
 
 function parseDataUrlImage(dataUrl: string): { mimeType: string; data: string } | null {
   // Expected: data:<mime>;base64,<data>
@@ -95,10 +104,10 @@ serve(async (req) => {
       throw new Error('Invalid thumbnailPrompts: must be an array with exactly 4 items');
     }
 
-    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-    if (!REPLICATE_API_KEY) {
-      logger.error("REPLICATE_API_KEY not configured");
-      throw new Error("REPLICATE_API_KEY not configured");
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openAIApiKey) {
+      logger.error("OPENAI_API_KEY not configured");
+      throw new Error("OPENAI_API_KEY not configured");
     }
 
     const referenceFrames = pickReferenceFrames(frames, 6);
@@ -106,7 +115,7 @@ serve(async (req) => {
     logger.info(`Reference frames processed`, { total: Array.isArray(frames) ? frames.length : 0, usable: referenceFrames.length });
     logger.info(`Reference styles processed`, { total: Array.isArray(styleReferences) ? styleReferences.length : 0, usable: referenceStyles.length });
 
-    // Keep this compact: long prompts are a common cause of Gemini image failures/timeouts.
+    // Keep this compact: long prompts are a common cause of image model failures/timeouts.
     const viralStyleGuidelines =
       `Viral YouTube thumbnail: bold condensed ALL-CAPS (Anton/Bebas/Impact vibe), ` +
       `1–4 word headline, high contrast, subtle 3D+shadow+glow, subject off-center + text opposite face, ` +
@@ -122,8 +131,9 @@ serve(async (req) => {
     };
 
     // Build prompt for 2x2 grid
+    const prompts = thumbnailPrompts as ThumbnailPrompt[];
     const getThumbnailPrompt = (position: string) => {
-      const p = thumbnailPrompts.find((p: any) => p.position === position);
+      const p = prompts.find((item) => item.position === position);
       if (!p) return 'Missing description';
       const title = typeof p.title === "string" && p.title.trim() ? p.title.trim() : (typeof p.text === "string" ? p.text.trim() : "");
       const subtitle = typeof p.subtitle === "string" && p.subtitle.trim() ? p.subtitle.trim() : "";
@@ -146,7 +156,7 @@ serve(async (req) => {
       let elements = "";
       if (Array.isArray(p.elements) && p.elements.length > 0) {
         const items = p.elements
-          .map((e: any) => {
+          .map((e) => {
             const desc = compact(e?.description, 80);
             const type = compact(e?.type, 24);
             const pos = compact(e?.position, 32);
@@ -198,7 +208,7 @@ Requirements (strict):
 - Final image size: 3840x2160 (2x2 of 1920x1080).
 ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styleReferenceInstructions}`;
 
-    console.log("Generating grid image via Replicate...");
+    console.log("Generating grid image via OpenAI...");
     logger.info("Prompt preview (first 500 chars)", { promptPreview: gridPrompt.slice(0, 500) });
 
     const referenceFrameDataUrls = referenceFrames.map((img) => `data:${img.mimeType};base64,${img.data}`);
@@ -211,105 +221,17 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styl
       styleRefs: styleRefDataUrls.length 
     });
 
-    // Replicate API call with polling logic
-    logger.info("Starting Replicate prediction for grid...");
-    
-    // 1. Create prediction
-    const createResponse = await fetch(
-      "https://api.replicate.com/v1/models/google/nano-banana-pro/predictions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${REPLICATE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          input: {
-            prompt: gridPrompt,
-            resolution: "2K",
-            ...(allRefImages.length > 0 ? { image_input: allRefImages } : {}),
-            aspect_ratio: "16:9",
-            output_format: "png",
-            safety_filter_level: "block_only_high",
-          },
-        }),
-      }
-    );
+    const generatedImage = await generateOpenAIImage({
+      apiKey: openAIApiKey,
+      prompt: gridPrompt,
+      aspectRatio: "16:9",
+      resolution: "4K",
+      inputImages: allRefImages,
+      logger,
+      logLabel: "OpenAI GPT Image 2 grid generation",
+    });
 
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text();
-      throw new Error(`Failed to create Replicate prediction: ${createResponse.status} ${errorText}`);
-    }
-
-    let prediction = await createResponse.json();
-    const predictionId = prediction.id;
-    logger.info(`Prediction created: ${predictionId}`);
-
-    // 2. Poll for completion
-    const maxPollAttempts = 120; // ~6 minutes total (with 3s delay)
-    const pollInterval = 3000;
-    let succeeded = false;
-
-    for (let i = 0; i < maxPollAttempts; i++) {
-      if (prediction.status === "succeeded") {
-        succeeded = true;
-        break;
-      } else if (prediction.status === "failed" || prediction.status === "canceled") {
-        throw new Error(`Replicate prediction ${prediction.status}: ${prediction.error || "No error details"}`);
-      }
-
-      logger.info(`Polling prediction ${predictionId} (attempt ${i + 1}, status: ${prediction.status})...`);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-
-      const pollResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${predictionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${REPLICATE_API_KEY}`,
-          },
-        }
-      );
-
-      if (pollResponse.ok) {
-        prediction = await pollResponse.json();
-      } else {
-        const pollError = await pollResponse.text();
-        logger.error(`Poll failed: ${pollResponse.status} ${pollError}`);
-        if (pollResponse.status >= 500) continue;
-        throw new Error(`Failed to poll Replicate prediction: ${pollResponse.status}`);
-      }
-    }
-
-    if (!succeeded) {
-      throw new Error("Replicate prediction timed out");
-    }
-
-    logger.info("Replicate prediction successful");
-
-    const output = prediction?.output;
-    const outputUrl =
-      typeof output === "string"
-        ? output
-        : Array.isArray(output) && typeof output[0] === "string"
-          ? output[0]
-          : null;
-
-    if (!outputUrl) {
-      logger.error("No output URL received from Replicate", { id: prediction?.id, status: prediction?.status, output: prediction?.output });
-      throw new Error("No image output received from Replicate");
-    }
-
-    // Convert the output image URL into a data URL to keep the existing frontend contract unchanged.
-    const imageRes = await fetch(outputUrl);
-    if (!imageRes.ok) {
-      const errText = await imageRes.text();
-      logger.error("Failed to download Replicate output image", { status: imageRes.status, error: errText });
-      throw new Error(`Failed to download output image: ${imageRes.status}`);
-    }
-
-    const contentType = imageRes.headers.get("content-type") || "image/png";
-    const bytes = await imageRes.arrayBuffer();
-    const gridImage = `data:${contentType};base64,${arrayBufferToBase64(bytes)}`;
+    const gridImage = `data:${generatedImage.contentType};base64,${generatedImage.b64Json}`;
 
     logger.info('Generated 2x2 grid image successfully');
 
@@ -357,4 +279,3 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styl
     );
   }
 });
-
