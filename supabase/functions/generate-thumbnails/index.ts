@@ -79,7 +79,7 @@ serve(async (req) => {
 
     const { thumbnailPrompts, frames, isViral, creditsUsed, styleReferences } = await req.json();
     logger.info("Starting thumbnail grid generation", { isViral, promptCount: thumbnailPrompts?.length, hasStyleRefs: !!styleReferences });
-    
+
     // Create initial generation record
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
@@ -181,7 +181,7 @@ serve(async (req) => {
     };
 
     // Build style reference instructions if provided
-    const styleReferenceInstructions = referenceStyles.length > 0 
+    const styleReferenceInstructions = referenceStyles.length > 0
       ? `\n\nSTYLE REFERENCE IMAGES PROVIDED (IMPORTANT - READ CAREFULLY):
 The LAST ${referenceStyles.length} reference image(s) provided are STYLE REFERENCES ONLY.
 - Extract their visual style: color palettes, typography style, text placement patterns, composition, lighting mood
@@ -214,11 +214,11 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styl
     const referenceFrameDataUrls = referenceFrames.map((img) => `data:${img.mimeType};base64,${img.data}`);
     const styleRefDataUrls = referenceStyles.map((img) => `data:${img.mimeType};base64,${img.data}`);
     const allRefImages = [...referenceFrameDataUrls, ...styleRefDataUrls];
-    
-    logger.info("Image references breakdown", { 
-      totalImages: allRefImages.length, 
-      videoFrames: referenceFrameDataUrls.length, 
-      styleRefs: styleRefDataUrls.length 
+
+    logger.info("Image references breakdown", {
+      totalImages: allRefImages.length,
+      videoFrames: referenceFrameDataUrls.length,
+      styleRefs: styleRefDataUrls.length
     });
 
     const generatedImage = await generateOpenAIImage({
@@ -228,7 +228,7 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styl
       resolution: "4K",
       inputImages: allRefImages,
       logger,
-      logLabel: "OpenAI GPT Image 2 grid generation",
+      logLabel: "OpenAI gpt-image-2 grid generation",
     });
 
     const gridImage = `data:${generatedImage.contentType};base64,${generatedImage.b64Json}`;
@@ -268,7 +268,7 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styl
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: errorMessage,
         details: error instanceof Error ? error.stack : undefined
       }),

@@ -422,6 +422,17 @@
       "fourThumbnails": "4 unique thumbnails",
       "optimizedTitles": "Optimized titles"
     },
+    "input": {
+      "uploadFile": "Upload file",
+      "videoUrl": "Video URL",
+      "dropVideo": "Drop your video here",
+      "clickToSelect": "or click to select",
+      "publicVideoUrl": "Public video URL",
+      "videoUrlPlaceholder": "https://example.com/video.mp4",
+      "videoUrlHint": "You can paste a YouTube link or a direct public video file URL (mp4, mov, webm).",
+      "processing": "Processing...",
+      "generate": "Generate thumbnails and titles"
+    },
     "errors": {
       "signInFirst": "Please sign in first",
       "limitReached": "limit reached. Upgrade to create more.",

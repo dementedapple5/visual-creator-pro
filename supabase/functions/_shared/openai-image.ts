@@ -76,12 +76,12 @@ export function mapResolutionToOpenAISize(aspectRatio?: string, resolution?: str
   if (isPortrait) {
     if (normalizedResolution === "4K") return "2160x3840";
     if (normalizedResolution === "2K") return "1152x2048";
-    return "864x1536";
+    return "1024x1536";
   }
 
   if (normalizedResolution === "4K") return "3840x2160";
   if (normalizedResolution === "2K") return "2048x1152";
-  return "1536x864";
+  return "1536x1024";
 }
 
 export function base64ToUint8Array(base64: string): Uint8Array {

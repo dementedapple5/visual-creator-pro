@@ -370,7 +370,7 @@ CRITICAL INSTRUCTIONS:
       if (!isGridMode && (thumbnailData.avatarId || thumbnailData.customAvatarUrl)) {
         const hasExpression = singleExpression && singleExpression !== "ai-decide";
         const hasPosition = singleAvatarPosition && singleAvatarPosition !== "ai-decide";
-        
+
         if (hasExpression || hasPosition) {
           prompt += `\n\nAVATAR/PERSON REQUIREMENTS:`;
           if (hasExpression) {
@@ -388,10 +388,10 @@ CRITICAL INSTRUCTIONS:
         const hasTitle = thumbnailData.title && thumbnailData.titleMode !== 'ai';
         const hasSubtitle = thumbnailData.subtitle && thumbnailData.subtitleMode !== 'ai';
         const hasTextPosition = singleTextPosition && singleTextPosition !== "ai-decide";
-        
+
         if (hasTitle || hasSubtitle || hasTextPosition) {
           prompt += `\n\nTEXT REQUIREMENTS:`;
-          
+
           if (hasTitle) {
             // Check if using image-based font style reference
             if (thumbnailData.fontStyleImageUrl) {
@@ -416,11 +416,11 @@ CRITICAL INSTRUCTIONS:
               }
             }
           }
-          
+
           if (hasSubtitle) {
             prompt += `\n- Subtitle: "${thumbnailData.subtitle}" in smaller complementary text styled to match the main title.`;
           }
-          
+
           if (hasTextPosition) {
             const position = singleTextPosition!.replace(/-/g, ' ');
             prompt += `\n- Text position: ${position} (CRITICAL - the text must be positioned exactly at ${position}, this is non-negotiable)`;
@@ -453,7 +453,7 @@ CRITICAL INSTRUCTIONS:
           }
         });
       }
-      
+
       // Legacy/fallback: add user-defined text elements only if not already in elements array
       // (userElements is typically redundant since textElements are already in elements array)
       if (thumbnailData.userElements && elementsToInclude.length === 0) {
@@ -462,7 +462,7 @@ CRITICAL INSTRUCTIONS:
           elementsToInclude.push({ name: elementName });
         });
       }
-      
+
       // Legacy support: fetch product details if productIds provided (only if no elements found yet)
       if (elementsToInclude.length === 0 && thumbnailData.productIds && thumbnailData.productIds.length > 0) {
         const { data: productDetails } = await supabase
@@ -482,7 +482,7 @@ CRITICAL INSTRUCTIONS:
           });
         }
       }
-      
+
       // Build elements section if we have any elements
       if (elementsToInclude.length > 0) {
         prompt += `\n\nELEMENTS/PRODUCTS TO INCLUDE:`;
@@ -493,7 +493,7 @@ CRITICAL INSTRUCTIONS:
           } else {
             elementLabel = element.name;
           }
-          
+
           if (!isGridMode && element.position && element.position !== "ai-decide") {
             const position = element.position.replace(/-/g, ' ');
             prompt += `\n- ${elementLabel} - Position at ${position} (CRITICAL - must be positioned exactly at ${position}, this is non-negotiable)`;
@@ -530,7 +530,7 @@ CRITICAL INSTRUCTIONS:
         const url = contextImageUrls[i];
         const label = contextImageLabels?.[i] || `context-${i + 1}`;
         if (!url) continue;
-        
+
         try {
           if (url.startsWith("data:")) {
             imageInput.push(url);
@@ -596,9 +596,9 @@ CRITICAL INSTRUCTIONS:
     }
 
     // Add custom background (skip in remix/iteration mode)
-    if (!remixImageUrl && !iterationImageUrl && 
-        (thumbnailData?.backgroundType === "custom" || thumbnailData?.backgroundType === "image") && 
-        thumbnailData?.backgroundValue) {
+    if (!remixImageUrl && !iterationImageUrl &&
+      (thumbnailData?.backgroundType === "custom" || thumbnailData?.backgroundType === "image") &&
+      thumbnailData?.backgroundValue) {
       imageInput.push(await fetchImageAsDataUrl(thumbnailData.backgroundValue));
     }
 

@@ -153,6 +153,9 @@ const QuickCreate = () => {
           onAudioUpdate: (audio) => {
             setAudioPreview(audio);
           },
+          onVideoFileReady: (videoFile) => {
+            setCurrentVideoFile(videoFile);
+          },
           onFramesReady: (frames) => {
             setFramesPreviews(frames);
             setIsFrameSelectionStep(true);
@@ -482,4 +485,3 @@ const QuickCreate = () => {
 };
 
 export default QuickCreate;
-

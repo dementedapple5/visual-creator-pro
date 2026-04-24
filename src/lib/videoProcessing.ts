@@ -15,6 +15,7 @@ export interface ProcessingCallbacks {
   onFramesUpdate?: (frames: string[]) => void;
   onAudioUpdate?: (audioDataUrl: string) => void;
   onFramesReady?: (frames: string[]) => Promise<string[]>;
+  onVideoFileReady?: (videoFile: File) => void;
 }
 
 let ffmpeg: FFmpeg | null = null;
@@ -156,6 +157,195 @@ async function extractFramesFromVideo(file: File, numFrames: number = 6): Promis
     
     video.src = URL.createObjectURL(file);
   });
+}
+
+function isLikelyVideoMimeType(mimeType: string): boolean {
+  if (!mimeType) return false;
+  const normalized = mimeType.toLowerCase();
+  return normalized.startsWith("video/") || normalized === "application/octet-stream";
+}
+
+function isYouTubeHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host.includes("youtube.com") ||
+    host.includes("youtu.be") ||
+    host.includes("youtube-nocookie.com")
+  );
+}
+
+function mimeTypeToExtension(mimeType?: string): string {
+  const normalized = (mimeType || "").split(";")[0].trim().toLowerCase();
+  const knownExtensions: Record<string, string> = {
+    "video/mp4": "mp4",
+    "video/quicktime": "mov",
+    "video/webm": "webm",
+    "video/x-matroska": "mkv",
+    "video/x-msvideo": "avi",
+    "video/mpeg": "mpeg",
+    "video/mp2t": "ts",
+    "application/octet-stream": "mp4",
+  };
+
+  if (knownExtensions[normalized]) {
+    return knownExtensions[normalized];
+  }
+
+  if (normalized.startsWith("video/")) {
+    const inferred = normalized.slice("video/".length).replace(/[^a-z0-9]/g, "");
+    return inferred || "mp4";
+  }
+
+  return "mp4";
+}
+
+function inferFileNameFromUrl(url: string, mimeType?: string): string {
+  const fallbackByMime = mimeTypeToExtension(mimeType);
+
+  try {
+    const parsedUrl = new URL(url);
+    const rawName = decodeURIComponent(parsedUrl.pathname.split("/").pop() || "").trim();
+    if (!rawName) return `video-from-url.${fallbackByMime}`;
+    if (rawName.includes(".")) return rawName;
+    return `${rawName}.${fallbackByMime}`;
+  } catch {
+    return `video-from-url.${fallbackByMime}`;
+  }
+}
+
+async function downloadVideoFromUrl(
+  url: string,
+  onMessage?: (message: string) => void
+): Promise<File> {
+  let normalizedUrl: string;
+  let parsedDomain = "";
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error("Only HTTP/HTTPS URLs are supported.");
+    }
+    normalizedUrl = parsed.toString();
+    parsedDomain = parsed.hostname.toLowerCase();
+  } catch {
+    throw new Error("Invalid video URL.");
+  }
+
+  if (isYouTubeHost(parsedDomain)) {
+    onMessage?.("Preparing YouTube video...");
+
+    const { data, error } = await supabase.functions.invoke("fetch-video-from-url", {
+      body: { url: normalizedUrl },
+    });
+
+    if (error) {
+      throw new Error(error.message || "Could not prepare YouTube video.");
+    }
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    const signedUrl = data?.signedUrl as string | undefined;
+    const fileName = data?.fileName as string | undefined;
+    if (!signedUrl) {
+      throw new Error("Could not prepare YouTube video.");
+    }
+
+    onMessage?.("Downloading prepared YouTube video...");
+
+    let response: Response;
+    try {
+      response = await fetch(signedUrl);
+    } catch {
+      throw new Error("Could not download prepared YouTube video.");
+    }
+
+    if (!response.ok) {
+      throw new Error(`Could not download prepared YouTube video (HTTP ${response.status}).`);
+    }
+
+    const responseMimeType = (response.headers.get("content-type") || "").split(";")[0].trim();
+    const blob = await response.blob();
+    const finalMimeType = blob.type || responseMimeType || "video/mp4";
+    if (!isLikelyVideoMimeType(finalMimeType)) {
+      throw new Error("The prepared YouTube file is not a supported video.");
+    }
+    if (blob.size === 0) {
+      throw new Error("Prepared YouTube video is empty.");
+    }
+
+    const safeFileName =
+      typeof fileName === "string" && fileName.trim().length > 0
+        ? fileName
+        : inferFileNameFromUrl(normalizedUrl, finalMimeType);
+
+    return new File([blob], safeFileName, { type: finalMimeType });
+  }
+
+  onMessage?.("Downloading video from URL...");
+
+  let response: Response;
+  try {
+    response = await fetch(normalizedUrl);
+  } catch {
+    throw new Error("Could not download this URL. Verify it is public and allows cross-origin access.");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Could not download video (HTTP ${response.status}).`);
+  }
+
+  const responseMimeType = (response.headers.get("content-type") || "").split(";")[0].trim();
+  if (responseMimeType && !isLikelyVideoMimeType(responseMimeType)) {
+    throw new Error("The provided URL does not look like a video file.");
+  }
+
+  const totalBytes = Number(response.headers.get("content-length") || "0");
+  let downloadedBytes = 0;
+  let lastProgressShown = -1;
+  let blob: Blob;
+
+  if (response.body) {
+    const chunks: Uint8Array[] = [];
+    const reader = response.body.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      chunks.push(value);
+      downloadedBytes += value.byteLength;
+
+      if (totalBytes > 0) {
+        const pct = Math.round((downloadedBytes / totalBytes) * 100);
+        if (pct !== lastProgressShown && pct % 5 === 0) {
+          lastProgressShown = pct;
+          onMessage?.(`Downloading video from URL... ${pct}%`);
+        }
+      } else {
+        const downloadedMb = Math.floor(downloadedBytes / (1024 * 1024));
+        if (downloadedMb > 0 && downloadedMb % 5 === 0 && downloadedMb !== lastProgressShown) {
+          lastProgressShown = downloadedMb;
+          onMessage?.(`Downloading video from URL... ${downloadedMb} MB`);
+        }
+      }
+    }
+
+    blob = new Blob(chunks, { type: responseMimeType || "video/mp4" });
+  } else {
+    blob = await response.blob();
+  }
+
+  const finalMimeType = blob.type || responseMimeType || "video/mp4";
+  if (!isLikelyVideoMimeType(finalMimeType)) {
+    throw new Error("The downloaded file is not a supported video.");
+  }
+  if (blob.size === 0) {
+    throw new Error("Downloaded video is empty.");
+  }
+
+  const fileName = inferFileNameFromUrl(normalizedUrl, finalMimeType);
+  return new File([blob], fileName, { type: finalMimeType });
 }
 
 export async function extractAudioFromVideo(
@@ -449,61 +639,77 @@ export async function processVideoContent(
   },
   callbacks: ProcessingCallbacks
 ): Promise<GenerationResult & { generationId?: string }> {
-  const { onProgress, onTranscriptionUpdate, onThumbnailUpdate, onFramesUpdate, onAudioUpdate, onFramesReady } = callbacks;
+  const {
+    onProgress,
+    onTranscriptionUpdate,
+    onThumbnailUpdate,
+    onFramesUpdate,
+    onAudioUpdate,
+    onFramesReady,
+    onVideoFileReady,
+  } = callbacks;
   
-  // Step 0: Extract frames and audio from video
-  onProgress(0, "Extracting frames and audio...");
+  // Step 0: Resolve source video
+  onProgress(0, "Preparing video...");
 
   let audioBase64: string;
   let mimeType = 'audio/webm';
   let extractedFrames: string[] = [];
   let videoDuration = 0;
 
+  let sourceVideoFile: File;
   if (input.type === "file" && input.value instanceof File) {
-    // Extract frames progressively
-    const extractionResult = await extractFramesFromVideo(input.value, 6);
-    extractedFrames = extractionResult.frames;
-    videoDuration = extractionResult.duration;
-
-    // Update frames one by one for visual effect
-    if (onFramesUpdate) {
-      for (let i = 0; i < extractedFrames.length; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        onFramesUpdate(extractedFrames.slice(0, i + 1));
-      }
-    }
-
-    // Extract ONLY the audio track (not the whole video)
-    let lastPctShown = -1;
-    const extracted = await extractAudioFromVideo(input.value, {
-      duration: videoDuration,
-      timeoutMs: 2 * 60 * 1000,
-      onProgress: (ratio) => {
-        const pct = Math.round(ratio * 100);
-        if (pct !== lastPctShown && pct % 5 === 0) {
-          lastPctShown = pct;
-          onProgress(0, `Extracting audio (FFmpeg)… ${pct}%`);
-        }
-      },
-    });
-    audioBase64 = extracted.base64;
-    mimeType = extracted.mimeType;
-
-    // Create audio data URL for preview playback
-    if (onAudioUpdate) {
-      const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
-      onAudioUpdate(audioDataUrl);
-    }
-
-    // Wait for user to confirm/edit frames if callback provided
-    if (onFramesReady) {
-      extractedFrames = await onFramesReady(extractedFrames);
-    }
+    sourceVideoFile = input.value;
+  } else if (input.type === "url" && typeof input.value === "string") {
+    sourceVideoFile = await downloadVideoFromUrl(input.value, (message) => onProgress(0, message));
   } else {
-    throw new Error("YouTube URL processing not yet implemented. Please upload a video file.");
+    throw new Error("Invalid video input.");
   }
 
-  // Step 1: Transcribe with Whisper
+  onVideoFileReady?.(sourceVideoFile);
+
+  // Step 1: Extract frames and audio from video
+  onProgress(0, "Extracting frames and audio...");
+  const extractionResult = await extractFramesFromVideo(sourceVideoFile, 6);
+  extractedFrames = extractionResult.frames;
+  videoDuration = extractionResult.duration;
+
+  // Update frames one by one for visual effect
+  if (onFramesUpdate) {
+    for (let i = 0; i < extractedFrames.length; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      onFramesUpdate(extractedFrames.slice(0, i + 1));
+    }
+  }
+
+  // Extract ONLY the audio track (not the whole video)
+  let lastPctShown = -1;
+  const extracted = await extractAudioFromVideo(sourceVideoFile, {
+    duration: videoDuration,
+    timeoutMs: 2 * 60 * 1000,
+    onProgress: (ratio) => {
+      const pct = Math.round(ratio * 100);
+      if (pct !== lastPctShown && pct % 5 === 0) {
+        lastPctShown = pct;
+        onProgress(0, `Extracting audio (FFmpeg)… ${pct}%`);
+      }
+    },
+  });
+  audioBase64 = extracted.base64;
+  mimeType = extracted.mimeType;
+
+  // Create audio data URL for preview playback
+  if (onAudioUpdate) {
+    const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
+    onAudioUpdate(audioDataUrl);
+  }
+
+  // Wait for user to confirm/edit frames if callback provided
+  if (onFramesReady) {
+    extractedFrames = await onFramesReady(extractedFrames);
+  }
+
+  // Step 2: Transcribe with Whisper
   onProgress(1, "Transcribing audio...");
   const transcription = await transcribeAudio(audioBase64, mimeType);
   
@@ -512,7 +718,7 @@ export async function processVideoContent(
     onTranscriptionUpdate(transcription);
   }
 
-  // Step 2: Generate thumbnails
+  // Step 3: Generate thumbnails
   onProgress(2, "Creating thumbnails...");
   const thumbnailResult = await generateThumbnails(
     transcription, 

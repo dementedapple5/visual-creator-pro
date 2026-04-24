@@ -422,6 +422,17 @@
       "fourThumbnails": "4 miniaturas únicas",
       "optimizedTitles": "Títulos optimizados"
     },
+    "input": {
+      "uploadFile": "Subir archivo",
+      "videoUrl": "URL del video",
+      "dropVideo": "Arrastra tu video aquí",
+      "clickToSelect": "o haz clic para seleccionar",
+      "publicVideoUrl": "URL pública del video",
+      "videoUrlPlaceholder": "https://example.com/video.mp4",
+      "videoUrlHint": "Puedes pegar un enlace de YouTube o una URL directa pública de archivo (mp4, mov, webm).",
+      "processing": "Procesando...",
+      "generate": "Generar miniaturas y títulos"
+    },
     "errors": {
       "signInFirst": "Por favor inicia sesión primero",
       "limitReached": "límite alcanzado. Mejora para crear más.",
