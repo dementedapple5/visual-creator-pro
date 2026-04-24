@@ -205,7 +205,7 @@ Requirements (strict):
 - NO borders/gaps/lines between cells (perfectly adjacent).
 - Each cell is a complete 16:9 thumbnail, YouTube-optimized, faithful to reference frames for content and subjects.
 - Place the title/subtitle text EXACTLY ONCE per thumbnail (single clear high-contrast location).
-- Final image size: 3840x2160 (2x2 of 1920x1080).
+- Final image size: 2048x1152 (2x2 grid output).
 ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styleReferenceInstructions}`;
 
     console.log("Generating grid image via OpenAI...");
@@ -225,7 +225,7 @@ ${isViral ? `- Apply viral style (all 4): ${viralStyleGuidelines}\n` : ''}${styl
       apiKey: openAIApiKey,
       prompt: gridPrompt,
       aspectRatio: "16:9",
-      resolution: "4K",
+      resolution: "2K",
       inputImages: allRefImages,
       logger,
       logLabel: "OpenAI gpt-image-2 grid generation",
